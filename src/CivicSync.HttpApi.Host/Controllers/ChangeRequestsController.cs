@@ -1,0 +1,79 @@
+using CivicSync.Node.Api.Application.Services.ChangeRequests;
+using CivicSync.Node.Api.Application.Services.Ledger;
+using CivicSync.Node.Api.Contracts.ChangeRequests;
+using CivicSync.Node.Api.Contracts.Ledger;
+using Microsoft.AspNetCore.Mvc;
+
+namespace CivicSync.Node.Api.Controllers;
+
+[ApiController]
+[Route("api/change-requests")]
+public sealed class ChangeRequestsController : ControllerBase
+{
+    private readonly IChangeRequestService _changeRequestService;
+    private readonly ILedgerService _ledgerService;
+
+    public ChangeRequestsController(
+        IChangeRequestService changeRequestService,
+        ILedgerService ledgerService)
+    {
+        _changeRequestService = changeRequestService;
+        _ledgerService = ledgerService;
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<ChangeRequestDto>> SubmitAsync(
+        SubmitChangeRequest request,
+        CancellationToken cancellationToken)
+    {
+        var changeRequest = await _changeRequestService.SubmitAsync(request, cancellationToken);
+
+        return Created($"/api/change-requests/{changeRequest.Id}", changeRequest);
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<IReadOnlyCollection<ChangeRequestDto>>> GetAllAsync(CancellationToken cancellationToken)
+    {
+        var changeRequests = await _changeRequestService.GetAllAsync(cancellationToken);
+
+        return Ok(changeRequests);
+    }
+
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<ChangeRequestDto>> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var changeRequest = await _changeRequestService.GetByIdAsync(id, cancellationToken);
+
+        return changeRequest is null ? NotFound() : Ok(changeRequest);
+    }
+
+    [HttpPost("{id:guid}/approvals")]
+    public async Task<ActionResult<ChangeRequestDto>> RequestApprovalAsync(
+        Guid id,
+        RequestDepartmentApprovalRequest request,
+        CancellationToken cancellationToken)
+    {
+        var changeRequest = await _changeRequestService.RequestApprovalAsync(id, request, cancellationToken);
+
+        return Ok(changeRequest);
+    }
+
+    [HttpPost("{id:guid}/decisions")]
+    public async Task<ActionResult<ChangeRequestDto>> RecordDecisionAsync(
+        Guid id,
+        RecordApprovalDecisionRequest request,
+        CancellationToken cancellationToken)
+    {
+        var changeRequest = await _changeRequestService.RecordDecisionAsync(id, request, cancellationToken);
+
+        return Ok(changeRequest);
+    }
+
+    [HttpPost("{id:guid}/commit")]
+    public async Task<ActionResult<CommitChangeRequestResponse>> CommitAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var response = await _ledgerService.CommitChangeRequestAsync(id, cancellationToken);
+
+        return Ok(response);
+    }
+}
