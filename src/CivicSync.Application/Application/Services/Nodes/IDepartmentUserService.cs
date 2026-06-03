@@ -1,0 +1,13 @@
+using CivicSync.Node.Api.Contracts.Nodes;
+
+namespace CivicSync.Node.Api.Application.Services.Nodes;
+
+public interface IDepartmentUserService
+{
+    Task<IReadOnlyCollection<DepartmentUserDto>> GetCurrentNodeUsersAsync(
+        CancellationToken cancellationToken = default);
+
+    Task<DepartmentUserDto> GetByIdAsync(
+        Guid id,
+        CancellationToken cancellationToken = default);
+}

@@ -1,0 +1,45 @@
+# Build output
+bin/
+obj/
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+_ReSharper*/
+*.DotSettings.user
+
+# Test results and coverage
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+coverage.opencover.xml
+
+# Logs
+*.log
+logs/
+
+# Local secrets and environment overrides
+secrets.json
+.env
+.env.*
+*.local.json
+appsettings.Local.json
+appsettings.*.Local.json
+
+# SQL Server / database artifacts
+*.mdf
+*.ldf
+*.bak
+*.bacpac
+*.dacpac
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "HomeAffairs": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "applicationUrl": "http://localhost:5076",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Node__DepartmentCode": "HomeAffairs",
+        "Node__ApiBaseUrl": "http://localhost:5076",
+        "Node__SharedSecret": "development-node-sync-secret",
+        "Node__MaxSyncPublishAttempts": "3",
+        "Node__Peers__0__DepartmentCode": "Sars",
+        "Node__Peers__0__ApiBaseUrl": "http://localhost:5077",
+        "Node__Peers__0__SharedSecret": "development-node-sync-secret",
+        "Node__Peers__1__DepartmentCode": "Municipality",
+        "Node__Peers__1__ApiBaseUrl": "http://localhost:5078",
+        "Node__Peers__1__SharedSecret": "development-node-sync-secret",
+        "ConnectionStrings__CivicSyncNode": "Server=localhost;Database=CivicSync_HomeAffairs;Trusted_Connection=True;TrustServerCertificate=True"
+      }
+    },
+    "Sars": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "applicationUrl": "http://localhost:5077",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Node__DepartmentCode": "Sars",
+        "Node__ApiBaseUrl": "http://localhost:5077",
+        "Node__SharedSecret": "development-node-sync-secret",
+        "Node__MaxSyncPublishAttempts": "3",
+        "Node__Peers__0__DepartmentCode": "HomeAffairs",
+        "Node__Peers__0__ApiBaseUrl": "http://localhost:5076",
+        "Node__Peers__0__SharedSecret": "development-node-sync-secret",
+        "Node__Peers__1__DepartmentCode": "Municipality",
+        "Node__Peers__1__ApiBaseUrl": "http://localhost:5078",
+        "Node__Peers__1__SharedSecret": "development-node-sync-secret",
+        "ConnectionStrings__CivicSyncNode": "Server=localhost;Database=CivicSync_Sars;Trusted_Connection=True;TrustServerCertificate=True"
+      }
+    },
+    "Municipality": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "applicationUrl": "http://localhost:5078",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Node__DepartmentCode": "Municipality",
+        "Node__ApiBaseUrl": "http://localhost:5078",
+        "Node__SharedSecret": "development-node-sync-secret",
+        "Node__MaxSyncPublishAttempts": "3",
+        "Node__Peers__0__DepartmentCode": "HomeAffairs",
+        "Node__Peers__0__ApiBaseUrl": "http://localhost:5076",
+        "Node__Peers__0__SharedSecret": "development-node-sync-secret",
+        "Node__Peers__1__DepartmentCode": "Sars",
+        "Node__Peers__1__ApiBaseUrl": "http://localhost:5077",
+        "Node__Peers__1__SharedSecret": "development-node-sync-secret",
+        "ConnectionStrings__CivicSyncNode": "Server=localhost;Database=CivicSync_Municipality;Trusted_Connection=True;TrustServerCertificate=True"
+      }
+    }
+  }
+}
