@@ -6,6 +6,7 @@ using CivicSync.Node.Api.Application.Services.Ledger;
 using CivicSync.Node.Api.Application.Services.Sync;
 using CivicSync.Node.Api.Infrastructure.Persistence;
 using CivicSync.Node.Api.Infrastructure.Persistence.Seed;
+using CivicSync.Node.Api.Infrastructure.Swagger;
 using Volo.Abp.AspNetCore.Mvc;
 using Volo.Abp.Autofac;
 using Volo.Abp.Modularity;
@@ -38,6 +39,9 @@ public sealed class CivicSyncNodeApiModule : AbpModule
 
         services.AddOpenApi();
         services.AddEndpointsApiExplorer();
-        services.AddSwaggerGen();
+        services.AddSwaggerGen(options =>
+        {
+            options.OperationFilter<CivicSyncSwaggerOperationFilter>();
+        });
     }
 }
