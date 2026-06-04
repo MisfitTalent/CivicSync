@@ -36,6 +36,18 @@ public sealed class ReceiveLedgerEntryRequest
     [MaxLength(30)]
     public string CitizenNationalIdNumber { get; set; } = string.Empty;
 
+    [MaxLength(100)]
+    public string CitizenFirstName { get; set; } = string.Empty;
+
+    [MaxLength(100)]
+    public string CitizenLastName { get; set; } = string.Empty;
+
+    [MaxLength(256)]
+    public string CitizenEmailAddress { get; set; } = string.Empty;
+
+    [MaxLength(30)]
+    public string CitizenPhoneNumber { get; set; } = string.Empty;
+
     [Required]
     [MinLength(1)]
     public List<SyncedFieldChangeDto> FieldChanges { get; set; } = [];

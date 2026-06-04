@@ -92,33 +92,54 @@ public sealed class SyncService : ISyncService
         }
 
         var citizen = await FindCitizenByNationalIdAsync(localNode.Id, request.CitizenNationalIdNumber, cancellationToken);
+        var createdCitizen = false;
 
         if (citizen is null)
         {
-            await _syncInboxEntryRepository.UpdateAsync(inboxEntry, autoSave: true, cancellationToken);
-
-            return new SynchronizedLedgerEntryResponse
+            if (!CanCreateCitizenFromSyncPayload(request))
             {
-                LedgerEntryId = ledgerEntry.Id,
-                Result = SyncResult.Queued,
-                Message = "Ledger entry stored, but matching citizen does not exist on this node yet."
-            };
+                await _syncInboxEntryRepository.UpdateAsync(inboxEntry, autoSave: true, cancellationToken);
+
+                return new SynchronizedLedgerEntryResponse
+                {
+                    LedgerEntryId = ledgerEntry.Id,
+                    Result = SyncResult.Queued,
+                    Message = "Ledger entry stored, but matching citizen does not exist on this node yet."
+                };
+            }
+
+            citizen = CreateCitizenFromSyncPayload(localNode.Id, request);
+            createdCitizen = true;
         }
 
-        foreach (var fieldChange in request.FieldChanges)
+        if (!createdCitizen)
         {
-            citizen.ApplySharedFieldChange(fieldChange.FieldName, fieldChange.NewValue);
+            foreach (var fieldChange in request.FieldChanges)
+            {
+                citizen.ApplySharedFieldChange(fieldChange.FieldName, fieldChange.NewValue);
+            }
         }
 
         inboxEntry.MarkApplied();
-        await _citizenRepository.UpdateAsync(citizen, autoSave: false, cancellationToken);
+
+        if (createdCitizen)
+        {
+            await _citizenRepository.InsertAsync(citizen, autoSave: false, cancellationToken);
+        }
+        else
+        {
+            await _citizenRepository.UpdateAsync(citizen, autoSave: false, cancellationToken);
+        }
+
         await _syncInboxEntryRepository.UpdateAsync(inboxEntry, autoSave: true, cancellationToken);
 
         return new SynchronizedLedgerEntryResponse
         {
             LedgerEntryId = ledgerEntry.Id,
             Result = SyncResult.Applied,
-            Message = "Ledger entry was applied to the local citizen record."
+            Message = createdCitizen
+                ? "Ledger entry created the missing citizen replica on this node."
+                : "Ledger entry was applied to the local citizen record."
         };
     }
 
@@ -273,6 +294,10 @@ public sealed class SyncService : ISyncService
             PreviousProofHash = ledgerEntry.PreviousProof.Hash,
             CurrentProofHash = ledgerEntry.CurrentProof.Hash,
             CitizenNationalIdNumber = citizen.NationalIdNumber,
+            CitizenFirstName = citizen.FullName.FirstName,
+            CitizenLastName = citizen.FullName.LastName,
+            CitizenEmailAddress = citizen.ContactDetails.EmailAddress,
+            CitizenPhoneNumber = citizen.ContactDetails.PhoneNumber,
             FieldChanges = changeRequest.FieldChanges
                 .Select(item => new SyncedFieldChangeDto
                 {
@@ -361,6 +386,24 @@ public sealed class SyncService : ISyncService
         existingReceipt.Result = result;
         existingReceipt.ReceivedAtUtc = DateTime.UtcNow;
         await _nodeSyncReceiptRepository.UpdateAsync(existingReceipt, autoSave: false, cancellationToken);
+    }
+
+    private static bool CanCreateCitizenFromSyncPayload(ReceiveLedgerEntryRequest request)
+    {
+        return !string.IsNullOrWhiteSpace(request.CitizenNationalIdNumber) &&
+            !string.IsNullOrWhiteSpace(request.CitizenFirstName) &&
+            !string.IsNullOrWhiteSpace(request.CitizenLastName) &&
+            !string.IsNullOrWhiteSpace(request.CitizenEmailAddress) &&
+            !string.IsNullOrWhiteSpace(request.CitizenPhoneNumber);
+    }
+
+    private static Citizen CreateCitizenFromSyncPayload(Guid departmentNodeId, ReceiveLedgerEntryRequest request)
+    {
+        return new Citizen(
+            departmentNodeId,
+            request.CitizenNationalIdNumber.Trim(),
+            new PersonName(request.CitizenFirstName.Trim(), request.CitizenLastName.Trim()),
+            new ContactDetails(request.CitizenEmailAddress.Trim(), request.CitizenPhoneNumber.Trim()));
     }
 
     private async Task<DepartmentNode> GetLocalNodeAsync(CancellationToken cancellationToken)
