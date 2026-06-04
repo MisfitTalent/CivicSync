@@ -4,17 +4,20 @@ using CivicSync.Node.Api.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Volo.Abp.EntityFrameworkCore;
 
 #nullable disable
 
-namespace CivicSync.Node.Api.Infrastructure.Persistence.Migrations
+namespace CivicSync.EntityFrameworkCore.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(CivicSyncDbContext))]
-    partial class CivicSyncDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260604070924_AddCitizenRecordVersioning")]
+    partial class AddCitizenRecordVersioning
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

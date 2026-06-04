@@ -57,6 +57,15 @@ public sealed class LedgerService : ILedgerService
             throw new InvalidOperationException("Citizen was not found.");
         }
 
+        if (citizen.RecordVersion != changeRequest.ExpectedCitizenVersion)
+        {
+            changeRequest.MarkConflict();
+            await _changeRequestRepository.UpdateAsync(changeRequest, autoSave: true, cancellationToken);
+
+            throw new InvalidOperationException(
+                $"Citizen record version conflict. Expected version {changeRequest.ExpectedCitizenVersion}, but current version is {citizen.RecordVersion}.");
+        }
+
         var ledgerEntries = await _ledgerEntryRepository.GetQueryableAsync();
         var latestLedgerEntry = await ledgerEntries
             .Where(item => item.OriginatingNodeId == changeRequest.RequestedAtNodeId)
@@ -76,6 +85,8 @@ public sealed class LedgerService : ILedgerService
             changeRequest.Id,
             changeRequest.CitizenId,
             changeRequest.RequestedAtNodeId,
+            changeRequest.ExpectedCitizenVersion,
+            CommittedCitizenVersion = citizen.RecordVersion,
             FieldChanges = changeRequest.FieldChanges.Select(item => new
             {
                 item.FieldName,
@@ -96,7 +107,7 @@ public sealed class LedgerService : ILedgerService
             new RecordProof(previousHash),
             new RecordProof(currentHash));
 
-        changeRequest.MarkCommitted();
+        changeRequest.MarkCommitted(citizen.RecordVersion);
 
         var outboxEvent = new SyncOutboxEvent(changeRequest.RequestedAtNodeId, ledgerEntry.Id);
 

@@ -17,6 +17,7 @@ public sealed class Citizen : EntityBase
         FullName = fullName;
         ContactDetails = contactDetails;
         Status = CitizenStatus.Active;
+        RecordVersion = 1;
     }
 
     public Guid DepartmentNodeId { get; set; }
@@ -24,6 +25,7 @@ public sealed class Citizen : EntityBase
     public PersonName FullName { get; set; } = new(string.Empty, string.Empty);
     public ContactDetails ContactDetails { get; set; } = new(string.Empty, string.Empty);
     public CitizenStatus Status { get; set; }
+    public long RecordVersion { get; set; }
 
     public void ApplySharedFieldChange(string fieldName, string newValue)
     {
@@ -42,6 +44,7 @@ public sealed class Citizen : EntityBase
                 throw new InvalidOperationException($"Field '{fieldName}' is not a supported shared citizen field.");
         }
 
+        RecordVersion++;
         MarkUpdated();
     }
 

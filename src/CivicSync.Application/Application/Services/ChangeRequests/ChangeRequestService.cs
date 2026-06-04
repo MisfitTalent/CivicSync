@@ -47,7 +47,7 @@ public sealed class ChangeRequestService : IChangeRequestService
             throw new InvalidOperationException("Citizen does not exist on this node.");
         }
 
-        var changeRequest = new ChangeRequest(departmentNode.Id, citizen.Id, request.Reason);
+        var changeRequest = new ChangeRequest(departmentNode.Id, citizen.Id, request.Reason, citizen.RecordVersion);
 
         foreach (var fieldChange in request.FieldChanges)
         {
@@ -224,6 +224,8 @@ public sealed class ChangeRequestService : IChangeRequestService
             RequestedAtNodeId = changeRequest.RequestedAtNodeId,
             CitizenId = changeRequest.CitizenId,
             Reason = changeRequest.Reason,
+            ExpectedCitizenVersion = changeRequest.ExpectedCitizenVersion,
+            CommittedCitizenVersion = changeRequest.CommittedCitizenVersion,
             Status = changeRequest.Status,
             CreatedAtUtc = changeRequest.CreatedAtUtc,
             FieldChanges = changeRequest.FieldChanges

@@ -19,7 +19,7 @@ public sealed class LedgerServiceTests
         await using var dbContext = TestDbContextFactory.Create();
         var node = new DepartmentNode(DepartmentCode.HomeAffairs, "http://localhost:5076");
         var citizen = new Citizen(node.Id, "9001015009087", new PersonName("Test", "Citizen"), new ContactDetails("old@example.test", "+27000000000"));
-        var changeRequest = new ChangeRequest(node.Id, citizen.Id, "Update contact details");
+        var changeRequest = new ChangeRequest(node.Id, citizen.Id, "Update contact details", citizen.RecordVersion);
         changeRequest.AddFieldChange("ContactDetails", "old@example.test|+27000000000", "new@example.test|+27820000000");
         dbContext.DepartmentNodes.Add(node);
         dbContext.Citizens.Add(citizen);
@@ -52,6 +52,9 @@ public sealed class LedgerServiceTests
         var outboxEvent = Assert.Single(dbContext.SyncOutboxEvents.Local);
         Assert.Equal("Committed", result.Status);
         Assert.Equal(ChangeRequestStatus.Committed, changeRequest.Status);
+        Assert.Equal(2, citizen.RecordVersion);
+        Assert.Equal(1, changeRequest.ExpectedCitizenVersion);
+        Assert.Equal(2, changeRequest.CommittedCitizenVersion);
         Assert.Equal("new@example.test", citizen.ContactDetails.EmailAddress);
         Assert.Equal("+27820000000", citizen.ContactDetails.PhoneNumber);
         Assert.Equal(ledgerEntry.Id, outboxEvent.LedgerEntryId);
@@ -90,9 +93,34 @@ public sealed class LedgerServiceTests
         Assert.Equal("existing-current", result.LedgerEntry.PreviousProofHash);
     }
 
-    private static ChangeRequest CreateApprovedContactChange(Guid nodeId, Guid citizenId)
+
+    [Fact]
+    public async Task CommitChangeRequestAsync_MarksConflict_WhenCitizenVersionChangedBeforeCommit()
     {
-        var changeRequest = new ChangeRequest(nodeId, citizenId, "Update contact details");
+        await using var dbContext = TestDbContextFactory.Create();
+        var node = new DepartmentNode(DepartmentCode.HomeAffairs, "http://localhost:5076");
+        var citizen = new Citizen(node.Id, "9001015009087", new PersonName("Test", "Citizen"), new ContactDetails("old@example.test", "+27000000000"));
+        var changeRequest = CreateApprovedContactChange(node.Id, citizen.Id, citizen.RecordVersion);
+        citizen.ApplySharedFieldChange("ContactDetails", "alreadychanged@example.test|+27111111111");
+        dbContext.DepartmentNodes.Add(node);
+        dbContext.Citizens.Add(citizen);
+        dbContext.ChangeRequests.Add(changeRequest);
+        await Task.CompletedTask;
+        var service = CreateService(dbContext);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.CommitChangeRequestAsync(changeRequest.Id));
+
+        Assert.Equal("Citizen record version conflict. Expected version 1, but current version is 2.", exception.Message);
+        Assert.Equal(ChangeRequestStatus.Conflict, changeRequest.Status);
+        Assert.Empty(dbContext.LedgerEntries.Local);
+        Assert.Empty(dbContext.SyncOutboxEvents.Local);
+        Assert.Equal("alreadychanged@example.test", citizen.ContactDetails.EmailAddress);
+    }
+
+    private static ChangeRequest CreateApprovedContactChange(Guid nodeId, Guid citizenId, long expectedCitizenVersion = 1)
+    {
+        var changeRequest = new ChangeRequest(nodeId, citizenId, "Update contact details", expectedCitizenVersion);
         changeRequest.AddFieldChange("ContactDetails", "old@example.test|+27000000000", "new@example.test|+27820000000");
         changeRequest.RequestApprovalFrom(
             nodeId,
