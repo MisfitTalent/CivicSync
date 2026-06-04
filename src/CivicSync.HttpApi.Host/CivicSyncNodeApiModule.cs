@@ -6,6 +6,7 @@ using CivicSync.Node.Api.Application.Services.Ledger;
 using CivicSync.Node.Api.Application.Services.Sync;
 using CivicSync.Node.Api.Infrastructure.Persistence;
 using CivicSync.Node.Api.Infrastructure.Persistence.Seed;
+using CivicSync.Node.Api.Infrastructure.Security;
 using CivicSync.Node.Api.Infrastructure.Swagger;
 using Volo.Abp.AspNetCore.Mvc;
 using Volo.Abp.Autofac;
@@ -28,6 +29,7 @@ public sealed class CivicSyncNodeApiModule : AbpModule
 
         services.AddControllers();
         services.Configure<NodeOptions>(configuration.GetSection(NodeOptions.SectionName));
+        services.Configure<ApiKeyOptions>(configuration.GetSection(ApiKeyOptions.SectionName));
 
         services.AddScoped<NodeDataSeeder>();
         services.AddScoped<ICitizenService, CitizenService>();

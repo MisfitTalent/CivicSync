@@ -44,6 +44,24 @@ public sealed class ApiExceptionMiddlewareTests
         Assert.Equal("Only approved change requests can be committed.", document.RootElement.GetProperty("detail").GetString());
     }
 
+    [Fact]
+    public async Task InvokeAsync_ReturnsConflictProblemDetails_WhenCitizenVersionConflictOccurs()
+    {
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+        var middleware = new ApiExceptionMiddleware(
+            _ => throw new InvalidOperationException("Citizen record version conflict. Expected version 1, but current version is 2."),
+            NullLogger<ApiExceptionMiddleware>.Instance);
+
+        await middleware.InvokeAsync(context);
+
+        var body = await ReadResponseBodyAsync(context);
+        using var document = JsonDocument.Parse(body);
+        Assert.Equal(StatusCodes.Status409Conflict, context.Response.StatusCode);
+        Assert.Equal("Request conflicts with the current resource state.", document.RootElement.GetProperty("title").GetString());
+        Assert.Equal("Citizen record version conflict. Expected version 1, but current version is 2.", document.RootElement.GetProperty("detail").GetString());
+    }
+
     private static async Task<string> ReadResponseBodyAsync(HttpContext context)
     {
         context.Response.Body.Position = 0;

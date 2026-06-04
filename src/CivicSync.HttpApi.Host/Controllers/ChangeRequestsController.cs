@@ -76,4 +76,14 @@ public sealed class ChangeRequestsController : ControllerBase
 
         return Ok(response);
     }
+
+    [HttpPost("process-approved")]
+    public async Task<ActionResult<ProcessApprovedChangeRequestsResponse>> ProcessApprovedAsync(
+        ProcessApprovedChangeRequestsRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await _ledgerService.ProcessApprovedChangeRequestsAsync(request.MaxItems, cancellationToken);
+
+        return Ok(response);
+    }
 }

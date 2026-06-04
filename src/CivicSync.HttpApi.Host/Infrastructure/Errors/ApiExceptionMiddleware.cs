@@ -63,13 +63,24 @@ public sealed class ApiExceptionMiddleware
     {
         return exception switch
         {
-            InvalidOperationException invalidOperationException
-                when invalidOperationException.Message.Contains("not found", StringComparison.OrdinalIgnoreCase) ||
-                     invalidOperationException.Message.Contains("does not exist", StringComparison.OrdinalIgnoreCase) => StatusCodes.Status404NotFound,
+            InvalidOperationException invalidOperationException when IsNotFoundException(invalidOperationException) => StatusCodes.Status404NotFound,
+            InvalidOperationException invalidOperationException when IsConflictException(invalidOperationException) => StatusCodes.Status409Conflict,
             InvalidOperationException => StatusCodes.Status400BadRequest,
             ArgumentException => StatusCodes.Status400BadRequest,
             _ => StatusCodes.Status500InternalServerError
         };
+    }
+
+    private static bool IsNotFoundException(InvalidOperationException exception)
+    {
+        return exception.Message.Contains("not found", StringComparison.OrdinalIgnoreCase) ||
+               exception.Message.Contains("does not exist", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsConflictException(InvalidOperationException exception)
+    {
+        return exception.Message.Contains("conflict", StringComparison.OrdinalIgnoreCase) ||
+               exception.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string GetTitle(int statusCode)
@@ -78,6 +89,7 @@ public sealed class ApiExceptionMiddleware
         {
             StatusCodes.Status400BadRequest => "Request could not be processed.",
             StatusCodes.Status404NotFound => "Resource was not found.",
+            StatusCodes.Status409Conflict => "Request conflicts with the current resource state.",
             _ => "Unexpected server error."
         };
     }

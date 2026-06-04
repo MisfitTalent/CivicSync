@@ -93,7 +93,6 @@ public sealed class LedgerServiceTests
         Assert.Equal("existing-current", result.LedgerEntry.PreviousProofHash);
     }
 
-
     [Fact]
     public async Task CommitChangeRequestAsync_MarksConflict_WhenCitizenVersionChangedBeforeCommit()
     {
@@ -116,6 +115,63 @@ public sealed class LedgerServiceTests
         Assert.Empty(dbContext.LedgerEntries.Local);
         Assert.Empty(dbContext.SyncOutboxEvents.Local);
         Assert.Equal("alreadychanged@example.test", citizen.ContactDetails.EmailAddress);
+    }
+
+    [Fact]
+    public async Task ProcessApprovedChangeRequestsAsync_CommitsOnlyRequestedBatchSize()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var node = new DepartmentNode(DepartmentCode.HomeAffairs, "http://localhost:5076");
+        var firstCitizen = new Citizen(node.Id, "9001015009087", new PersonName("First", "Citizen"), new ContactDetails("first@example.test", "+27000000001"));
+        var secondCitizen = new Citizen(node.Id, "9001015009088", new PersonName("Second", "Citizen"), new ContactDetails("second@example.test", "+27000000002"));
+        var firstChangeRequest = CreateApprovedContactChange(node.Id, firstCitizen.Id, firstCitizen.RecordVersion);
+        var secondChangeRequest = CreateApprovedContactChange(node.Id, secondCitizen.Id, secondCitizen.RecordVersion);
+        dbContext.DepartmentNodes.Add(node);
+        dbContext.Citizens.AddRange(firstCitizen, secondCitizen);
+        dbContext.ChangeRequests.AddRange(firstChangeRequest, secondChangeRequest);
+        await Task.CompletedTask;
+        var service = CreateService(dbContext);
+
+        var result = await service.ProcessApprovedChangeRequestsAsync(1);
+
+        Assert.Equal(1, result.MaxItems);
+        Assert.Equal(1, result.ProcessedCount);
+        Assert.Equal(1, result.CommittedCount);
+        Assert.Equal(0, result.ConflictCount);
+        Assert.Equal(0, result.FailureCount);
+        Assert.Single(result.CommittedChanges);
+        Assert.Equal(ChangeRequestStatus.Committed, firstChangeRequest.Status);
+        Assert.Equal(ChangeRequestStatus.Approved, secondChangeRequest.Status);
+    }
+
+    [Fact]
+    public async Task ProcessApprovedChangeRequestsAsync_ContinuesWhenOneRequestConflicts()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var node = new DepartmentNode(DepartmentCode.HomeAffairs, "http://localhost:5076");
+        var staleCitizen = new Citizen(node.Id, "9001015009087", new PersonName("Stale", "Citizen"), new ContactDetails("stale@example.test", "+27000000001"));
+        var validCitizen = new Citizen(node.Id, "9001015009088", new PersonName("Valid", "Citizen"), new ContactDetails("valid@example.test", "+27000000002"));
+        var staleChangeRequest = CreateApprovedContactChange(node.Id, staleCitizen.Id, staleCitizen.RecordVersion);
+        var validChangeRequest = CreateApprovedContactChange(node.Id, validCitizen.Id, validCitizen.RecordVersion);
+        staleCitizen.ApplySharedFieldChange("ContactDetails", "changed@example.test|+27111111111");
+        dbContext.DepartmentNodes.Add(node);
+        dbContext.Citizens.AddRange(staleCitizen, validCitizen);
+        dbContext.ChangeRequests.AddRange(staleChangeRequest, validChangeRequest);
+        await Task.CompletedTask;
+        var service = CreateService(dbContext);
+
+        var result = await service.ProcessApprovedChangeRequestsAsync(10);
+
+        Assert.Equal(2, result.ProcessedCount);
+        Assert.Equal(1, result.CommittedCount);
+        Assert.Equal(1, result.ConflictCount);
+        Assert.Equal(1, result.FailureCount);
+        Assert.Single(result.CommittedChanges);
+        var failure = Assert.Single(result.Failures);
+        Assert.Equal(staleChangeRequest.Id, failure.ChangeRequestId);
+        Assert.Contains("Citizen record version conflict", failure.Reason);
+        Assert.Equal(ChangeRequestStatus.Conflict, staleChangeRequest.Status);
+        Assert.Equal(ChangeRequestStatus.Committed, validChangeRequest.Status);
     }
 
     private static ChangeRequest CreateApprovedContactChange(Guid nodeId, Guid citizenId, long expectedCitizenVersion = 1)
