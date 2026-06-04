@@ -89,6 +89,7 @@ public sealed class CitizenService : ICitizenService
             EmailAddress = citizen.ContactDetails.EmailAddress,
             PhoneNumber = citizen.ContactDetails.PhoneNumber,
             Status = citizen.Status,
+            RecordVersion = citizen.RecordVersion,
             CreatedAtUtc = citizen.CreatedAtUtc
         };
     }
