@@ -13,5 +13,6 @@ public sealed class CitizenDto
     public string EmailAddress { get; set; } = string.Empty;
     public string PhoneNumber { get; set; } = string.Empty;
     public CitizenStatus Status { get; set; }
+    public long RecordVersion { get; set; }
     public DateTime CreatedAtUtc { get; set; }
 }

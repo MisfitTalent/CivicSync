@@ -62,7 +62,7 @@ public sealed class SyncServiceTests
             "9001015009087",
             new PersonName("Test", "Citizen"),
             new ContactDetails("old@example.test", "+27000000000"));
-        var changeRequest = new ChangeRequest(localNode.Id, citizen.Id, "Update contact details");
+        var changeRequest = new ChangeRequest(localNode.Id, citizen.Id, "Update contact details", citizen.RecordVersion);
         changeRequest.AddFieldChange("ContactDetails", "old@example.test|+27000000000", "new@example.test|+27820000000");
         var ledgerEntry = new LedgerEntry(
             localNode.Id,
@@ -131,7 +131,7 @@ public sealed class SyncServiceTests
             "9001015009087",
             new PersonName("Retry", "Citizen"),
             new ContactDetails("old@example.test", "+27000000000"));
-        var changeRequest = new ChangeRequest(localNode.Id, citizen.Id, "Retry sync after peer recovery");
+        var changeRequest = new ChangeRequest(localNode.Id, citizen.Id, "Retry sync after peer recovery", citizen.RecordVersion);
         changeRequest.AddFieldChange("ContactDetails", "old@example.test|+27000000000", "new@example.test|+27820000000");
         var ledgerEntry = new LedgerEntry(
             localNode.Id,

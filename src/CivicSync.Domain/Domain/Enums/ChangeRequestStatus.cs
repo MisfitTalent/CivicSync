@@ -9,5 +9,6 @@ public enum ChangeRequestStatus
     Committed = 5,
     Syncing = 6,
     Synced = 7,
-    SyncFailed = 8
+    SyncFailed = 8,
+    Conflict = 9
 }

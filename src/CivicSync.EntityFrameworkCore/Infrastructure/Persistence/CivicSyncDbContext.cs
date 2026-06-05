@@ -106,6 +106,7 @@ public sealed class CivicSyncDbContext : AbpDbContext<CivicSyncDbContext>
             entity.HasKey(item => item.Id);
             entity.Property(item => item.NationalIdNumber).HasMaxLength(30).IsRequired();
             entity.Property(item => item.Status).HasConversion<string>().HasMaxLength(50).IsRequired();
+            entity.Property(item => item.RecordVersion).IsRequired();
             entity.HasIndex(item => new { item.DepartmentNodeId, item.NationalIdNumber }).IsUnique();
             entity.OwnsOne(item => item.FullName, owned =>
             {
@@ -141,6 +142,8 @@ public sealed class CivicSyncDbContext : AbpDbContext<CivicSyncDbContext>
             entity.HasKey(item => item.Id);
             entity.Property(item => item.Reason).HasMaxLength(500).IsRequired();
             entity.Property(item => item.Status).HasConversion<string>().HasMaxLength(50).IsRequired();
+            entity.Property(item => item.ExpectedCitizenVersion).IsRequired();
+            entity.Property(item => item.CommittedCitizenVersion);
             entity.HasMany(item => item.FieldChanges)
                 .WithOne()
                 .HasForeignKey(item => item.ChangeRequestId)

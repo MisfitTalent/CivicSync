@@ -1,11 +1,14 @@
-﻿using CivicSync.Node.Api.Application.Configuration;
+using CivicSync.Node.Api.Application.Configuration;
 using CivicSync.Node.Api.Application.Services.Audit;
 using CivicSync.Node.Api.Application.Services.ChangeRequests;
 using CivicSync.Node.Api.Application.Services.Citizens;
 using CivicSync.Node.Api.Application.Services.Ledger;
+using CivicSync.Node.Api.Application.Services.Nodes;
 using CivicSync.Node.Api.Application.Services.Sync;
 using CivicSync.Node.Api.Infrastructure.Persistence;
 using CivicSync.Node.Api.Infrastructure.Persistence.Seed;
+using CivicSync.Node.Api.Infrastructure.Security;
+using CivicSync.Node.Api.Infrastructure.Swagger;
 using Volo.Abp.AspNetCore.Mvc;
 using Volo.Abp.Autofac;
 using Volo.Abp.Modularity;
@@ -27,10 +30,12 @@ public sealed class CivicSyncNodeApiModule : AbpModule
 
         services.AddControllers();
         services.Configure<NodeOptions>(configuration.GetSection(NodeOptions.SectionName));
+        services.Configure<ApiKeyOptions>(configuration.GetSection(ApiKeyOptions.SectionName));
 
         services.AddScoped<NodeDataSeeder>();
         services.AddScoped<ICitizenService, CitizenService>();
         services.AddScoped<IChangeRequestService, ChangeRequestService>();
+        services.AddScoped<IDepartmentNodeService, DepartmentNodeService>();
         services.AddScoped<ILedgerService, LedgerService>();
         services.AddSingleton<INodeSyncSignatureService, NodeSyncSignatureService>();
         services.AddHttpClient<IAuditService, AuditService>();
@@ -38,6 +43,9 @@ public sealed class CivicSyncNodeApiModule : AbpModule
 
         services.AddOpenApi();
         services.AddEndpointsApiExplorer();
-        services.AddSwaggerGen();
+        services.AddSwaggerGen(options =>
+        {
+            options.OperationFilter<CivicSyncSwaggerOperationFilter>();
+        });
     }
 }

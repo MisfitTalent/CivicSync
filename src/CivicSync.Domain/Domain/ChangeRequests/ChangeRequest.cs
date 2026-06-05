@@ -12,17 +12,20 @@ public sealed class ChangeRequest : EntityBase
     {
     }
 
-    public ChangeRequest(Guid requestedAtNodeId, Guid citizenId, string reason)
+    public ChangeRequest(Guid requestedAtNodeId, Guid citizenId, string reason, long expectedCitizenVersion)
     {
         RequestedAtNodeId = requestedAtNodeId;
         CitizenId = citizenId;
         Reason = reason;
+        ExpectedCitizenVersion = expectedCitizenVersion;
         Status = ChangeRequestStatus.Draft;
     }
 
     public Guid RequestedAtNodeId { get; set; }
     public Guid CitizenId { get; set; }
     public string Reason { get; set; } = string.Empty;
+    public long ExpectedCitizenVersion { get; set; }
+    public long? CommittedCitizenVersion { get; set; }
     public ChangeRequestStatus Status { get; set; }
     public IReadOnlyCollection<FieldChange> FieldChanges => _fieldChanges.AsReadOnly();
     public IReadOnlyCollection<DepartmentApproval> Approvals => _approvals.AsReadOnly();
@@ -81,13 +84,25 @@ public sealed class ChangeRequest : EntityBase
         MarkUpdated();
     }
 
-    public void MarkCommitted()
+    public void MarkConflict()
+    {
+        if (Status != ChangeRequestStatus.Approved)
+        {
+            throw new InvalidOperationException("Only approved change requests can be marked as conflicted.");
+        }
+
+        Status = ChangeRequestStatus.Conflict;
+        MarkUpdated();
+    }
+
+    public void MarkCommitted(long committedCitizenVersion)
     {
         if (Status != ChangeRequestStatus.Approved)
         {
             throw new InvalidOperationException("Only approved change requests can be committed.");
         }
 
+        CommittedCitizenVersion = committedCitizenVersion;
         Status = ChangeRequestStatus.Committed;
         MarkUpdated();
     }

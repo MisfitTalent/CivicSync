@@ -2,6 +2,7 @@
 using CivicSync.Node.Api;
 using CivicSync.Node.Api.Infrastructure.Errors;
 using CivicSync.Node.Api.Infrastructure.Persistence.Seed;
+using CivicSync.Node.Api.Infrastructure.Security;
 using Volo.Abp;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -29,6 +30,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseApiKeyAuthentication();
 
 app.UseAuthorization();
 

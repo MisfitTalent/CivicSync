@@ -15,6 +15,9 @@ namespace CivicSync.Node.Api.Application.Services.Ledger;
 
 public sealed class LedgerService : ILedgerService
 {
+    private const int DefaultMaximumBatchSize = 10;
+    private const int AbsoluteMaximumBatchSize = 25;
+
     private readonly IRepository<ChangeRequest, Guid> _changeRequestRepository;
     private readonly IRepository<Citizen, Guid> _citizenRepository;
     private readonly IRepository<LedgerEntry, Guid> _ledgerEntryRepository;
@@ -30,6 +33,52 @@ public sealed class LedgerService : ILedgerService
         _citizenRepository = citizenRepository;
         _ledgerEntryRepository = ledgerEntryRepository;
         _syncOutboxEventRepository = syncOutboxEventRepository;
+    }
+
+    public async Task<ProcessApprovedChangeRequestsResponse> ProcessApprovedChangeRequestsAsync(
+        int maxItems,
+        CancellationToken cancellationToken = default)
+    {
+        var boundedMaxItems = GetBoundedMaxItems(maxItems);
+        var changeRequests = await _changeRequestRepository.GetQueryableAsync();
+        var approvedChangeRequestIds = await changeRequests
+            .Where(item => item.Status == ChangeRequestStatus.Approved)
+            .OrderBy(item => item.CreatedAtUtc)
+            .Select(item => item.Id)
+            .Take(boundedMaxItems)
+            .ToListAsync(cancellationToken);
+
+        var committedChanges = new List<CommitChangeRequestResponse>();
+        var failures = new List<ChangeRequestProcessingFailureDto>();
+        var conflictCount = 0;
+
+        foreach (var changeRequestId in approvedChangeRequestIds)
+        {
+            try
+            {
+                committedChanges.Add(await CommitChangeRequestAsync(changeRequestId, cancellationToken));
+            }
+            catch (InvalidOperationException exception) when (IsCitizenVersionConflict(exception))
+            {
+                conflictCount++;
+                failures.Add(new ChangeRequestProcessingFailureDto
+                {
+                    ChangeRequestId = changeRequestId,
+                    Reason = exception.Message
+                });
+            }
+        }
+
+        return new ProcessApprovedChangeRequestsResponse
+        {
+            MaxItems = boundedMaxItems,
+            ProcessedCount = approvedChangeRequestIds.Count,
+            CommittedCount = committedChanges.Count,
+            ConflictCount = conflictCount,
+            FailureCount = failures.Count,
+            CommittedChanges = committedChanges,
+            Failures = failures
+        };
     }
 
     public async Task<CommitChangeRequestResponse> CommitChangeRequestAsync(
@@ -57,6 +106,15 @@ public sealed class LedgerService : ILedgerService
             throw new InvalidOperationException("Citizen was not found.");
         }
 
+        if (citizen.RecordVersion != changeRequest.ExpectedCitizenVersion)
+        {
+            changeRequest.MarkConflict();
+            await _changeRequestRepository.UpdateAsync(changeRequest, autoSave: true, cancellationToken);
+
+            throw new InvalidOperationException(
+                $"Citizen record version conflict. Expected version {changeRequest.ExpectedCitizenVersion}, but current version is {citizen.RecordVersion}.");
+        }
+
         var ledgerEntries = await _ledgerEntryRepository.GetQueryableAsync();
         var latestLedgerEntry = await ledgerEntries
             .Where(item => item.OriginatingNodeId == changeRequest.RequestedAtNodeId)
@@ -76,6 +134,8 @@ public sealed class LedgerService : ILedgerService
             changeRequest.Id,
             changeRequest.CitizenId,
             changeRequest.RequestedAtNodeId,
+            changeRequest.ExpectedCitizenVersion,
+            CommittedCitizenVersion = citizen.RecordVersion,
             FieldChanges = changeRequest.FieldChanges.Select(item => new
             {
                 item.FieldName,
@@ -96,7 +156,7 @@ public sealed class LedgerService : ILedgerService
             new RecordProof(previousHash),
             new RecordProof(currentHash));
 
-        changeRequest.MarkCommitted();
+        changeRequest.MarkCommitted(citizen.RecordVersion);
 
         var outboxEvent = new SyncOutboxEvent(changeRequest.RequestedAtNodeId, ledgerEntry.Id);
 
@@ -111,6 +171,21 @@ public sealed class LedgerService : ILedgerService
             Status = changeRequest.Status.ToString(),
             LedgerEntry = MapToDto(ledgerEntry)
         };
+    }
+
+    private static int GetBoundedMaxItems(int maxItems)
+    {
+        if (maxItems <= 0)
+        {
+            return DefaultMaximumBatchSize;
+        }
+
+        return Math.Min(maxItems, AbsoluteMaximumBatchSize);
+    }
+
+    private static bool IsCitizenVersionConflict(InvalidOperationException exception)
+    {
+        return exception.Message.Contains("Citizen record version conflict", StringComparison.OrdinalIgnoreCase);
     }
 
     private static LedgerEntryDto MapToDto(LedgerEntry ledgerEntry)
