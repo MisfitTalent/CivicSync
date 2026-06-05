@@ -1,8 +1,9 @@
-﻿using CivicSync.Node.Api.Application.Configuration;
+using CivicSync.Node.Api.Application.Configuration;
 using CivicSync.Node.Api.Application.Services.Audit;
 using CivicSync.Node.Api.Application.Services.ChangeRequests;
 using CivicSync.Node.Api.Application.Services.Citizens;
 using CivicSync.Node.Api.Application.Services.Ledger;
+using CivicSync.Node.Api.Application.Services.Nodes;
 using CivicSync.Node.Api.Application.Services.Sync;
 using CivicSync.Node.Api.Infrastructure.Persistence;
 using CivicSync.Node.Api.Infrastructure.Persistence.Seed;
@@ -34,6 +35,7 @@ public sealed class CivicSyncNodeApiModule : AbpModule
         services.AddScoped<NodeDataSeeder>();
         services.AddScoped<ICitizenService, CitizenService>();
         services.AddScoped<IChangeRequestService, ChangeRequestService>();
+        services.AddScoped<IDepartmentNodeService, DepartmentNodeService>();
         services.AddScoped<ILedgerService, LedgerService>();
         services.AddSingleton<INodeSyncSignatureService, NodeSyncSignatureService>();
         services.AddHttpClient<IAuditService, AuditService>();
