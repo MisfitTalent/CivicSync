@@ -5,6 +5,7 @@
     <Project Path="src/CivicSync.Domain/CivicSync.Domain.csproj" />
     <Project Path="src/CivicSync.EntityFrameworkCore/CivicSync.EntityFrameworkCore.csproj" />
     <Project Path="src/CivicSync.HttpApi.Host/CivicSync.HttpApi.Host.csproj" />
+    <Project Path="src/CivicSync.Migrator/CivicSync.Migrator.csproj" />
   </Folder>
   <Folder Name="/test/">
     <Project Path="test/CivicSync.Abp.Tests/CivicSync.Abp.Tests.csproj" />
