@@ -30,6 +30,19 @@ public sealed class CivicSyncNodeApiModule : AbpModule
         var services = context.Services;
 
         services.AddControllers();
+        services.AddCors(options =>
+        {
+            options.AddPolicy("CivicSyncFrontend", policy =>
+            {
+                policy.WithOrigins(
+                        "http://localhost:5173",
+                        "https://localhost:5173",
+                        "http://127.0.0.1:5173",
+                        "https://127.0.0.1:5173")
+                    .AllowAnyHeader()
+                    .AllowAnyMethod();
+            });
+        });
         services.Configure<NodeOptions>(configuration.GetSection(NodeOptions.SectionName));
         services.Configure<ApiKeyOptions>(configuration.GetSection(ApiKeyOptions.SectionName));
 

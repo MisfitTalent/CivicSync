@@ -3,6 +3,9 @@ bin/
 obj/
 [Bb]in/
 [Oo]bj/
+dist/
+node_modules/
+*.tsbuildinfo
 
 # Visual Studio / Rider
 .vs/
@@ -29,6 +32,7 @@ logs/
 secrets.json
 .env
 .env.*
+!.env.example
 *.local.json
 appsettings.Local.json
 appsettings.*.Local.json
