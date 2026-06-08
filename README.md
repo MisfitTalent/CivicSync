@@ -34,3 +34,13 @@ The checked-in shared secret is development-only. Replace it with environment va
 dotnet build .\CivicSync.Abp.slnx
 dotnet test .\CivicSync.Abp.slnx --no-restore
 ```
+
+## Database Migration
+
+Run the migrator before starting a node against a fresh SQL Server database:
+
+```powershell
+dotnet run --project .\src\CivicSync.Migrator\CivicSync.Migrator.csproj
+```
+
+Override `ConnectionStrings__CivicSyncNode` and `Node__DepartmentCode` when migrating a different department database.
