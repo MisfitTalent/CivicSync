@@ -1,4 +1,5 @@
-﻿import { AuditPanel, Info, Metric, PanelHeader } from '../../components/dashboard/DashboardWidgets';
+import { AuditPanel, Info, Metric, PanelHeader } from '../../components/dashboard/DashboardWidgets';
+import CitizenRegistrationPanel from '../../components/workflow/CitizenRegistrationPanel';
 import { useAuthState } from '../../providers/authProvider';
 import { useCivicSyncActions, useCivicSyncState } from '../../providers/civicSyncProvider';
 
@@ -15,7 +16,7 @@ const AdminPage = () => {
         <div>
           <p className="eyebrow">Admin workspace</p>
           <h2>System monitoring</h2>
-          <p>Admin users monitor nodes, queue sizes, ledger activity, and peer sync outcomes. They do not submit citizen profile changes.</p>
+          <p>Admin users monitor nodes, queue sizes, ledger activity, and peer sync outcomes.</p>
         </div>
         <div className="department-metrics">
           <Metric label="Citizens" value={state.citizens.length} />
@@ -37,6 +38,7 @@ const AdminPage = () => {
           </div>
         </section>
 
+        <CitizenRegistrationPanel title="Admin Citizen Registration" />
         <AuditPanel title="Ledger" rows={state.ledger.slice(0, 8).map((entry) => [`#${entry.sequenceNumber}`, entry.currentProofHash.slice(0, 16), new Date(entry.createdAtUtc).toLocaleString()])} />
         <AuditPanel title="Outbox Queue" rows={state.outbox.slice(0, 8).map((entry) => [entry.status.toString(), `Retries ${entry.retryCount}`, entry.ledgerEntryId.slice(0, 8)])} />
         <AuditPanel title="Inbox Queue" rows={state.inbox.slice(0, 8).map((entry) => [entry.status.toString(), entry.citizenNationalIdNumber || 'Unknown citizen', entry.ledgerEntryId.slice(0, 8)])} />

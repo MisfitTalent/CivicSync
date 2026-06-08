@@ -4,6 +4,7 @@ import { AuditPanel, Info, Metric, PanelHeader } from '../../components/dashboar
 import { nodes, statusText } from '../../providers/civicSyncProvider/context';
 import { useCivicSyncActions, useCivicSyncState } from '../../providers/civicSyncProvider';
 import type { DepartmentCode } from '../../api/types';
+import CitizenRegistrationPanel from '../../components/workflow/CitizenRegistrationPanel';
 
 interface DepartmentPageProps {
   departmentCode: DepartmentCode;
@@ -19,6 +20,7 @@ const DepartmentPage = ({ departmentCode, title, responsibility }: DepartmentPag
   const firstApprover = state.users[0];
   const noticeClassName = `notice ${state.isError ? 'notice-error' : state.isSuccess ? 'notice-success' : ''}`;
   const noticeMessage = state.errorMessage || state.successMessage || state.message;
+  const canRegisterCitizens = departmentCode === 1;
 
   useEffect(() => {
     if (state.activeNode.departmentCode !== departmentCode) {
@@ -53,6 +55,8 @@ const DepartmentPage = ({ departmentCode, title, responsibility }: DepartmentPag
             <Info label="Default Approver" value={firstApprover ? `${firstApprover.fullName} (${firstApprover.role})` : 'No approver loaded'} />
           </div>
         </section>
+
+        {canRegisterCitizens && <CitizenRegistrationPanel />}
 
         <section className="panel">
           <h2>Pending Work</h2>
