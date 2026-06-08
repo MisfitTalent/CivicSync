@@ -1,42 +1,34 @@
-﻿import { Button, Card, Input } from 'antd';
+import { Button, Card, Input } from 'antd';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthActions } from '../../providers/authProvider';
-import { loginAccounts } from '../../providers/authProvider/context';
+import { useAuthActions, useAuthState } from '../../providers/authProvider';
 import { useCivicSyncActions } from '../../providers/civicSyncProvider';
 import { nodes } from '../../providers/civicSyncProvider/context';
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const { signIn } = useAuthActions();
+  const authState = useAuthState();
   const { setActiveNode } = useCivicSyncActions();
   const [emailAddress, setEmailAddress] = useState('');
   const [password, setPassword] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setErrorMessage('');
+    const profile = signIn(emailAddress, password);
 
-    const account = loginAccounts.find((item) =>
-      item.emailAddress.toLowerCase() === emailAddress.trim().toLowerCase() &&
-      item.password === password,
-    );
-
-    if (!account) {
-      setErrorMessage('Invalid email address or password.');
+    if (!profile) {
       return;
     }
 
-    if (account.profile.departmentCode) {
-      const departmentNode = nodes.find((node) => node.departmentCode === account.profile.departmentCode);
+    if (profile.departmentCode) {
+      const departmentNode = nodes.find((node) => node.departmentCode === profile.departmentCode);
       if (departmentNode) {
         setActiveNode(departmentNode);
       }
     }
 
-    signIn(account.profile);
-    navigate(account.profile.workspacePath, { replace: true });
+    navigate(profile.workspacePath, { replace: true });
   };
 
   return (
@@ -59,8 +51,8 @@ const LoginPage = () => {
               <span>Password</span>
               <Input.Password value={password} onChange={(event) => setPassword(event.target.value)} required />
             </label>
-            {errorMessage && <p className="form-error" role="alert">{errorMessage}</p>}
-            <Button className="primary-button" htmlType="submit">Sign in</Button>
+            {authState.isError && <p className="form-error" role="alert">{authState.errorMessage}</p>}
+            <Button className="primary-button" htmlType="submit" disabled={authState.isPending}>Sign in</Button>
           </form>
         </Card>
       </section>

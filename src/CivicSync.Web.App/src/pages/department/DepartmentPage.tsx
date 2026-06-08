@@ -17,6 +17,8 @@ const DepartmentPage = ({ departmentCode, title, responsibility }: DepartmentPag
   const departmentNode = nodes.find((node) => node.departmentCode === departmentCode) ?? nodes[0];
   const selectedRequest = state.changeRequests.find((request) => request.id === state.selectedRequestId);
   const firstApprover = state.users[0];
+  const noticeClassName = `notice ${state.isError ? 'notice-error' : state.isSuccess ? 'notice-success' : ''}`;
+  const noticeMessage = state.errorMessage || state.successMessage || state.message;
 
   useEffect(() => {
     if (state.activeNode.departmentCode !== departmentCode) {
@@ -39,7 +41,7 @@ const DepartmentPage = ({ departmentCode, title, responsibility }: DepartmentPag
         </div>
       </section>
 
-      <section className="notice" aria-live="polite">{state.message}</section>
+      <section className={noticeClassName} aria-live="polite">{noticeMessage}</section>
 
       <div className="department-grid">
         <section className="panel span-2">

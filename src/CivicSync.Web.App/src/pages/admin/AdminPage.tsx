@@ -6,6 +6,8 @@ const AdminPage = () => {
   const state = useCivicSyncState();
   const actions = useCivicSyncActions();
   const { currentUser } = useAuthState();
+  const noticeClassName = `notice ${state.isError ? 'notice-error' : state.isSuccess ? 'notice-success' : ''}`;
+  const noticeMessage = state.errorMessage || state.successMessage || state.message;
 
   return (
     <main className="page-stack">
@@ -22,7 +24,7 @@ const AdminPage = () => {
         </div>
       </section>
 
-      <section className="notice" aria-live="polite">{state.message}</section>
+      <section className={noticeClassName} aria-live="polite">{noticeMessage}</section>
 
       <div className="department-grid">
         <section className="panel span-2">

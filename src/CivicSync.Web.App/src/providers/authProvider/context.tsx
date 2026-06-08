@@ -19,10 +19,15 @@ export interface LoginAccount {
 
 export interface AuthStateContextValue {
   currentUser: AppUserProfile | null;
+  isPending: boolean;
+  isSuccess: boolean;
+  isError: boolean;
+  errorMessage: string;
+  successMessage: string;
 }
 
 export interface AuthActionContextValue {
-  signIn: (profile: AppUserProfile) => void;
+  signIn: (emailAddress: string, password: string) => AppUserProfile | null;
   signOut: () => void;
 }
 

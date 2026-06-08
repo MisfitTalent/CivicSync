@@ -251,6 +251,18 @@ label span,
   font-weight: 700;
 }
 
+.notice-success {
+  border-color: rgba(74, 151, 63, 0.35);
+  color: #245b22;
+  background: linear-gradient(135deg, rgba(236, 255, 230, 0.95), rgba(246, 255, 237, 0.95));
+}
+
+.notice-error {
+  border-color: rgba(209, 74, 47, 0.35);
+  color: #8f2a16;
+  background: linear-gradient(135deg, rgba(255, 241, 230, 0.95), rgba(255, 229, 221, 0.95));
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(320px, 1fr));
