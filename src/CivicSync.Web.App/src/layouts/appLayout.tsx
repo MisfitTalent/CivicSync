@@ -20,10 +20,13 @@ const AppLayout = () => {
   return (
     <div className="app-shell">
       <header className="hero">
-        <div>
-          <p className="eyebrow">Decentralized public-sector ledger</p>
-          <h1>CivicSync Ledger</h1>
-          <p className="hero-copy">Signed-in workspace for citizen requests, department approvals, ledger commits, and peer sync.</p>
+        <div className="brand-lockup">
+          <img className="brand-logo" src="/civicsync-logo.svg" alt="CivicSync Ledger logo" />
+          <div>
+            <p className="eyebrow">Decentralized public-sector ledger</p>
+            <h1>CivicSync Ledger</h1>
+            <p className="hero-copy">Signed-in workspace for citizen requests, department approvals, ledger commits, and peer sync.</p>
+          </div>
         </div>
         <div className="hero-card" aria-live="polite">
           <span>{isLoading ? 'Working' : 'Signed in as'}</span>

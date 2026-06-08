@@ -35,6 +35,7 @@ const LoginPage = () => {
     <main className="login-shell">
       <section className="login-panel">
         <div className="login-copy">
+          <img className="login-logo" src="/civicsync-logo.svg" alt="CivicSync Ledger logo" />
           <p className="eyebrow">CivicSync Ledger</p>
           <h1>Sign in</h1>
           <p>Access your CivicSync workspace to manage records, approvals, ledger activity, and department sync.</p>
