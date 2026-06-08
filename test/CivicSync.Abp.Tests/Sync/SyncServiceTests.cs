@@ -252,6 +252,60 @@ public sealed class SyncServiceTests
         Assert.Equal("0821234567", citizen.ContactDetails.PhoneNumber);
     }
 
+    [Fact]
+    public async Task ReceiveLedgerEntryAsync_CreatesCitizenReplica_WhenSnapshotIsProvided()
+    {
+        await using var dbContext = CreateDbContext();
+        var localNode = new DepartmentNode(DepartmentCode.Sars, "http://localhost:5077");
+        var request = new ReceiveLedgerEntryRequest
+        {
+            LedgerEntryId = Guid.NewGuid(),
+            OriginatingNodeId = Guid.NewGuid(),
+            ChangeRequestId = Guid.NewGuid(),
+            SequenceNumber = 8,
+            EventType = LedgerEventType.ChangeCommitted,
+            PayloadProofHash = "payload-proof",
+            PreviousProofHash = "previous-proof",
+            CurrentProofHash = "current-proof",
+            CitizenNationalIdNumber = "8811053466666",
+            CitizenFirstName = "Smoke",
+            CitizenLastName = "Tester",
+            CitizenEmailAddress = "smoke.updated@example.com",
+            CitizenPhoneNumber = "+27829999999",
+            FieldChanges =
+            [
+                new SyncedFieldChangeDto
+                {
+                    FieldName = "ContactDetails",
+                    NewValue = "smoke.updated@example.com|+27829999999"
+                }
+            ]
+        };
+        dbContext.DepartmentNodes.Add(localNode);
+        await Task.CompletedTask;
+        var service = CreateService(
+            dbContext,
+            new NodeOptions
+            {
+                DepartmentCode = DepartmentCode.Sars
+            },
+            new StubHttpMessageHandler(HttpStatusCode.OK, new SynchronizedLedgerEntryResponse()));
+
+        var response = await service.ReceiveLedgerEntryAsync(request);
+
+        Assert.Equal(SyncResult.Applied, response.Result);
+        var citizen = Assert.Single(dbContext.Citizens.Local);
+        Assert.Equal(localNode.Id, citizen.DepartmentNodeId);
+        Assert.Equal("8811053466666", citizen.NationalIdNumber);
+        Assert.Equal("Smoke", citizen.FullName.FirstName);
+        Assert.Equal("Tester", citizen.FullName.LastName);
+        Assert.Equal("smoke.updated@example.com", citizen.ContactDetails.EmailAddress);
+        Assert.Equal("+27829999999", citizen.ContactDetails.PhoneNumber);
+        Assert.Equal(1, citizen.RecordVersion);
+        var inboxEntry = Assert.Single(dbContext.SyncInboxEntries.Local);
+        Assert.Equal(SyncStatus.Applied, inboxEntry.Status);
+    }
+
     private static SyncService CreateService(
         CivicSyncDbContext dbContext,
         NodeOptions nodeOptions,
