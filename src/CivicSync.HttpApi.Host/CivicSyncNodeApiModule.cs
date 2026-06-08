@@ -37,6 +37,7 @@ public sealed class CivicSyncNodeApiModule : AbpModule
         services.AddScoped<IChangeRequestService, ChangeRequestService>();
         services.AddScoped<IDepartmentNodeService, DepartmentNodeService>();
         services.AddScoped<ILedgerService, LedgerService>();
+        services.AddScoped<IDepartmentUserService, DepartmentUserService>();
         services.AddSingleton<INodeSyncSignatureService, NodeSyncSignatureService>();
         services.AddHttpClient<IAuditService, AuditService>();
         services.AddHttpClient<ISyncService, SyncService>();
