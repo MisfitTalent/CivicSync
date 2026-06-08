@@ -9,6 +9,7 @@ using CivicSync.Node.Api.Infrastructure.Persistence;
 using CivicSync.Node.Api.Infrastructure.Persistence.Seed;
 using CivicSync.Node.Api.Infrastructure.Security;
 using CivicSync.Node.Api.Infrastructure.Swagger;
+using Microsoft.OpenApi;
 using Volo.Abp.AspNetCore.Mvc;
 using Volo.Abp.Autofac;
 using Volo.Abp.Modularity;
@@ -46,6 +47,17 @@ public sealed class CivicSyncNodeApiModule : AbpModule
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(options =>
         {
+            options.AddSecurityDefinition(ApiKeyAuthenticationMiddleware.HeaderName, new OpenApiSecurityScheme
+            {
+                Type = SecuritySchemeType.ApiKey,
+                Name = ApiKeyAuthenticationMiddleware.HeaderName,
+                In = ParameterLocation.Header,
+                Description = "Enter the CivicSync API key used by local node endpoints."
+            });
+            options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+            {
+                [new OpenApiSecuritySchemeReference(ApiKeyAuthenticationMiddleware.HeaderName, document, null)] = []
+            });
             options.OperationFilter<CivicSyncSwaggerOperationFilter>();
         });
     }
