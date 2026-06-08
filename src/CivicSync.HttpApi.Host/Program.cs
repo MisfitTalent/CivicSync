@@ -31,6 +31,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseCors("CivicSyncFrontend");
+
 app.UseApiKeyAuthentication();
 
 app.UseAuthorization();
