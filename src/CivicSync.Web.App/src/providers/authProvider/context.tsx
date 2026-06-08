@@ -9,8 +9,12 @@ export interface AppUserProfile {
   role: UserRole;
   departmentCode?: DepartmentCode;
   workspacePath: string;
-  visibleFields: string[];
-  capabilities: string[];
+}
+
+export interface LoginAccount {
+  emailAddress: string;
+  password: string;
+  profile: AppUserProfile;
 }
 
 export interface AuthStateContextValue {
@@ -22,49 +26,59 @@ export interface AuthActionContextValue {
   signOut: () => void;
 }
 
-export const demoProfiles: AppUserProfile[] = [
+export const loginAccounts: LoginAccount[] = [
   {
-    id: 'citizen-demo',
-    displayName: 'Citizen User',
-    role: 'Citizen',
-    workspacePath: '/citizen',
-    visibleFields: ['Own citizen profile', 'Own contact details', 'Own change requests'],
-    capabilities: ['Create citizen profile', 'Submit contact change request'],
+    emailAddress: 'citizen@civicsync.local',
+    password: 'Password123!',
+    profile: {
+      id: 'citizen-user',
+      displayName: 'Citizen User',
+      role: 'Citizen',
+      workspacePath: '/citizen',
+    },
   },
   {
-    id: 'home-affairs-demo',
-    displayName: 'Home Affairs Officer',
-    role: 'HomeAffairsOfficer',
-    departmentCode: 1,
-    workspacePath: '/home-affairs',
-    visibleFields: ['National ID', 'Full name', 'Date of birth', 'Citizen status'],
-    capabilities: ['Approve identity-related changes', 'Commit approved ledger entries', 'Publish peer sync'],
+    emailAddress: 'homeaffairs@civicsync.local',
+    password: 'Password123!',
+    profile: {
+      id: 'home-affairs-officer',
+      displayName: 'Home Affairs Officer',
+      role: 'HomeAffairsOfficer',
+      departmentCode: 1,
+      workspacePath: '/home-affairs',
+    },
   },
   {
-    id: 'sars-demo',
-    displayName: 'SARS Officer',
-    role: 'SarsOfficer',
-    departmentCode: 2,
-    workspacePath: '/sars',
-    visibleFields: ['Tax number', 'Tax address', 'Employment status', 'Tax-impacting contact changes'],
-    capabilities: ['Review tax-impacting changes', 'Apply received inbox updates', 'Inspect local ledger'],
+    emailAddress: 'sars@civicsync.local',
+    password: 'Password123!',
+    profile: {
+      id: 'sars-officer',
+      displayName: 'SARS Officer',
+      role: 'SarsOfficer',
+      departmentCode: 2,
+      workspacePath: '/sars',
+    },
   },
   {
-    id: 'municipality-demo',
-    displayName: 'Municipality Officer',
-    role: 'MunicipalityOfficer',
-    departmentCode: 3,
-    workspacePath: '/municipality',
-    visibleFields: ['Residential address', 'Ward number', 'Service account status', 'Contact details'],
-    capabilities: ['Approve residence/contact changes', 'Apply received inbox updates', 'Inspect municipal ledger'],
+    emailAddress: 'municipality@civicsync.local',
+    password: 'Password123!',
+    profile: {
+      id: 'municipality-officer',
+      displayName: 'Municipality Officer',
+      role: 'MunicipalityOfficer',
+      departmentCode: 3,
+      workspacePath: '/municipality',
+    },
   },
   {
-    id: 'admin-demo',
-    displayName: 'System Administrator',
-    role: 'Admin',
-    workspacePath: '/admin',
-    visibleFields: ['Node health', 'Peer configuration', 'Sync audit', 'Operational counts'],
-    capabilities: ['Monitor all node status', 'Refresh audit data', 'Check sync queues'],
+    emailAddress: 'admin@civicsync.local',
+    password: 'Password123!',
+    profile: {
+      id: 'system-admin',
+      displayName: 'System Administrator',
+      role: 'Admin',
+      workspacePath: '/admin',
+    },
   },
 ];
 

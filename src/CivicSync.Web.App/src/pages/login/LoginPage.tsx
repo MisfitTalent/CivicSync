@@ -1,62 +1,68 @@
-﻿import { Button, Card } from 'antd';
+﻿import { Button, Card, Input } from 'antd';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthActions, useAuthState } from '../../providers/authProvider';
-import { demoProfiles } from '../../providers/authProvider/context';
+import { useAuthActions } from '../../providers/authProvider';
+import { loginAccounts } from '../../providers/authProvider/context';
 import { useCivicSyncActions } from '../../providers/civicSyncProvider';
 import { nodes } from '../../providers/civicSyncProvider/context';
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { currentUser } = useAuthState();
   const { signIn } = useAuthActions();
   const { setActiveNode } = useCivicSyncActions();
+  const [emailAddress, setEmailAddress] = useState('');
+  const [password, setPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
-  const handleSignIn = (profileId: string) => {
-    const profile = demoProfiles.find((item) => item.id === profileId);
-    if (!profile) {
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setErrorMessage('');
+
+    const account = loginAccounts.find((item) =>
+      item.emailAddress.toLowerCase() === emailAddress.trim().toLowerCase() &&
+      item.password === password,
+    );
+
+    if (!account) {
+      setErrorMessage('Invalid email address or password.');
       return;
     }
 
-    if (profile.departmentCode) {
-      const departmentNode = nodes.find((node) => node.departmentCode === profile.departmentCode);
+    if (account.profile.departmentCode) {
+      const departmentNode = nodes.find((node) => node.departmentCode === account.profile.departmentCode);
       if (departmentNode) {
         setActiveNode(departmentNode);
       }
     }
 
-    signIn(profile);
-    navigate(profile.workspacePath, { replace: true });
+    signIn(account.profile);
+    navigate(account.profile.workspacePath, { replace: true });
   };
 
   return (
     <main className="login-shell">
-      <section className="login-hero">
-        <p className="eyebrow">CivicSync access</p>
-        <h1>Choose a demo profile</h1>
-        <p>Each profile sees a different workspace, different permitted actions, and different field visibility.</p>
-        {currentUser && <p className="helper-text">Currently signed in as {currentUser.displayName}.</p>}
-      </section>
+      <section className="login-panel">
+        <div className="login-copy">
+          <p className="eyebrow">CivicSync Ledger</p>
+          <h1>Sign in</h1>
+          <p>Access your CivicSync workspace to manage records, approvals, ledger activity, and department sync.</p>
+        </div>
 
-      <section className="profile-grid">
-        {demoProfiles.map((profile) => (
-          <Card className="profile-card" key={profile.id}>
-            <span>{profile.role}</span>
-            <h2>{profile.displayName}</h2>
-            <div className="profile-section">
-              <strong>Can see</strong>
-              <ul>
-                {profile.visibleFields.map((field) => <li key={field}>{field}</li>)}
-              </ul>
-            </div>
-            <div className="profile-section">
-              <strong>Can do</strong>
-              <ul>
-                {profile.capabilities.map((capability) => <li key={capability}>{capability}</li>)}
-              </ul>
-            </div>
-            <Button className="primary-button" onClick={() => handleSignIn(profile.id)}>Sign in</Button>
-          </Card>
-        ))}
+        <Card className="login-card">
+          <h2>Account Login</h2>
+          <form className="form-stack" onSubmit={handleSubmit}>
+            <label>
+              <span>Email address</span>
+              <Input type="email" value={emailAddress} onChange={(event) => setEmailAddress(event.target.value)} required />
+            </label>
+            <label>
+              <span>Password</span>
+              <Input.Password value={password} onChange={(event) => setPassword(event.target.value)} required />
+            </label>
+            {errorMessage && <p className="form-error" role="alert">{errorMessage}</p>}
+            <Button className="primary-button" htmlType="submit">Sign in</Button>
+          </form>
+        </Card>
       </section>
     </main>
   );
