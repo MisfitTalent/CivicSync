@@ -31,6 +31,8 @@ export interface AuthActionContextValue {
   signOut: () => void;
 }
 
+export const authStorageKey = 'civicsync.currentUser';
+
 export const loginAccounts: LoginAccount[] = [
   {
     emailAddress: 'citizen@civicsync.local',
@@ -86,6 +88,15 @@ export const loginAccounts: LoginAccount[] = [
     },
   },
 ];
+
+export const initialAuthState: AuthStateContextValue = {
+  currentUser: null,
+  isPending: false,
+  isSuccess: false,
+  isError: false,
+  errorMessage: '',
+  successMessage: '',
+};
 
 export const AuthStateContext = createContext<AuthStateContextValue | undefined>(undefined);
 export const AuthActionContext = createContext<AuthActionContextValue | undefined>(undefined);
