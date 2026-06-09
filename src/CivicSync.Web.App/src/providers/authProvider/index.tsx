@@ -1,33 +1,24 @@
-import { useContext, useMemo, useState } from 'react';
-import { AuthActionContext, AuthStateContext, loginAccounts, type AppUserProfile, type AuthStateContextValue } from './context';
-
-const storageKey = 'civicsync.currentUser';
+import { useContext, useMemo, useReducer } from 'react';
+import { signInError, signInPending, signInSuccess, signOutSuccess } from './actions';
+import { AuthActionContext, AuthStateContext, authStorageKey, initialAuthState, loginAccounts, type AppUserProfile, type AuthStateContextValue } from './context';
+import { authReducer } from './reducer';
 
 const loadStoredUser = (): AppUserProfile | null => {
-  const storedValue = window.localStorage.getItem(storageKey);
+  const storedValue = window.localStorage.getItem(authStorageKey);
   return storedValue ? JSON.parse(storedValue) as AppUserProfile : null;
 };
 
+const loadInitialAuthState = (): AuthStateContextValue => ({
+  ...initialAuthState,
+  currentUser: loadStoredUser(),
+});
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [authState, setAuthState] = useState<AuthStateContextValue>(() => ({
-    currentUser: loadStoredUser(),
-    isPending: false,
-    isSuccess: false,
-    isError: false,
-    errorMessage: '',
-    successMessage: '',
-  }));
+  const [authState, dispatch] = useReducer(authReducer, initialAuthState, loadInitialAuthState);
 
   const actions = useMemo(() => ({
     signIn: (emailAddress: string, password: string) => {
-      setAuthState((current) => ({
-        ...current,
-        isPending: true,
-        isSuccess: false,
-        isError: false,
-        errorMessage: '',
-        successMessage: '',
-      }));
+      dispatch(signInPending());
 
       const account = loginAccounts.find((item) =>
         item.emailAddress.toLowerCase() === emailAddress.trim().toLowerCase() &&
@@ -35,38 +26,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       );
 
       if (!account) {
-        setAuthState((current) => ({
-          ...current,
-          isPending: false,
-          isSuccess: false,
-          isError: true,
-          errorMessage: 'Invalid email address or password.',
-          successMessage: '',
-        }));
+        dispatch(signInError('Invalid email address or password.'));
         return null;
       }
 
-      window.localStorage.setItem(storageKey, JSON.stringify(account.profile));
-      setAuthState({
-        currentUser: account.profile,
-        isPending: false,
-        isSuccess: true,
-        isError: false,
-        errorMessage: '',
-        successMessage: `Signed in as ${account.profile.displayName}.`,
-      });
+      window.localStorage.setItem(authStorageKey, JSON.stringify(account.profile));
+      dispatch(signInSuccess(account.profile));
       return account.profile;
     },
     signOut: () => {
-      window.localStorage.removeItem(storageKey);
-      setAuthState({
-        currentUser: null,
-        isPending: false,
-        isSuccess: false,
-        isError: false,
-        errorMessage: '',
-        successMessage: '',
-      });
+      window.localStorage.removeItem(authStorageKey);
+      dispatch(signOutSuccess());
     },
   }), []);
 
