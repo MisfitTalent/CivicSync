@@ -1,14 +1,14 @@
-﻿using CivicSync.Node.Api.Application.Configuration;
-using CivicSync.Node.Api.Contracts.Citizens;
-using CivicSync.Node.Api.Domain.Citizens;
-using CivicSync.Node.Api.Domain.Enums;
-using CivicSync.Node.Api.Domain.Nodes;
-using CivicSync.Node.Api.Domain.ValueObjects;
+using CivicSync.Core.Configuration;
+using CivicSync.Application.Contracts.Citizens;
+using CivicSync.Core.Domain.Citizens;
+using CivicSync.Core.Domain.Enums;
+using CivicSync.Core.Domain.Nodes;
+using CivicSync.Core.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Volo.Abp.Domain.Repositories;
 
-namespace CivicSync.Node.Api.Application.Services.Citizens;
+namespace CivicSync.Application.Services.Citizens;
 
 public sealed class CitizenService : ICitizenService
 {

@@ -1,0 +1,6 @@
+namespace CivicSync.Application.Contracts.Ledger;
+
+public sealed class ProcessApprovedChangeRequestsRequest
+{
+    public int MaxItems { get; set; } = 10;
+}

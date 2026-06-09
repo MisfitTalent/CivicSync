@@ -1,7 +1,7 @@
-﻿using CivicSync.Node.Api.Infrastructure.Persistence;
+using CivicSync.EntityFrameworkCore.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace CivicSync.Node.Api.Tests.TestSupport;
+namespace CivicSync.Web.Host.Tests.TestSupport;
 
 internal static class TestDbContextFactory
 {

@@ -20,7 +20,7 @@ This folder contains the ASP.NET/ABP backend implementation for the CivicSync Le
 
 ## Local Development
 
-Use the launch profiles in `src/CivicSync.HttpApi.Host/Properties/launchSettings.json` to run separate nodes:
+Use the launch profiles in `src/CivicSync.Web.Host/Properties/launchSettings.json` to run separate nodes:
 
 - `HomeAffairs` on `http://localhost:5076`
 - `Sars` on `http://localhost:5077`

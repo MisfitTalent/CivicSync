@@ -1,15 +1,15 @@
-﻿using CivicSync.Node.Api.Domain.ChangeRequests;
-using CivicSync.Node.Api.Domain.Citizens;
-using CivicSync.Node.Api.Domain.Enums;
-using CivicSync.Node.Api.Domain.Ledger;
-using CivicSync.Node.Api.Domain.Nodes;
-using CivicSync.Node.Api.Domain.Sync;
+using CivicSync.Core.Domain.ChangeRequests;
+using CivicSync.Core.Domain.Citizens;
+using CivicSync.Core.Domain.Enums;
+using CivicSync.Core.Domain.Ledger;
+using CivicSync.Core.Domain.Nodes;
+using CivicSync.Core.Domain.Sync;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Volo.Abp.Data;
 using Volo.Abp.EntityFrameworkCore;
 
-namespace CivicSync.Node.Api.Infrastructure.Persistence;
+namespace CivicSync.EntityFrameworkCore.Infrastructure.Persistence;
 
 [ConnectionStringName("CivicSyncNode")]
 public sealed class CivicSyncDbContext : AbpDbContext<CivicSyncDbContext>

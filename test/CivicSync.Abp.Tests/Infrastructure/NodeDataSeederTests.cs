@@ -1,12 +1,12 @@
-using CivicSync.Node.Api.Application.Configuration;
-using CivicSync.Node.Api.Domain.Citizens;
-using CivicSync.Node.Api.Domain.Enums;
-using CivicSync.Node.Api.Domain.Nodes;
-using CivicSync.Node.Api.Infrastructure.Persistence.Seed;
-using CivicSync.Node.Api.Tests.TestSupport;
+using CivicSync.Core.Configuration;
+using CivicSync.Core.Domain.Citizens;
+using CivicSync.Core.Domain.Enums;
+using CivicSync.Core.Domain.Nodes;
+using CivicSync.EntityFrameworkCore.Infrastructure.Persistence.Seed;
+using CivicSync.Web.Host.Tests.TestSupport;
 using Microsoft.Extensions.Options;
 
-namespace CivicSync.Node.Api.Tests.Infrastructure;
+namespace CivicSync.Web.Host.Tests.Infrastructure;
 
 public sealed class NodeDataSeederTests
 {

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -21,10 +21,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\CivicSync.Application\CivicSync.Application.csproj" />
-    <ProjectReference Include="..\..\src\CivicSync.Application.Contracts\CivicSync.Application.Contracts.csproj" />
-    <ProjectReference Include="..\..\src\CivicSync.Domain\CivicSync.Domain.csproj" />
+    <ProjectReference Include="..\..\src\CivicSync.Core\CivicSync.Core.csproj" />
     <ProjectReference Include="..\..\src\CivicSync.EntityFrameworkCore\CivicSync.EntityFrameworkCore.csproj" />
-    <ProjectReference Include="..\..\src\CivicSync.HttpApi.Host\CivicSync.HttpApi.Host.csproj" />
+    <ProjectReference Include="..\..\src\CivicSync.Web.Core\CivicSync.Web.Core.csproj" />
+    <ProjectReference Include="..\..\src\CivicSync.Web.Host\CivicSync.Web.Host.csproj" />
   </ItemGroup>
 
 </Project>
