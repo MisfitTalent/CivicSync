@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
-namespace CivicSync.Node.Api.Infrastructure.Persistence;
+namespace CivicSync.EntityFrameworkCore.Infrastructure.Persistence;
 
 public sealed class CivicSyncDbContextFactory : IDesignTimeDbContextFactory<CivicSyncDbContext>
 {

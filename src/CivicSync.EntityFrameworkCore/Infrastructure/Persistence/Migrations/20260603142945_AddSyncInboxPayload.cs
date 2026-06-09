@@ -1,8 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace CivicSync.Node.Api.Infrastructure.Persistence.Migrations
+namespace CivicSync.EntityFrameworkCore.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
     public partial class AddSyncInboxPayload : Migration

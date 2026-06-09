@@ -1,7 +1,7 @@
 using Autofac.Extensions.DependencyInjection;
-using CivicSync.Node.Api.Infrastructure.Persistence;
-using CivicSync.Node.Api.Infrastructure.Persistence.Seed;
-using CivicSync.Node.Api.Migrator;
+using CivicSync.EntityFrameworkCore.Infrastructure.Persistence;
+using CivicSync.EntityFrameworkCore.Infrastructure.Persistence.Seed;
+using CivicSync.Migrator;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

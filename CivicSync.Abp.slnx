@@ -1,10 +1,10 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/CivicSync.Application.Contracts/CivicSync.Application.Contracts.csproj" />
     <Project Path="src/CivicSync.Application/CivicSync.Application.csproj" />
-    <Project Path="src/CivicSync.Domain/CivicSync.Domain.csproj" />
+    <Project Path="src/CivicSync.Core/CivicSync.Core.csproj" />
     <Project Path="src/CivicSync.EntityFrameworkCore/CivicSync.EntityFrameworkCore.csproj" />
-    <Project Path="src/CivicSync.HttpApi.Host/CivicSync.HttpApi.Host.csproj" />
+    <Project Path="src/CivicSync.Web.Core/CivicSync.Web.Core.csproj" />
+    <Project Path="src/CivicSync.Web.Host/CivicSync.Web.Host.csproj" />
     <Project Path="src/CivicSync.Migrator/CivicSync.Migrator.csproj" />
   </Folder>
   <Folder Name="/test/">

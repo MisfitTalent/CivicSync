@@ -1,15 +1,15 @@
-﻿using CivicSync.Node.Api.Domain.Sync;
-using CivicSync.Node.Api.Application.Services.Ledger;
-using CivicSync.Node.Api.Domain.ChangeRequests;
-using CivicSync.Node.Api.Domain.Citizens;
-using CivicSync.Node.Api.Domain.Enums;
-using CivicSync.Node.Api.Domain.Ledger;
-using CivicSync.Node.Api.Domain.Nodes;
-using CivicSync.Node.Api.Domain.ValueObjects;
-using CivicSync.Node.Api.Tests.TestSupport;
-using CivicSync.Node.Api.Infrastructure.Persistence;
+using CivicSync.Core.Domain.Sync;
+using CivicSync.Application.Services.Ledger;
+using CivicSync.Core.Domain.ChangeRequests;
+using CivicSync.Core.Domain.Citizens;
+using CivicSync.Core.Domain.Enums;
+using CivicSync.Core.Domain.Ledger;
+using CivicSync.Core.Domain.Nodes;
+using CivicSync.Core.Domain.ValueObjects;
+using CivicSync.Web.Host.Tests.TestSupport;
+using CivicSync.EntityFrameworkCore.Infrastructure.Persistence;
 
-namespace CivicSync.Node.Api.Tests.Services;
+namespace CivicSync.Web.Host.Tests.Services;
 
 public sealed class LedgerServiceTests
 {

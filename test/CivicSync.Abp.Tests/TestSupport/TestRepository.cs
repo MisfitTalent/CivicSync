@@ -1,13 +1,13 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Linq.Expressions;
-using CivicSync.Node.Api.Infrastructure.Persistence;
+using CivicSync.EntityFrameworkCore.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
 using Volo.Abp.Domain.Entities;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Linq;
 
-namespace CivicSync.Node.Api.Tests.TestSupport;
+namespace CivicSync.Web.Host.Tests.TestSupport;
 
 internal sealed class TestRepository<TEntity> : IRepository<TEntity, Guid>
     where TEntity : class, IEntity<Guid>

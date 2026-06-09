@@ -1,12 +1,12 @@
-﻿using CivicSync.Node.Api.Application.Configuration;
-using CivicSync.Node.Api.Contracts.Audit;
-using CivicSync.Node.Api.Domain.Ledger;
-using CivicSync.Node.Api.Domain.Sync;
+using CivicSync.Core.Configuration;
+using CivicSync.Application.Contracts.Audit;
+using CivicSync.Core.Domain.Ledger;
+using CivicSync.Core.Domain.Sync;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Volo.Abp.Domain.Repositories;
 
-namespace CivicSync.Node.Api.Application.Services.Audit;
+namespace CivicSync.Application.Services.Audit;
 
 public sealed class AuditService : IAuditService
 {

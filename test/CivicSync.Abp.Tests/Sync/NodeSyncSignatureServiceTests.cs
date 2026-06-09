@@ -1,8 +1,8 @@
-﻿using CivicSync.Node.Api.Application.Services.Sync;
-using CivicSync.Node.Api.Contracts.Sync;
-using CivicSync.Node.Api.Domain.Enums;
+using CivicSync.Application.Services.Sync;
+using CivicSync.Application.Contracts.Sync;
+using CivicSync.Core.Domain.Enums;
 
-namespace CivicSync.Node.Api.Tests.Sync;
+namespace CivicSync.Web.Host.Tests.Sync;
 
 public sealed class NodeSyncSignatureServiceTests
 {

@@ -1,6 +1,6 @@
-using CivicSync.Node.Api.Contracts.Citizens;
+using CivicSync.Application.Contracts.Citizens;
 
-namespace CivicSync.Node.Api.Application.Services.Citizens;
+namespace CivicSync.Application.Services.Citizens;
 
 public interface ICitizenService
 {

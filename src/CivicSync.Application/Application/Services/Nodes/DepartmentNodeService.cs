@@ -1,11 +1,11 @@
-using CivicSync.Node.Api.Application.Configuration;
-using CivicSync.Node.Api.Contracts.Nodes;
-using CivicSync.Node.Api.Domain.Nodes;
+using CivicSync.Core.Configuration;
+using CivicSync.Application.Contracts.Nodes;
+using CivicSync.Core.Domain.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Volo.Abp.Domain.Repositories;
 
-namespace CivicSync.Node.Api.Application.Services.Nodes;
+namespace CivicSync.Application.Services.Nodes;
 
 public sealed class DepartmentNodeService : IDepartmentNodeService
 {

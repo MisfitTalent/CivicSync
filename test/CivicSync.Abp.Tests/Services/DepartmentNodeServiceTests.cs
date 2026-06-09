@@ -1,13 +1,13 @@
-using CivicSync.Node.Api.Application.Configuration;
-using CivicSync.Node.Api.Application.Services.Nodes;
-using CivicSync.Node.Api.Contracts.Nodes;
-using CivicSync.Node.Api.Domain.Enums;
-using CivicSync.Node.Api.Domain.Nodes;
-using CivicSync.Node.Api.Infrastructure.Persistence;
-using CivicSync.Node.Api.Tests.TestSupport;
+using CivicSync.Core.Configuration;
+using CivicSync.Application.Services.Nodes;
+using CivicSync.Application.Contracts.Nodes;
+using CivicSync.Core.Domain.Enums;
+using CivicSync.Core.Domain.Nodes;
+using CivicSync.EntityFrameworkCore.Infrastructure.Persistence;
+using CivicSync.Web.Host.Tests.TestSupport;
 using Microsoft.Extensions.Options;
 
-namespace CivicSync.Node.Api.Tests.Services;
+namespace CivicSync.Web.Host.Tests.Services;
 
 public sealed class DepartmentNodeServiceTests
 {

@@ -1,6 +1,6 @@
-using CivicSync.Node.Api.Contracts.ChangeRequests;
+using CivicSync.Application.Contracts.ChangeRequests;
 
-namespace CivicSync.Node.Api.Application.Services.ChangeRequests;
+namespace CivicSync.Application.Services.ChangeRequests;
 
 public interface IChangeRequestService
 {

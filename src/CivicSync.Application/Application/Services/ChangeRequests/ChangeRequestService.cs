@@ -1,13 +1,13 @@
-﻿using CivicSync.Node.Api.Application.Configuration;
-using CivicSync.Node.Api.Contracts.ChangeRequests;
-using CivicSync.Node.Api.Domain.ChangeRequests;
-using CivicSync.Node.Api.Domain.Citizens;
-using CivicSync.Node.Api.Domain.Nodes;
+using CivicSync.Core.Configuration;
+using CivicSync.Application.Contracts.ChangeRequests;
+using CivicSync.Core.Domain.ChangeRequests;
+using CivicSync.Core.Domain.Citizens;
+using CivicSync.Core.Domain.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Volo.Abp.Domain.Repositories;
 
-namespace CivicSync.Node.Api.Application.Services.ChangeRequests;
+namespace CivicSync.Application.Services.ChangeRequests;
 
 public sealed class ChangeRequestService : IChangeRequestService
 {

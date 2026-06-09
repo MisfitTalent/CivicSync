@@ -1,9 +1,9 @@
 using System.Security.Cryptography;
 using System.Text;
-using CivicSync.Node.Api.Contracts.Sync;
-using CivicSync.Node.Api.Domain.Enums;
+using CivicSync.Application.Contracts.Sync;
+using CivicSync.Core.Domain.Enums;
 
-namespace CivicSync.Node.Api.Application.Services.Sync;
+namespace CivicSync.Application.Services.Sync;
 
 public sealed class NodeSyncSignatureService : INodeSyncSignatureService
 {
