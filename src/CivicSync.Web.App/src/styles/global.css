@@ -301,6 +301,126 @@ label span,
   gap: 24px;
 }
 
+.proposal-page {
+  gap: 20px;
+}
+
+.proposal-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: start;
+}
+
+.proposal-intro h2 {
+  margin-bottom: 10px;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1;
+}
+
+.proposal-intro p {
+  max-width: 780px;
+  margin-bottom: 0;
+  color: var(--muted);
+}
+
+.proposal-status-group {
+  display: flex;
+  align-items: stretch;
+  gap: 16px;
+}
+
+.status-pill {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid rgba(234, 223, 186, 0.95);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.status-pill::before {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: currentColor;
+  content: "";
+}
+
+.status-pill-success {
+  border-color: rgba(132, 204, 22, 0.35);
+  background: rgba(236, 255, 214, 0.88);
+  color: var(--lime-deep);
+}
+
+.status-pill-warning {
+  border-color: rgba(255, 138, 29, 0.35);
+  background: rgba(255, 240, 219, 0.9);
+  color: var(--orange);
+}
+
+.citizen-dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(360px, 0.9fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.citizen-record-panel {
+  min-height: 420px;
+}
+
+.citizen-field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.request-card-list {
+  display: flex;
+  max-height: 520px;
+  flex-direction: column;
+  gap: 14px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.request-card {
+  width: 100%;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(248, 250, 252, 0.9);
+  color: var(--ink);
+  text-align: left;
+}
+
+.request-card.selected {
+  border-color: var(--lime-deep);
+  box-shadow: 0 0 0 4px rgba(184, 242, 75, 0.22);
+}
+
+.request-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.request-card span,
+.request-card small {
+  display: block;
+  color: var(--muted);
+}
+
 .page-intro {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(220px, 340px);
@@ -534,6 +654,8 @@ input:focus {
   .hero,
   .login-panel,
   .dashboard-grid,
+  .proposal-intro,
+  .citizen-dashboard-grid,
   .page-intro,
   .role-grid,
   .department-grid,
@@ -546,6 +668,10 @@ input:focus {
   .span-2 {
     grid-column: span 1;
   }
+
+  .citizen-field-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 680px) {
@@ -557,6 +683,15 @@ input:focus {
   .hero,
   .panel {
     padding: 18px;
+  }
+
+  .proposal-status-group {
+    flex-direction: column;
+  }
+
+  .request-card-header {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .brand-lockup {
