@@ -1,5 +1,5 @@
 import { Button } from 'antd';
-import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthActions, useAuthState } from '../providers/authProvider';
 import type { UserRole } from '../providers/authProvider/context';
 import { useCivicSyncActions, useCivicSyncState } from '../providers/civicSyncProvider';
@@ -14,7 +14,7 @@ interface NavigationItem {
 
 const navigationItems: NavigationItem[] = [
   { label: 'Citizen Portal', path: '/citizen', roles: ['Citizen'], isPrimary: true },
-  { label: 'Update Requests', path: '/citizen#update-requests', roles: ['Citizen'] },
+  { label: 'Update Requests', path: '/citizen/request-update', roles: ['Citizen'] },
   { label: 'Ledger', path: '/citizen#request-history', roles: ['Citizen'] },
   { label: 'Departments', path: '/home-affairs', roles: ['HomeAffairsOfficer'], isPrimary: true },
   { label: 'Update Requests', path: '/home-affairs#approvals', roles: ['HomeAffairsOfficer'] },
@@ -40,12 +40,25 @@ const roleLabel: Record<UserRole, string> = {
 
 const AppLayout = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { currentUser } = useAuthState();
   const { signOut } = useAuthActions();
   const { activeNode, isLoading } = useCivicSyncState();
   const { setActiveNode } = useCivicSyncActions();
   const isAdmin = currentUser?.role === 'Admin';
   const visibleNavigationItems = navigationItems.filter((item) => currentUser && item.roles.includes(currentUser.role));
+  const currentRoute = `${location.pathname}${location.hash}`;
+  const isNavigationItemActive = (item: NavigationItem) => {
+    if (item.path === currentRoute || item.path === location.pathname) {
+      return true;
+    }
+
+    if (item.isPrimary) {
+      return location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
+    }
+
+    return false;
+  };
 
   const handleSignOut = () => {
     signOut();
@@ -65,7 +78,7 @@ const AppLayout = () => {
 
         <nav className="topbar-nav" aria-label="CivicSync workspace navigation">
           {visibleNavigationItems.map((item) => (
-            <Link className={`topbar-link ${item.isPrimary ? 'active' : ''}`} key={item.path} to={item.path}>
+            <Link className={`topbar-link ${isNavigationItemActive(item) ? 'active' : ''}`} key={item.path} to={item.path}>
               {item.label}
             </Link>
           ))}

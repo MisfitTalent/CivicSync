@@ -60,6 +60,7 @@ const DepartmentPage = ({ departmentCode, title, responsibility }: DepartmentPag
   const accessibleFields = citizenFields.filter((field) => field.access.includes(departmentCode));
   const restrictedFields = citizenFields.filter((field) => !field.access.includes(departmentCode));
   const pendingRequests = state.changeRequests.filter((request) => request.status !== 5).slice(0, 4);
+  const canCommitSelectedRequest = selectedRequest?.status === 3;
 
   useEffect(() => {
     if (state.activeNode.departmentCode !== departmentCode) {
@@ -125,23 +126,47 @@ const DepartmentPage = ({ departmentCode, title, responsibility }: DepartmentPag
             </div>
             <div className="approval-list">
               {pendingRequests.length === 0 && <p className="empty-text">No pending approvals on this node.</p>}
-              {pendingRequests.map((request) => (
-                <article
-                  className={`approval-card ${request.id === state.selectedRequestId ? 'selected' : ''}`}
-                  key={request.id}
-                  onClick={() => actions.setSelectedRequestId(request.id)}
-                >
-                  <strong>{selectedCitizen?.displayName ?? 'Citizen record'}</strong>
-                  <small>{statusText[request.status] ?? `Status ${request.status}`}</small>
-                  <div className="approval-change">
-                    {request.fieldChanges.map((change) => `${change.fieldName} → ${change.newValue}`).join(', ')}
-                  </div>
-                  <div className="approval-actions">
-                    <Button onClick={actions.requestApproval} disabled={state.isLoading}>Request</Button>
-                    <Button className="primary-button" onClick={actions.approveRequest} disabled={state.isLoading}>Approve</Button>
-                  </div>
-                </article>
-              ))}
+              {pendingRequests.map((request) => {
+                const approval = request.approvals.find((item) => item.approvingNodeId === firstApprover?.departmentNodeId);
+                const hasApproved = approval?.decision === 2;
+                const canRequestApproval = request.status === 1 && !approval;
+                const canApprove = request.status !== 4 && request.status !== 5 && !hasApproved;
+
+                return (
+                  <article
+                    className={`approval-card ${request.id === state.selectedRequestId ? 'selected' : ''}`}
+                    key={request.id}
+                    onClick={() => actions.setSelectedRequestId(request.id)}
+                  >
+                    <strong>{selectedCitizen?.displayName ?? 'Citizen record'}</strong>
+                    <small>{statusText[request.status] ?? `Status ${request.status}`}</small>
+                    <div className="approval-change">
+                      {request.fieldChanges.map((change) => `${change.fieldName} → ${change.newValue}`).join(', ')}
+                    </div>
+                    <div className="approval-actions">
+                      <Button
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          actions.requestApproval(request.id);
+                        }}
+                        disabled={state.isLoading || !canRequestApproval}
+                      >
+                        {approval ? 'Requested' : 'Request'}
+                      </Button>
+                      <Button
+                        className="primary-button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          actions.approveRequest(request.id);
+                        }}
+                        disabled={state.isLoading || !canApprove}
+                      >
+                        {hasApproved ? 'Approved' : 'Approve'}
+                      </Button>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           </section>
 
@@ -182,7 +207,7 @@ const DepartmentPage = ({ departmentCode, title, responsibility }: DepartmentPag
               <span>Selected Request</span>
               <strong>{selectedRequest ? `${selectedRequest.id.slice(0, 8)} · ${statusText[selectedRequest.status] ?? selectedRequest.status}` : 'None selected'}</strong>
             </div>
-            <Button onClick={actions.commitRequest} disabled={state.isLoading || !selectedRequest}>Commit Ledger</Button>
+            <Button onClick={() => actions.commitRequest(selectedRequest?.id)} disabled={state.isLoading || !canCommitSelectedRequest}>Commit Ledger</Button>
             <Button onClick={actions.publishOutbox} disabled={state.isLoading}>Publish Outbox</Button>
             <Button onClick={actions.applyInbox} disabled={state.isLoading}>Apply Inbox</Button>
           </div>
