@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+﻿import { useEffect } from 'react';
 import { Button, Empty } from 'antd';
 import type { DepartmentCode } from '../../api/types';
 import { AuditPanel, Metric } from '../../components/dashboard/DashboardWidgets';
@@ -80,7 +80,7 @@ const DepartmentLedgerPage = ({ departmentCode, title }: DepartmentLedgerPagePro
             <div className="action-stack">
               <div className="action-context">
                 <span>Selected Request</span>
-                <strong>{selectedRequest ? `${selectedRequest.id.slice(0, 8)} ? ${statusText[selectedRequest.status] ?? selectedRequest.status}` : 'None selected'}</strong>
+                <strong>{selectedRequest ? `${selectedRequest.id.slice(0, 8)} - ${statusText[selectedRequest.status] ?? selectedRequest.status}` : 'None selected'}</strong>
               </div>
               <Button onClick={() => actions.commitRequest(selectedRequest?.id)} disabled={state.isLoading || !canCommitSelectedRequest}>Commit Ledger</Button>
               <Button onClick={actions.publishOutbox} disabled={state.isLoading}>Publish Outbox</Button>
@@ -97,3 +97,4 @@ const DepartmentLedgerPage = ({ departmentCode, title }: DepartmentLedgerPagePro
 };
 
 export default DepartmentLedgerPage;
+

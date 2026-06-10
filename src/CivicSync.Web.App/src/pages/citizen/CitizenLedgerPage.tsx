@@ -1,4 +1,4 @@
-import { Empty } from 'antd';
+﻿import { Empty } from 'antd';
 import { Metric } from '../../components/dashboard/DashboardWidgets';
 import { nodes, statusText } from '../../providers/civicSyncProvider/context';
 import { useCivicSyncState } from '../../providers/civicSyncProvider';
@@ -91,7 +91,7 @@ const CitizenLedgerPage = () => {
                       <span>Previous value</span>
                       <strong>{formatFieldValue(fieldChange?.oldValue)}</strong>
                     </div>
-                    <b>?</b>
+                    <b>-&gt;</b>
                     <div>
                       <span>New value</span>
                       <strong>{formatFieldValue(fieldChange?.newValue)}</strong>
@@ -120,3 +120,4 @@ const CitizenLedgerPage = () => {
 };
 
 export default CitizenLedgerPage;
+

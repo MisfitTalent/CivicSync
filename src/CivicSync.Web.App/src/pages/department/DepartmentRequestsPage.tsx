@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+﻿import { useEffect } from 'react';
 import { Button } from 'antd';
 import type { DepartmentCode } from '../../api/types';
 import { Metric } from '../../components/dashboard/DashboardWidgets';
@@ -68,7 +68,7 @@ const DepartmentRequestsPage = ({ departmentCode, title }: DepartmentRequestsPag
               const hasApproved = approval?.decision === 2;
               const canRequestApproval = request.status === 1 && !approval;
               const canApprove = request.status !== 4 && request.status !== 5 && !hasApproved;
-              const fieldSummary = request.fieldChanges.map((change) => `${change.fieldName} ? ${change.newValue}`).join(', ');
+              const fieldSummary = request.fieldChanges.map((change) => `${change.fieldName} -> ${change.newValue}`).join(', ');
 
               return (
                 <article
@@ -135,3 +135,4 @@ const DepartmentRequestsPage = ({ departmentCode, title }: DepartmentRequestsPag
 };
 
 export default DepartmentRequestsPage;
+

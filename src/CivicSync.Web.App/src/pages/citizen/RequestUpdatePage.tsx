@@ -1,20 +1,11 @@
-import { Button, Empty } from 'antd';
+﻿import { Button, Empty } from 'antd';
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { nodes } from '../../providers/civicSyncProvider/context';
 import { useCivicSyncActions, useCivicSyncState } from '../../providers/civicSyncProvider';
+import { buildCitizenFieldPolicies, departmentDisplayName } from '../../utils/departmentFieldPolicy';
 
 type RequestStep = 1 | 2 | 3 | 4;
-
-interface UpdateFieldOption {
-  key: string;
-  label: string;
-  currentValue: string;
-  supported: boolean;
-  helper: string;
-}
-
-const supportedApprovalNodes = ['Home Affairs', 'SARS', 'Municipality'];
 
 const RequestUpdatePage = () => {
   const state = useCivicSyncState();
@@ -28,25 +19,13 @@ const RequestUpdatePage = () => {
   const [documentName, setDocumentName] = useState('');
   const [submittedRequestId, setSubmittedRequestId] = useState('');
 
-  const fieldOptions = useMemo<UpdateFieldOption[]>(() => {
-    if (!selectedCitizen) {
-      return [];
-    }
-
-    return [
-      { key: 'FullName', label: 'Full Name', currentValue: selectedCitizen.displayName, supported: true, helper: 'Shared identity field' },
-      { key: 'NationalIdNumber', label: 'National ID', currentValue: selectedCitizen.nationalIdNumber, supported: true, helper: 'Shared identity field' },
-      { key: 'EmailAddress', label: 'Email Address', currentValue: selectedCitizen.emailAddress, supported: true, helper: 'Stored as contact details' },
-      { key: 'PhoneNumber', label: 'Phone Number', currentValue: selectedCitizen.phoneNumber, supported: true, helper: 'Stored as contact details' },
-      { key: 'ResidentialAddress', label: 'Residential Address', currentValue: 'Department-owned field', supported: false, helper: 'Backend field not available yet' },
-      { key: 'TaxNumber', label: 'Tax Number', currentValue: 'Department-owned field', supported: false, helper: 'Backend field not available yet' },
-      { key: 'PassportNumber', label: 'Passport Number', currentValue: 'Department-owned field', supported: false, helper: 'Backend field not available yet' },
-      { key: 'RatesAccount', label: 'Rates Account', currentValue: 'Department-owned field', supported: false, helper: 'Backend field not available yet' },
-    ];
-  }, [selectedCitizen]);
-
+  const fieldOptions = useMemo(() => buildCitizenFieldPolicies(selectedCitizen), [selectedCitizen]);
   const selectedField = fieldOptions.find((field) => field.key === selectedFieldKey) ?? fieldOptions[0];
-  const canContinueFromField = Boolean(selectedCitizen && selectedField?.supported);
+  const approvalNodes = selectedField?.approvalDepartmentCodes.map((departmentCode) => ({
+    departmentCode,
+    name: departmentDisplayName[departmentCode],
+  })) ?? [];
+  const canContinueFromField = Boolean(selectedCitizen && selectedField?.supportedByBackend);
   const canContinueFromValue = Boolean(newValue.trim() && reason.trim());
 
   const submitRequest = async () => {
@@ -70,7 +49,7 @@ const RequestUpdatePage = () => {
 
   const renderStepIndicator = (item: RequestStep, label: string) => (
     <div className={`wizard-step ${step === item ? 'active' : step > item ? 'complete' : ''}`}>
-      <span>{step > item ? '?' : item}</span>
+      <span>{step > item ? '✓' : item}</span>
       <small>{label}</small>
     </div>
   );
@@ -78,7 +57,7 @@ const RequestUpdatePage = () => {
   if (!selectedCitizen) {
     return (
       <main className="page-stack proposal-page request-wizard-page">
-        <div className="wizard-back-row"><Link to="/citizen">? Back to Portal</Link><h2>Request Record Update</h2></div>
+        <div className="wizard-back-row"><Link to="/citizen">Back to Portal</Link><h2>Request Record Update</h2></div>
         <section className="panel wizard-card"><Empty description="No linked citizen record found. Ask Home Affairs or Admin to register the citizen first." /></section>
       </main>
     );
@@ -87,7 +66,7 @@ const RequestUpdatePage = () => {
   return (
     <main className="page-stack proposal-page request-wizard-page">
       <div className="wizard-back-row">
-        <Link to="/citizen">? Back to Portal</Link>
+        <Link to="/citizen">Back to Portal</Link>
         <h2>Request Record Update</h2>
       </div>
 
@@ -101,26 +80,36 @@ const RequestUpdatePage = () => {
       {step === 1 && (
         <section className="panel wizard-card">
           <h2>Which field would you like to update?</h2>
-          <p>Select a field from your citizen record. Each change requires approval from relevant departments.</p>
+          <p>Select a field from your citizen record. Each change routes to the department that owns or approves that data.</p>
           <div className="wizard-field-grid">
             {fieldOptions.map((field) => (
               <button
                 className={`wizard-field-card ${selectedFieldKey === field.key ? 'selected' : ''}`}
-                disabled={!field.supported}
+                disabled={!field.supportedByBackend}
                 key={field.key}
                 onClick={() => setSelectedFieldKey(field.key)}
                 type="button"
+                title={field.helper}
               >
                 <strong>{field.label}</strong>
-                <small>{field.currentValue}</small>
-                <em>{field.helper}</em>
+                <small>{field.value}</small>
+                <em>{field.supportedByBackend ? field.helper : `${field.helper} Backend support pending.`}</em>
               </button>
             ))}
           </div>
-          <div className="approval-requirements">
-            <strong>Requires approval from:</strong>
-            <div>{supportedApprovalNodes.map((node, index) => <span className="department-mini-pill" key={node}><i className={`status-dot ${index === 1 ? 'orange' : index === 2 ? 'blue' : ''}`} />{node}</span>)}</div>
-          </div>
+          {selectedField && (
+            <div className="approval-requirements">
+              <strong>Requires approval from:</strong>
+              <div>
+                {approvalNodes.map((node) => (
+                  <span className="department-mini-pill" key={node.departmentCode}>
+                    <i className={`status-dot ${node.departmentCode === 2 ? 'orange' : node.departmentCode === 3 ? 'blue' : ''}`} />
+                    {node.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="wizard-actions"><Button className="primary-button" disabled={!canContinueFromField} onClick={() => setStep(2)}>Continue</Button></div>
         </section>
       )}
@@ -131,7 +120,7 @@ const RequestUpdatePage = () => {
           <p>Updating: <strong>{selectedField.label}</strong></p>
           <label>
             <span>Current value</span>
-            <input value={selectedField.currentValue} readOnly />
+            <input value={selectedField.value} readOnly />
           </label>
           <label>
             <span>New value</span>
@@ -141,7 +130,7 @@ const RequestUpdatePage = () => {
             <span>Reason for change</span>
             <textarea value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Briefly explain why this field needs to be updated..." />
           </label>
-          <div className="wizard-actions split"><Button onClick={() => setStep(1)}>? Back</Button><Button className="primary-button" disabled={!canContinueFromValue} onClick={() => setStep(3)}>Continue</Button></div>
+          <div className="wizard-actions split"><Button onClick={() => setStep(1)}>Back</Button><Button className="primary-button" disabled={!canContinueFromValue} onClick={() => setStep(3)}>Continue</Button></div>
         </section>
       )}
 
@@ -151,18 +140,18 @@ const RequestUpdatePage = () => {
           <p>Upload proof to support your change request. Document storage is UI-only for this prototype.</p>
           <label className="document-dropzone">
             <span>Drop your document here or browse files</span>
-            <small>PDF, JPG, PNG ? max 10MB</small>
+            <small>PDF, JPG, PNG - max 10MB</small>
             <input type="file" onChange={(event) => setDocumentName(event.target.files?.[0]?.name ?? '')} />
           </label>
           {documentName && <p className="helper-text">Selected document: {documentName}</p>}
           <div className="popia-warning">Your document is treated as encrypted proof. Only departments authorized to approve this field should access it.</div>
-          <div className="wizard-actions split"><Button onClick={() => setStep(2)}>? Back</Button><Button className="primary-button" disabled={state.isLoading} onClick={submitRequest}>Submit Request</Button></div>
+          <div className="wizard-actions split"><Button onClick={() => setStep(2)}>Back</Button><Button className="primary-button" disabled={state.isLoading} onClick={submitRequest}>Submit Request</Button></div>
         </section>
       )}
 
       {step === 4 && selectedField && (
         <section className="panel wizard-card submitted-card">
-          <div className="submitted-icon">?</div>
+          <div className="submitted-icon">✓</div>
           <h2>Request Submitted</h2>
           <p>Your update request has been sent to the active department node for approval and ledger processing.</p>
           <div className="submission-summary">
@@ -172,7 +161,7 @@ const RequestUpdatePage = () => {
             <span><small>Expected</small><strong>After department approval</strong></span>
           </div>
           <div className="approval-list compact">
-            {nodes.map((node) => <div className="approval-wait-row" key={node.departmentCode}><span><i className={`status-dot ${node.departmentCode === 2 ? 'orange' : node.departmentCode === 3 ? 'blue' : ''}`} />{node.name}</span><strong>Awaiting review</strong></div>)}
+            {approvalNodes.map((node) => <div className="approval-wait-row" key={node.departmentCode}><span><i className={`status-dot ${node.departmentCode === 2 ? 'orange' : node.departmentCode === 3 ? 'blue' : ''}`} />{node.name}</span><strong>Awaiting review</strong></div>)}
           </div>
           <Button className="primary-button full-width" onClick={() => navigate('/citizen')}>Back to Portal</Button>
         </section>

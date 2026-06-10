@@ -1,21 +1,16 @@
-import { useEffect, useMemo } from 'react';
+﻿import { useEffect, useMemo } from 'react';
 import { Button, Input } from 'antd';
 import { AuditPanel, Metric, PanelHeader } from '../../components/dashboard/DashboardWidgets';
 import CitizenRegistrationPanel from '../../components/workflow/CitizenRegistrationPanel';
-import type { Citizen, DepartmentCode } from '../../api/types';
+import type { DepartmentCode } from '../../api/types';
 import { nodes, statusText } from '../../providers/civicSyncProvider/context';
 import { useCivicSyncActions, useCivicSyncState } from '../../providers/civicSyncProvider';
+import { buildCitizenFieldPolicies, departmentShortName } from '../../utils/departmentFieldPolicy';
 
 interface DepartmentPageProps {
   departmentCode: DepartmentCode;
   title: string;
   responsibility: string;
-}
-
-interface CitizenField {
-  label: string;
-  value: string;
-  access: DepartmentCode[];
 }
 
 const departmentAccent: Record<DepartmentCode, string> = {
@@ -25,25 +20,6 @@ const departmentAccent: Record<DepartmentCode, string> = {
   4: 'lime',
   5: 'orange',
 };
-
-const departmentShortName: Record<DepartmentCode, string> = {
-  1: 'HA',
-  2: 'SARS',
-  3: 'MUN',
-  4: 'HEALTH',
-  5: 'SAFETY',
-};
-
-const buildCitizenFields = (citizen?: Citizen): CitizenField[] => [
-  { label: 'Full Name', value: citizen?.displayName || 'No citizen selected', access: [1, 2, 3] },
-  { label: 'National ID', value: citizen?.nationalIdNumber || 'Unavailable', access: [1] },
-  { label: 'Email Address', value: citizen?.emailAddress || 'Unavailable', access: [1, 2, 3] },
-  { label: 'Phone Number', value: citizen?.phoneNumber || 'Unavailable', access: [1, 2, 3] },
-  { label: 'Residential Address', value: '14 Ubuntu Street, Soweto, 1804', access: [3] },
-  { label: 'Tax Number', value: '9876543210', access: [2] },
-  { label: 'Passport Number', value: 'M12345678', access: [1] },
-  { label: 'Rates Account', value: 'MUN-2024-88821', access: [3] },
-];
 
 const DepartmentPage = ({ departmentCode, title, responsibility }: DepartmentPageProps) => {
   const state = useCivicSyncState();
@@ -56,9 +32,9 @@ const DepartmentPage = ({ departmentCode, title, responsibility }: DepartmentPag
   const noticeClassName = `notice ${state.isError ? 'notice-error' : state.isSuccess ? 'notice-success' : ''}`;
   const noticeMessage = state.errorMessage || state.successMessage || state.message;
 
-  const citizenFields = useMemo(() => buildCitizenFields(selectedCitizen), [selectedCitizen]);
-  const accessibleFields = citizenFields.filter((field) => field.access.includes(departmentCode));
-  const restrictedFields = citizenFields.filter((field) => !field.access.includes(departmentCode));
+  const citizenFields = useMemo(() => buildCitizenFieldPolicies(selectedCitizen), [selectedCitizen]);
+  const accessibleFields = citizenFields.filter((field) => field.accessDepartmentCodes.includes(departmentCode));
+  const restrictedFields = citizenFields.filter((field) => !field.accessDepartmentCodes.includes(departmentCode));
   const pendingRequests = state.changeRequests.filter((request) => request.status !== 5).slice(0, 4);
   const canCommitSelectedRequest = selectedRequest?.status === 3;
 
@@ -106,12 +82,12 @@ const DepartmentPage = ({ departmentCode, title, responsibility }: DepartmentPag
 
           <div className="field-card-grid">
             {citizenFields.map((field) => {
-              const canAccess = field.access.includes(departmentCode);
+              const canAccess = field.accessDepartmentCodes.includes(departmentCode);
               return (
-                <article className={`field-card ${canAccess ? '' : 'restricted'}`} key={field.label}>
+                <article className={`field-card ${canAccess ? '' : 'restricted'}`} key={field.key} title={field.helper}>
                   <span>{field.label}</span>
-                  <strong>{canAccess ? field.value : '••••••••••••'}</strong>
-                  {!canAccess && <small>Restricted</small>}
+                  <strong>{canAccess ? field.value : 'Restricted'}</strong>
+                  <small>{canAccess ? `${field.category} - owned by ${departmentShortName[field.ownerDepartmentCode]}` : 'POPIA restricted'}</small>
                 </article>
               );
             })}
@@ -141,7 +117,7 @@ const DepartmentPage = ({ departmentCode, title, responsibility }: DepartmentPag
                     <strong>{selectedCitizen?.displayName ?? 'Citizen record'}</strong>
                     <small>{statusText[request.status] ?? `Status ${request.status}`}</small>
                     <div className="approval-change">
-                      {request.fieldChanges.map((change) => `${change.fieldName} → ${change.newValue}`).join(', ')}
+                      {request.fieldChanges.map((change) => `${change.fieldName} -> ${change.newValue}`).join(', ')}
                     </div>
                     <div className="approval-actions">
                       <Button
@@ -177,9 +153,9 @@ const DepartmentPage = ({ departmentCode, title, responsibility }: DepartmentPag
             </div>
             <div className="access-summary-list">
               {citizenFields.map((field) => {
-                const canAccess = field.access.includes(departmentCode);
+                const canAccess = field.accessDepartmentCodes.includes(departmentCode);
                 return (
-                  <div className="access-summary-row" key={field.label}>
+                  <div className="access-summary-row" key={field.key}>
                     <span>{field.label}</span>
                     <strong className={canAccess ? 'accessible' : 'restricted'}>{canAccess ? 'Accessible' : 'Restricted'}</strong>
                   </div>
@@ -205,7 +181,7 @@ const DepartmentPage = ({ departmentCode, title, responsibility }: DepartmentPag
           <div className="action-stack">
             <div className="action-context">
               <span>Selected Request</span>
-              <strong>{selectedRequest ? `${selectedRequest.id.slice(0, 8)} · ${statusText[selectedRequest.status] ?? selectedRequest.status}` : 'None selected'}</strong>
+              <strong>{selectedRequest ? `${selectedRequest.id.slice(0, 8)} - ${statusText[selectedRequest.status] ?? selectedRequest.status}` : 'None selected'}</strong>
             </div>
             <Button onClick={() => actions.commitRequest(selectedRequest?.id)} disabled={state.isLoading || !canCommitSelectedRequest}>Commit Ledger</Button>
             <Button onClick={actions.publishOutbox} disabled={state.isLoading}>Publish Outbox</Button>

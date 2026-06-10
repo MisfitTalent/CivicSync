@@ -1,4 +1,4 @@
-import { Button, Empty } from 'antd';
+﻿import { Button, Empty } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { Info, Metric } from '../../components/dashboard/DashboardWidgets';
 import { nodes, statusText } from '../../providers/civicSyncProvider/context';
@@ -90,7 +90,7 @@ const CitizenPage = () => {
                   </div>
                   <small>{formatDate(request.createdAtUtc)}</small>
                   <span>{request.reason}</span>
-                  <small>{request.fieldChanges[0]?.oldValue ?? 'No previous value'}{' ? '}{request.fieldChanges[0]?.newValue ?? 'No new value'}</small>
+                  <small>{request.fieldChanges[0]?.oldValue ?? 'No previous value'}{' -> '}{request.fieldChanges[0]?.newValue ?? 'No new value'}</small>
                   <small>{request.approvals.length}/{nodes.length} departments</small>
                 </button>
               ))}
@@ -115,3 +115,4 @@ const CitizenPage = () => {
 };
 
 export default CitizenPage;
+
