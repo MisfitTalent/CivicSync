@@ -33,6 +33,12 @@ export interface ChangeFormState {
   newPhoneNumber: string;
 }
 
+export interface SubmitFieldChangeInput {
+  fieldName: string;
+  newValue: string;
+  reason: string;
+}
+
 export interface CivicSyncStateContextValue {
   activeNode: NodeOption;
   nodeInfo: NodeInfo | null;
@@ -66,9 +72,10 @@ export interface CivicSyncActionContextValue {
   refreshAll: () => Promise<void>;
   createCitizen: () => Promise<void>;
   submitChangeRequest: () => Promise<void>;
-  requestApproval: () => Promise<void>;
-  approveRequest: () => Promise<void>;
-  commitRequest: () => Promise<void>;
+  submitFieldChangeRequest: (request: SubmitFieldChangeInput) => Promise<string>;
+  requestApproval: (requestId?: string) => Promise<void>;
+  approveRequest: (requestId?: string) => Promise<void>;
+  commitRequest: (requestId?: string) => Promise<void>;
   publishOutbox: () => Promise<void>;
   applyInbox: () => Promise<void>;
 }

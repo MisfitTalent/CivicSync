@@ -74,9 +74,9 @@ const DashboardPage = () => {
 
             <div className="action-stack">
               <Info label="Selected Request" value={selectedRequest ? `${selectedRequest.id.slice(0, 8)} - ${statusText[selectedRequest.status] ?? selectedRequest.status}` : 'None'} />
-              <Button onClick={actions.requestApproval} disabled={state.isLoading || !selectedRequest}>Request Approval</Button>
-              <Button onClick={actions.approveRequest} disabled={state.isLoading || !selectedRequest}>Approve</Button>
-              <Button onClick={actions.commitRequest} disabled={state.isLoading || !selectedRequest}>Commit Ledger</Button>
+              <Button onClick={() => actions.requestApproval()} disabled={state.isLoading || !selectedRequest}>Request Approval</Button>
+              <Button onClick={() => actions.approveRequest()} disabled={state.isLoading || !selectedRequest}>Approve</Button>
+              <Button onClick={() => actions.commitRequest()} disabled={state.isLoading || !selectedRequest}>Commit Ledger</Button>
               <Button onClick={actions.publishOutbox} disabled={state.isLoading}>Publish Outbox</Button>
               <Button onClick={actions.applyInbox} disabled={state.isLoading}>Apply Inbox</Button>
             </div>

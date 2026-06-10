@@ -1,5 +1,5 @@
 import { Button } from 'antd';
-import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthActions, useAuthState } from '../providers/authProvider';
 import type { UserRole } from '../providers/authProvider/context';
 import { useCivicSyncActions, useCivicSyncState } from '../providers/civicSyncProvider';
@@ -10,24 +10,29 @@ interface NavigationItem {
   path: string;
   roles: UserRole[];
   isPrimary?: boolean;
+  badgeKey?: 'inbox';
 }
 
 const navigationItems: NavigationItem[] = [
   { label: 'Citizen Portal', path: '/citizen', roles: ['Citizen'], isPrimary: true },
-  { label: 'Update Requests', path: '/citizen#update-requests', roles: ['Citizen'] },
-  { label: 'Ledger', path: '/citizen#request-history', roles: ['Citizen'] },
+  { label: 'Update Requests', path: '/citizen/request-update', roles: ['Citizen'] },
+  { label: 'Ledger', path: '/citizen/ledger', roles: ['Citizen'] },
   { label: 'Departments', path: '/home-affairs', roles: ['HomeAffairsOfficer'], isPrimary: true },
-  { label: 'Update Requests', path: '/home-affairs#approvals', roles: ['HomeAffairsOfficer'] },
-  { label: 'Ledger', path: '/home-affairs#ledger', roles: ['HomeAffairsOfficer'] },
+  { label: 'Update Requests', path: '/home-affairs/requests', roles: ['HomeAffairsOfficer'] },
+  { label: 'Inbox', path: '/home-affairs/inbox', roles: ['HomeAffairsOfficer'], badgeKey: 'inbox' },
+  { label: 'Ledger', path: '/home-affairs/ledger', roles: ['HomeAffairsOfficer'] },
   { label: 'Departments', path: '/sars', roles: ['SarsOfficer'], isPrimary: true },
-  { label: 'Update Requests', path: '/sars#approvals', roles: ['SarsOfficer'] },
-  { label: 'Ledger', path: '/sars#ledger', roles: ['SarsOfficer'] },
+  { label: 'Update Requests', path: '/sars/requests', roles: ['SarsOfficer'] },
+  { label: 'Inbox', path: '/sars/inbox', roles: ['SarsOfficer'], badgeKey: 'inbox' },
+  { label: 'Ledger', path: '/sars/ledger', roles: ['SarsOfficer'] },
   { label: 'Departments', path: '/municipality', roles: ['MunicipalityOfficer'], isPrimary: true },
-  { label: 'Update Requests', path: '/municipality#approvals', roles: ['MunicipalityOfficer'] },
-  { label: 'Ledger', path: '/municipality#ledger', roles: ['MunicipalityOfficer'] },
+  { label: 'Update Requests', path: '/municipality/requests', roles: ['MunicipalityOfficer'] },
+  { label: 'Inbox', path: '/municipality/inbox', roles: ['MunicipalityOfficer'], badgeKey: 'inbox' },
+  { label: 'Ledger', path: '/municipality/ledger', roles: ['MunicipalityOfficer'] },
   { label: 'Admin Console', path: '/admin', roles: ['Admin'], isPrimary: true },
-  { label: 'Ledger', path: '/admin#ledger', roles: ['Admin'] },
-  { label: 'Sync Audit', path: '/admin#sync-audit', roles: ['Admin'] },
+  { label: 'Inbox', path: '/admin/inbox', roles: ['Admin'], badgeKey: 'inbox' },
+  { label: 'Ledger', path: '/admin/ledger', roles: ['Admin'] },
+  { label: 'Sync Audit', path: '/admin/sync-audit', roles: ['Admin'] },
 ];
 
 const roleLabel: Record<UserRole, string> = {
@@ -40,12 +45,22 @@ const roleLabel: Record<UserRole, string> = {
 
 const AppLayout = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { currentUser } = useAuthState();
   const { signOut } = useAuthActions();
-  const { activeNode, isLoading } = useCivicSyncState();
+  const { activeNode, inbox, isLoading } = useCivicSyncState();
   const { setActiveNode } = useCivicSyncActions();
   const isAdmin = currentUser?.role === 'Admin';
   const visibleNavigationItems = navigationItems.filter((item) => currentUser && item.roles.includes(currentUser.role));
+  const currentRoute = `${location.pathname}${location.hash}`;
+  const unreadInboxCount = inbox.filter((entry) => entry.status !== 4).length;
+  const isNavigationItemActive = (item: NavigationItem) => {
+    if (item.path.includes('#')) {
+      return item.path === currentRoute;
+    }
+
+    return item.path === location.pathname;
+  };
 
   const handleSignOut = () => {
     signOut();
@@ -65,8 +80,9 @@ const AppLayout = () => {
 
         <nav className="topbar-nav" aria-label="CivicSync workspace navigation">
           {visibleNavigationItems.map((item) => (
-            <Link className={`topbar-link ${item.isPrimary ? 'active' : ''}`} key={item.path} to={item.path}>
+            <Link className={`topbar-link ${isNavigationItemActive(item) ? 'active' : ''}`} key={item.path} to={item.path}>
               {item.label}
+              {item.badgeKey === 'inbox' && unreadInboxCount > 0 && <span className="nav-count-badge">{unreadInboxCount}</span>}
             </Link>
           ))}
         </nav>
