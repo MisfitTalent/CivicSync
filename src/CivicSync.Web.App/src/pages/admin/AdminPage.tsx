@@ -1,4 +1,5 @@
-﻿import { AuditPanel, Info, Metric, PanelHeader } from '../../components/dashboard/DashboardWidgets';
+import { AuditPanel, Info, Metric, PanelHeader } from '../../components/dashboard/DashboardWidgets';
+import CitizenRegistrationPanel from '../../components/workflow/CitizenRegistrationPanel';
 import { useAuthState } from '../../providers/authProvider';
 import { useCivicSyncActions, useCivicSyncState } from '../../providers/civicSyncProvider';
 
@@ -6,6 +7,8 @@ const AdminPage = () => {
   const state = useCivicSyncState();
   const actions = useCivicSyncActions();
   const { currentUser } = useAuthState();
+  const noticeClassName = `notice ${state.isError ? 'notice-error' : state.isSuccess ? 'notice-success' : ''}`;
+  const noticeMessage = state.errorMessage || state.successMessage || state.message;
 
   return (
     <main className="page-stack">
@@ -13,7 +16,7 @@ const AdminPage = () => {
         <div>
           <p className="eyebrow">Admin workspace</p>
           <h2>System monitoring</h2>
-          <p>Admin users monitor nodes, queue sizes, ledger activity, and peer sync outcomes. They do not submit citizen profile changes.</p>
+          <p>Admin users monitor nodes, queue sizes, ledger activity, and peer sync outcomes.</p>
         </div>
         <div className="department-metrics">
           <Metric label="Citizens" value={state.citizens.length} />
@@ -22,7 +25,7 @@ const AdminPage = () => {
         </div>
       </section>
 
-      <section className="notice" aria-live="polite">{state.message}</section>
+      <section className={noticeClassName} aria-live="polite">{noticeMessage}</section>
 
       <div className="department-grid">
         <section className="panel span-2">
@@ -35,8 +38,13 @@ const AdminPage = () => {
           </div>
         </section>
 
-        <AuditPanel title="Ledger" rows={state.ledger.slice(0, 8).map((entry) => [`#${entry.sequenceNumber}`, entry.currentProofHash.slice(0, 16), new Date(entry.createdAtUtc).toLocaleString()])} />
-        <AuditPanel title="Outbox Queue" rows={state.outbox.slice(0, 8).map((entry) => [entry.status.toString(), `Retries ${entry.retryCount}`, entry.ledgerEntryId.slice(0, 8)])} />
+        <CitizenRegistrationPanel title="Admin Citizen Registration" />
+        <div id="ledger">
+          <AuditPanel title="Ledger" rows={state.ledger.slice(0, 8).map((entry) => [`#${entry.sequenceNumber}`, entry.currentProofHash.slice(0, 16), new Date(entry.createdAtUtc).toLocaleString()])} />
+        </div>
+        <div id="sync-audit">
+          <AuditPanel title="Outbox Queue" rows={state.outbox.slice(0, 8).map((entry) => [entry.status.toString(), `Retries ${entry.retryCount}`, entry.ledgerEntryId.slice(0, 8)])} />
+        </div>
         <AuditPanel title="Inbox Queue" rows={state.inbox.slice(0, 8).map((entry) => [entry.status.toString(), entry.citizenNationalIdNumber || 'Unknown citizen', entry.ledgerEntryId.slice(0, 8)])} />
         <AuditPanel title="Sync Receipts" rows={state.receipts.slice(0, 8).map((receipt) => [receipt.result.toString(), receipt.targetNodeId.slice(0, 8), new Date(receipt.receivedAtUtc).toLocaleString()])} />
       </div>

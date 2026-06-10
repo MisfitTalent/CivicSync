@@ -1,7 +1,7 @@
 import { useCallback, useContext, useEffect, useMemo, useReducer } from 'react';
 import { CivicSyncClient } from '../../api/civicsyncClient';
 import { getErrorMessage } from '../../utils/axiosInstance';
-import { setCivicSyncLoading, setCivicSyncMessage, setCivicSyncState } from './actions';
+import { setCivicSyncState, setOperationError, setOperationPending, setOperationSuccess } from './actions';
 import {
   CivicSyncActionContext,
   CivicSyncStateContext,
@@ -19,7 +19,10 @@ export const CivicSyncProvider = ({ children }: { children: React.ReactNode }) =
   const client = useMemo(() => new CivicSyncClient(state.activeNode.baseUrl), [state.activeNode.baseUrl]);
 
   const refreshAll = useCallback(async (showMessage = true) => {
-    dispatch(setCivicSyncLoading(true));
+    if (showMessage) {
+      dispatch(setOperationPending('Refresh node data'));
+    }
+
     try {
       const [nodeInfo, citizens, users, changeRequests, ledger, outbox, inbox, receipts] = await Promise.all([
         client.getNodeInfo(),
@@ -45,10 +48,18 @@ export const CivicSyncProvider = ({ children }: { children: React.ReactNode }) =
           selectedRequestId: state.selectedRequestId || changeRequests[0]?.id || '',
           message: showMessage ? `Connected to ${state.activeNode.name}.` : state.message,
         }));
+
+      if (showMessage) {
+        dispatch(setOperationSuccess(`Connected to ${state.activeNode.name}.`));
+      }
     } catch (error) {
-      dispatch(setCivicSyncMessage(getErrorMessage(error)));
-    } finally {
-      dispatch(setCivicSyncLoading(false));
+      const errorMessage = getErrorMessage(error);
+      if (showMessage) {
+        dispatch(setOperationError(errorMessage));
+        return;
+      }
+
+      throw error;
     }
   }, [client, state.activeNode.name, state.message, state.selectedCitizenId, state.selectedRequestId]);
 
@@ -57,16 +68,13 @@ export const CivicSyncProvider = ({ children }: { children: React.ReactNode }) =
   }, [state.activeNode.baseUrl]);
 
   const runAction = async (label: string, action: () => Promise<void>) => {
-    dispatch(setCivicSyncLoading(true));
-    dispatch(setCivicSyncMessage(`${label}...`));
+    dispatch(setOperationPending(label));
     try {
       await action();
-      dispatch(setCivicSyncMessage(`${label} completed.`));
       await refreshAll(false);
+      dispatch(setOperationSuccess(`${label} completed.`));
     } catch (error) {
-      dispatch(setCivicSyncMessage(getErrorMessage(error)));
-    } finally {
-      dispatch(setCivicSyncLoading(false));
+      dispatch(setOperationError(getErrorMessage(error)));
     }
   };
 

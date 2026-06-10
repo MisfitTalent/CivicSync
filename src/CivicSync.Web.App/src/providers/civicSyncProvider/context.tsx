@@ -49,6 +49,12 @@ export interface CivicSyncStateContextValue {
   changeForm: ChangeFormState;
   message: string;
   isLoading: boolean;
+  isPending: boolean;
+  isSuccess: boolean;
+  isError: boolean;
+  currentOperation: string;
+  successMessage: string;
+  errorMessage: string;
 }
 
 export interface CivicSyncActionContextValue {
@@ -97,6 +103,12 @@ export const initialState: CivicSyncStateContextValue = {
   changeForm: initialChangeForm,
   message: 'Ready.',
   isLoading: false,
+  isPending: false,
+  isSuccess: false,
+  isError: false,
+  currentOperation: '',
+  successMessage: '',
+  errorMessage: '',
 };
 
 export const CivicSyncStateContext = createContext<CivicSyncStateContextValue | undefined>(undefined);

@@ -1,29 +1,47 @@
-﻿import { useContext, useMemo, useState } from 'react';
-import { AuthActionContext, AuthStateContext, type AppUserProfile } from './context';
-
-const storageKey = 'civicsync.currentUser';
+import { useContext, useMemo, useReducer } from 'react';
+import { signInError, signInPending, signInSuccess, signOutSuccess } from './actions';
+import { AuthActionContext, AuthStateContext, authStorageKey, initialAuthState, loginAccounts, type AppUserProfile, type AuthStateContextValue } from './context';
+import { authReducer } from './reducer';
 
 const loadStoredUser = (): AppUserProfile | null => {
-  const storedValue = window.localStorage.getItem(storageKey);
+  const storedValue = window.localStorage.getItem(authStorageKey);
   return storedValue ? JSON.parse(storedValue) as AppUserProfile : null;
 };
 
+const loadInitialAuthState = (): AuthStateContextValue => ({
+  ...initialAuthState,
+  currentUser: loadStoredUser(),
+});
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [currentUser, setCurrentUser] = useState<AppUserProfile | null>(() => loadStoredUser());
+  const [authState, dispatch] = useReducer(authReducer, initialAuthState, loadInitialAuthState);
 
   const actions = useMemo(() => ({
-    signIn: (profile: AppUserProfile) => {
-      window.localStorage.setItem(storageKey, JSON.stringify(profile));
-      setCurrentUser(profile);
+    signIn: (emailAddress: string, password: string) => {
+      dispatch(signInPending());
+
+      const account = loginAccounts.find((item) =>
+        item.emailAddress.toLowerCase() === emailAddress.trim().toLowerCase() &&
+        item.password === password,
+      );
+
+      if (!account) {
+        dispatch(signInError('Invalid email address or password.'));
+        return null;
+      }
+
+      window.localStorage.setItem(authStorageKey, JSON.stringify(account.profile));
+      dispatch(signInSuccess(account.profile));
+      return account.profile;
     },
     signOut: () => {
-      window.localStorage.removeItem(storageKey);
-      setCurrentUser(null);
+      window.localStorage.removeItem(authStorageKey);
+      dispatch(signOutSuccess());
     },
   }), []);
 
   return (
-    <AuthStateContext.Provider value={{ currentUser }}>
+    <AuthStateContext.Provider value={authState}>
       <AuthActionContext.Provider value={actions}>{children}</AuthActionContext.Provider>
     </AuthStateContext.Provider>
   );

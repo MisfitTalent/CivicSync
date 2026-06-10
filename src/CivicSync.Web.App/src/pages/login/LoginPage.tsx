@@ -1,18 +1,22 @@
-﻿import { Button, Card } from 'antd';
+import { Button, Card, Input } from 'antd';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthActions, useAuthState } from '../../providers/authProvider';
-import { demoProfiles } from '../../providers/authProvider/context';
 import { useCivicSyncActions } from '../../providers/civicSyncProvider';
 import { nodes } from '../../providers/civicSyncProvider/context';
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { currentUser } = useAuthState();
   const { signIn } = useAuthActions();
+  const authState = useAuthState();
   const { setActiveNode } = useCivicSyncActions();
+  const [emailAddress, setEmailAddress] = useState('');
+  const [password, setPassword] = useState('');
 
-  const handleSignIn = (profileId: string) => {
-    const profile = demoProfiles.find((item) => item.id === profileId);
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const profile = signIn(emailAddress, password);
+
     if (!profile) {
       return;
     }
@@ -24,39 +28,34 @@ const LoginPage = () => {
       }
     }
 
-    signIn(profile);
     navigate(profile.workspacePath, { replace: true });
   };
 
   return (
     <main className="login-shell">
-      <section className="login-hero">
-        <p className="eyebrow">CivicSync access</p>
-        <h1>Choose a demo profile</h1>
-        <p>Each profile sees a different workspace, different permitted actions, and different field visibility.</p>
-        {currentUser && <p className="helper-text">Currently signed in as {currentUser.displayName}.</p>}
-      </section>
+      <section className="login-panel">
+        <div className="login-copy">
+          <img className="login-logo" src="/civicsync-logo.svg" alt="CivicSync Ledger logo" />
+          <p className="eyebrow">CivicSync Ledger</p>
+          <h1>Sign in</h1>
+          <p>Access your CivicSync workspace to manage records, approvals, ledger activity, and department sync.</p>
+        </div>
 
-      <section className="profile-grid">
-        {demoProfiles.map((profile) => (
-          <Card className="profile-card" key={profile.id}>
-            <span>{profile.role}</span>
-            <h2>{profile.displayName}</h2>
-            <div className="profile-section">
-              <strong>Can see</strong>
-              <ul>
-                {profile.visibleFields.map((field) => <li key={field}>{field}</li>)}
-              </ul>
-            </div>
-            <div className="profile-section">
-              <strong>Can do</strong>
-              <ul>
-                {profile.capabilities.map((capability) => <li key={capability}>{capability}</li>)}
-              </ul>
-            </div>
-            <Button className="primary-button" onClick={() => handleSignIn(profile.id)}>Sign in</Button>
-          </Card>
-        ))}
+        <Card className="login-card">
+          <h2>Account Login</h2>
+          <form className="form-stack" onSubmit={handleSubmit}>
+            <label>
+              <span>Email address</span>
+              <Input type="email" value={emailAddress} onChange={(event) => setEmailAddress(event.target.value)} required />
+            </label>
+            <label>
+              <span>Password</span>
+              <Input.Password value={password} onChange={(event) => setPassword(event.target.value)} required />
+            </label>
+            {authState.isError && <p className="form-error" role="alert">{authState.errorMessage}</p>}
+            <Button className="primary-button" htmlType="submit" disabled={authState.isPending}>Sign in</Button>
+          </form>
+        </Card>
       </section>
     </main>
   );

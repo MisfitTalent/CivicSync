@@ -9,6 +9,8 @@ const DashboardPage = () => {
   const selectedCitizen = state.citizens.find((citizen) => citizen.id === state.selectedCitizenId);
   const selectedRequest = state.changeRequests.find((request) => request.id === state.selectedRequestId);
   const firstApprover = state.users[0];
+  const noticeClassName = `notice ${state.isError ? 'notice-error' : state.isSuccess ? 'notice-success' : ''}`;
+  const noticeMessage = state.errorMessage || state.successMessage || state.message;
 
   return (
     <main>
@@ -21,7 +23,7 @@ const DashboardPage = () => {
         <Metric label="Receipts" value={state.receipts.length} />
       </section>
 
-      <section className="notice" aria-live="polite">{state.message}</section>
+      <section className={noticeClassName} aria-live="polite">{noticeMessage}</section>
 
       <div className="dashboard-grid">
         <section className="panel span-2">
