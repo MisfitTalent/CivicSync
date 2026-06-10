@@ -1692,3 +1692,130 @@ textarea:focus,
     padding: 22px 18px;
   }
 }
+
+
+/* Dedicated citizen ledger page */
+.status-pill-danger {
+  border-color: rgba(239, 68, 68, 0.32);
+  background: #fff1f2;
+  color: #dc2626;
+}
+
+.citizen-ledger-page {
+  gap: 18px;
+}
+
+.ledger-metrics {
+  margin-bottom: 0;
+}
+
+.ledger-history-panel {
+  min-height: 520px;
+}
+
+.ledger-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ledger-entry-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #e2e8f2;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.ledger-entry-status,
+.ledger-entry-main,
+.ledger-approval-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.ledger-entry-status small {
+  color: #71809b;
+  font-weight: 700;
+}
+
+.ledger-entry-main strong {
+  display: block;
+  color: #061a35;
+  font-size: 1rem;
+}
+
+.ledger-entry-main p {
+  margin: 4px 0 0;
+  color: #526b91;
+}
+
+.ledger-entry-main code {
+  padding: 6px 9px;
+  border: 1px solid #d7e1ee;
+  border-radius: 8px;
+  background: var(--white);
+  color: #50617b;
+  font-weight: 900;
+}
+
+.ledger-value-flow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+}
+
+.ledger-value-flow div {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #e2e8f2;
+  border-radius: 10px;
+  background: var(--white);
+}
+
+.ledger-value-flow span {
+  display: block;
+  margin-bottom: 6px;
+  color: #8a9bb7;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ledger-value-flow strong {
+  display: block;
+  overflow: hidden;
+  color: #061a35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ledger-value-flow b {
+  color: #8a9bb7;
+}
+
+.ledger-approval-row {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 760px) {
+  .ledger-entry-status,
+  .ledger-entry-main {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .ledger-value-flow {
+    grid-template-columns: 1fr;
+  }
+
+  .ledger-value-flow b {
+    display: none;
+  }
+}

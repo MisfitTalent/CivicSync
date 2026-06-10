@@ -1,6 +1,6 @@
 import { Button, Empty } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { AuditPanel, Info, Metric } from '../../components/dashboard/DashboardWidgets';
+import { Info, Metric } from '../../components/dashboard/DashboardWidgets';
 import { nodes, statusText } from '../../providers/civicSyncProvider/context';
 import { useCivicSyncActions, useCivicSyncState } from '../../providers/civicSyncProvider';
 
@@ -108,10 +108,6 @@ const CitizenPage = () => {
               ))}
             </div>
           </section>
-
-          <div id="request-history">
-            <AuditPanel title="Recent Request History" rows={state.changeRequests.slice(0, 8).map((request) => [statusText[request.status] ?? `Status ${request.status}`, request.reason, request.id.slice(0, 8)])} />
-          </div>
         </div>
       </div>
     </main>

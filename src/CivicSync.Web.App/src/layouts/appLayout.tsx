@@ -15,7 +15,7 @@ interface NavigationItem {
 const navigationItems: NavigationItem[] = [
   { label: 'Citizen Portal', path: '/citizen', roles: ['Citizen'], isPrimary: true },
   { label: 'Update Requests', path: '/citizen/request-update', roles: ['Citizen'] },
-  { label: 'Ledger', path: '/citizen#request-history', roles: ['Citizen'] },
+  { label: 'Ledger', path: '/citizen/ledger', roles: ['Citizen'] },
   { label: 'Departments', path: '/home-affairs', roles: ['HomeAffairsOfficer'], isPrimary: true },
   { label: 'Update Requests', path: '/home-affairs#approvals', roles: ['HomeAffairsOfficer'] },
   { label: 'Ledger', path: '/home-affairs#ledger', roles: ['HomeAffairsOfficer'] },
@@ -49,15 +49,11 @@ const AppLayout = () => {
   const visibleNavigationItems = navigationItems.filter((item) => currentUser && item.roles.includes(currentUser.role));
   const currentRoute = `${location.pathname}${location.hash}`;
   const isNavigationItemActive = (item: NavigationItem) => {
-    if (item.path === currentRoute || item.path === location.pathname) {
-      return true;
+    if (item.path.includes('#')) {
+      return item.path === currentRoute;
     }
 
-    if (item.isPrimary) {
-      return location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
-    }
-
-    return false;
+    return item.path === location.pathname;
   };
 
   const handleSignOut = () => {

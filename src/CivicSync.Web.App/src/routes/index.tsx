@@ -2,6 +2,7 @@
 import AppLayout from '../layouts/appLayout';
 import AdminPage from '../pages/admin/AdminPage';
 import CitizenPage from '../pages/citizen/CitizenPage';
+import CitizenLedgerPage from '../pages/citizen/CitizenLedgerPage';
 import RequestUpdatePage from '../pages/citizen/RequestUpdatePage';
 import DepartmentPage from '../pages/department/DepartmentPage';
 import LoginPage from '../pages/login/LoginPage';
@@ -16,6 +17,7 @@ const AppRoutes = () => (
         <Route element={<ProtectedRoute allowedRoles={['Citizen']} />}>
           <Route path="citizen" element={<CitizenPage />} />
           <Route path="citizen/request-update" element={<RequestUpdatePage />} />
+          <Route path="citizen/ledger" element={<CitizenLedgerPage />} />
         </Route>
         <Route element={<ProtectedRoute allowedRoles={['HomeAffairsOfficer']} />}>
           <Route path="home-affairs" element={<DepartmentPage departmentCode={1} title="Home Affairs" responsibility="Owns identity records, citizen profile checks, and final identity-related approvals." />} />
