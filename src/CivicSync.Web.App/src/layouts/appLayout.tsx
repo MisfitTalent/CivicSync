@@ -1,23 +1,33 @@
 import { Button } from 'antd';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { useAuthActions, useAuthState } from '../providers/authProvider';
 import type { UserRole } from '../providers/authProvider/context';
-import { nodes } from '../providers/civicSyncProvider/context';
 import { useCivicSyncActions, useCivicSyncState } from '../providers/civicSyncProvider';
+import { nodes } from '../providers/civicSyncProvider/context';
 
 interface NavigationItem {
   label: string;
   path: string;
-  shortLabel: string;
   roles: UserRole[];
+  isPrimary?: boolean;
 }
 
 const navigationItems: NavigationItem[] = [
-  { label: 'Citizen Portal', path: '/citizen', shortLabel: 'CP', roles: ['Citizen'] },
-  { label: 'Home Affairs', path: '/home-affairs', shortLabel: 'HA', roles: ['HomeAffairsOfficer'] },
-  { label: 'SARS', path: '/sars', shortLabel: 'SA', roles: ['SarsOfficer'] },
-  { label: 'Municipality', path: '/municipality', shortLabel: 'MU', roles: ['MunicipalityOfficer'] },
-  { label: 'Admin Console', path: '/admin', shortLabel: 'AD', roles: ['Admin'] },
+  { label: 'Citizen Portal', path: '/citizen', roles: ['Citizen'], isPrimary: true },
+  { label: 'Update Requests', path: '/citizen#update-requests', roles: ['Citizen'] },
+  { label: 'Ledger', path: '/citizen#request-history', roles: ['Citizen'] },
+  { label: 'Departments', path: '/home-affairs', roles: ['HomeAffairsOfficer'], isPrimary: true },
+  { label: 'Update Requests', path: '/home-affairs#approvals', roles: ['HomeAffairsOfficer'] },
+  { label: 'Ledger', path: '/home-affairs#ledger', roles: ['HomeAffairsOfficer'] },
+  { label: 'Departments', path: '/sars', roles: ['SarsOfficer'], isPrimary: true },
+  { label: 'Update Requests', path: '/sars#approvals', roles: ['SarsOfficer'] },
+  { label: 'Ledger', path: '/sars#ledger', roles: ['SarsOfficer'] },
+  { label: 'Departments', path: '/municipality', roles: ['MunicipalityOfficer'], isPrimary: true },
+  { label: 'Update Requests', path: '/municipality#approvals', roles: ['MunicipalityOfficer'] },
+  { label: 'Ledger', path: '/municipality#ledger', roles: ['MunicipalityOfficer'] },
+  { label: 'Admin Console', path: '/admin', roles: ['Admin'], isPrimary: true },
+  { label: 'Ledger', path: '/admin#ledger', roles: ['Admin'] },
+  { label: 'Sync Audit', path: '/admin#sync-audit', roles: ['Admin'] },
 ];
 
 const roleLabel: Record<UserRole, string> = {
@@ -44,55 +54,53 @@ const AppLayout = () => {
 
   return (
     <div className="app-shell">
-      <aside className="app-sidebar" aria-label="CivicSync workspace navigation">
-        <div className="sidebar-brand">
-          <img className="sidebar-logo" src="/civicsync-logo.svg" alt="CivicSync Ledger logo" />
+      <header className="app-topbar">
+        <div className="topbar-brand">
+          <img className="topbar-logo" src="/civicsync-logo.svg" alt="CivicSync Ledger logo" />
           <div>
-            <strong>CivicSync</strong>
-            <span>Ledger</span>
+            <strong>CivicSync Ledger</strong>
+            <span>Decentralized Public Sector Ledger</span>
           </div>
         </div>
 
-        <nav className="sidebar-nav">
+        <nav className="topbar-nav" aria-label="CivicSync workspace navigation">
           {visibleNavigationItems.map((item) => (
-            <NavLink className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} key={item.path} to={item.path}>
-              <span>{item.shortLabel}</span>
-              <strong>{item.label}</strong>
-            </NavLink>
+            <Link className={`topbar-link ${item.isPrimary ? 'active' : ''}`} key={item.path} to={item.path}>
+              {item.label}
+            </Link>
           ))}
         </nav>
 
-        {isAdmin && (
-          <div className="sidebar-node-selector">
-            <span>Node Selector</span>
-            {nodes.map((node) => (
-              <Button className={node.baseUrl === activeNode.baseUrl ? 'active' : ''} key={node.baseUrl} onClick={() => setActiveNode(node)}>
-                {node.name}
-              </Button>
-            ))}
-          </div>
-        )}
-      </aside>
-
-      <section className="app-main">
-        <header className="app-topbar">
-          <div>
-            <p className="eyebrow">Decentralized public-sector ledger</p>
-            <h1>CivicSync Ledger</h1>
-          </div>
+        <div className="topbar-actions">
+          {isAdmin && (
+            <div className="topbar-node-selector" aria-label="Department node selector">
+              {nodes.map((node) => (
+                <Button className={node.baseUrl === activeNode.baseUrl ? 'active' : ''} key={node.baseUrl} onClick={() => setActiveNode(node)}>
+                  {node.name}
+                </Button>
+              ))}
+            </div>
+          )}
 
           <div className="topbar-user-card" aria-live="polite">
             <span>{isLoading ? 'Working' : roleLabel[currentUser?.role ?? 'Citizen']}</span>
             <strong>{currentUser?.displayName ?? 'Unknown user'}</strong>
-            <small>{activeNode.name} • {activeNode.baseUrl}</small>
-            <Button onClick={handleSignOut}>Sign out</Button>
+            <small>
+              {activeNode.name} • {activeNode.baseUrl}
+            </small>
           </div>
-        </header>
 
+          <Button className="sign-out-button" onClick={handleSignOut}>
+            Sign out
+          </Button>
+        </div>
+      </header>
+
+      <main className="app-main">
         <div className="app-content">
           <Outlet />
         </div>
-      </section>
+      </main>
     </div>
   );
 };

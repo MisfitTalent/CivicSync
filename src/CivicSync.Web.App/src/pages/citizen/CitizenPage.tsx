@@ -59,7 +59,7 @@ const CitizenPage = () => {
           )}
         </section>
 
-        <section className="panel">
+        <section className="panel" id="update-requests">
           <div className="panel-header">
             <h2>Update Requests</h2>
             <Button className="primary-button" disabled={!selectedCitizen} onClick={() => document.getElementById('citizen-request-form')?.scrollIntoView({ behavior: 'smooth' })}>+ New</Button>
@@ -96,7 +96,9 @@ const CitizenPage = () => {
           </div>
         </section>
 
-        <AuditPanel title="Recent Request History" rows={state.changeRequests.slice(0, 8).map((request) => [statusText[request.status] ?? `Status ${request.status}`, request.reason, request.id.slice(0, 8)])} />
+        <div id="request-history">
+          <AuditPanel title="Recent Request History" rows={state.changeRequests.slice(0, 8).map((request) => [statusText[request.status] ?? `Status ${request.status}`, request.reason, request.id.slice(0, 8)])} />
+        </div>
       </div>
     </main>
   );

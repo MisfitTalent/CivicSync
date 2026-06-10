@@ -39,8 +39,12 @@ const AdminPage = () => {
         </section>
 
         <CitizenRegistrationPanel title="Admin Citizen Registration" />
-        <AuditPanel title="Ledger" rows={state.ledger.slice(0, 8).map((entry) => [`#${entry.sequenceNumber}`, entry.currentProofHash.slice(0, 16), new Date(entry.createdAtUtc).toLocaleString()])} />
-        <AuditPanel title="Outbox Queue" rows={state.outbox.slice(0, 8).map((entry) => [entry.status.toString(), `Retries ${entry.retryCount}`, entry.ledgerEntryId.slice(0, 8)])} />
+        <div id="ledger">
+          <AuditPanel title="Ledger" rows={state.ledger.slice(0, 8).map((entry) => [`#${entry.sequenceNumber}`, entry.currentProofHash.slice(0, 16), new Date(entry.createdAtUtc).toLocaleString()])} />
+        </div>
+        <div id="sync-audit">
+          <AuditPanel title="Outbox Queue" rows={state.outbox.slice(0, 8).map((entry) => [entry.status.toString(), `Retries ${entry.retryCount}`, entry.ledgerEntryId.slice(0, 8)])} />
+        </div>
         <AuditPanel title="Inbox Queue" rows={state.inbox.slice(0, 8).map((entry) => [entry.status.toString(), entry.citizenNationalIdNumber || 'Unknown citizen', entry.ledgerEntryId.slice(0, 8)])} />
         <AuditPanel title="Sync Receipts" rows={state.receipts.slice(0, 8).map((receipt) => [receipt.result.toString(), receipt.targetNodeId.slice(0, 8), new Date(receipt.receivedAtUtc).toLocaleString()])} />
       </div>

@@ -118,7 +118,7 @@ const DepartmentPage = ({ departmentCode, title, responsibility }: DepartmentPag
         </section>
 
         <aside className="department-side-stack">
-          <section className="panel">
+          <section className="panel" id="approvals">
             <div className="proposal-card-heading">
               <h2>Pending Approvals</h2>
               <span className="count-pill">{pendingRequests.length}</span>
@@ -188,7 +188,9 @@ const DepartmentPage = ({ departmentCode, title, responsibility }: DepartmentPag
           </div>
         </section>
 
-        <AuditPanel title="Ledger" rows={state.ledger.slice(0, 5).map((entry) => [`#${entry.sequenceNumber}`, entry.currentProofHash.slice(0, 16), new Date(entry.createdAtUtc).toLocaleString()])} />
+        <div id="ledger">
+          <AuditPanel title="Ledger" rows={state.ledger.slice(0, 5).map((entry) => [`#${entry.sequenceNumber}`, entry.currentProofHash.slice(0, 16), new Date(entry.createdAtUtc).toLocaleString()])} />
+        </div>
       </div>
 
       <div className="proposal-actions-grid">
