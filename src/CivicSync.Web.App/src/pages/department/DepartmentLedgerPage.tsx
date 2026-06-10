@@ -1,4 +1,4 @@
-﻿import { useEffect } from 'react';
+import { useEffect } from 'react';
 import { Button, Empty } from 'antd';
 import type { DepartmentCode } from '../../api/types';
 import { AuditPanel, Metric } from '../../components/dashboard/DashboardWidgets';
@@ -26,7 +26,7 @@ const DepartmentLedgerPage = ({ departmentCode, title }: DepartmentLedgerPagePro
   }, [actions, departmentCode, departmentNode, state.activeNode.departmentCode]);
 
   return (
-    <main className="department-proposal-page">
+    <main className="department-proposal-page compact-department-page">
       <section className="proposal-intro">
         <div>
           <p className="eyebrow">{title} Workspace</p>
@@ -38,14 +38,14 @@ const DepartmentLedgerPage = ({ departmentCode, title }: DepartmentLedgerPagePro
 
       <section className={noticeClassName} aria-live="polite">{noticeMessage}</section>
 
-      <section className="proposal-metrics">
+      <section className="proposal-metrics compact-metrics">
         <Metric label="Ledger Entries" value={state.ledger.length} />
         <Metric label="Outbox Events" value={state.outbox.length} />
         <Metric label="Inbox Entries" value={state.inbox.length} />
         <Metric label="Sync Receipts" value={state.receipts.length} />
       </section>
 
-      <div className="proposal-dashboard-grid department-ledger-grid">
+      <div className="proposal-dashboard-grid department-ledger-grid compact-ledger-grid">
         <section className="panel ledger-history-panel">
           <div className="panel-header">
             <h2>Ledger Entries</h2>
@@ -97,4 +97,3 @@ const DepartmentLedgerPage = ({ departmentCode, title }: DepartmentLedgerPagePro
 };
 
 export default DepartmentLedgerPage;
-

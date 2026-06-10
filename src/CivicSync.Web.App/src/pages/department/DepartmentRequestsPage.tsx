@@ -1,5 +1,6 @@
-﻿import { useEffect } from 'react';
+import { useEffect } from 'react';
 import { Button } from 'antd';
+import { useNavigate } from 'react-router-dom';
 import type { DepartmentCode } from '../../api/types';
 import { Metric } from '../../components/dashboard/DashboardWidgets';
 import { nodes, statusText } from '../../providers/civicSyncProvider/context';
@@ -18,14 +19,22 @@ const departmentShortName: Record<DepartmentCode, string> = {
   5: 'SAFETY',
 };
 
+const departmentRoutes: Record<DepartmentCode, string> = {
+  1: '/home-affairs',
+  2: '/sars',
+  3: '/municipality',
+  4: '/home-affairs',
+  5: '/home-affairs',
+};
+
 const DepartmentRequestsPage = ({ departmentCode, title }: DepartmentRequestsPageProps) => {
   const state = useCivicSyncState();
   const actions = useCivicSyncActions();
+  const navigate = useNavigate();
   const departmentNode = nodes.find((node) => node.departmentCode === departmentCode) ?? nodes[0];
   const firstApprover = state.users[0];
   const pendingRequests = state.changeRequests.filter((request) => request.status !== 5);
   const approvedRequests = state.changeRequests.filter((request) => request.status === 3);
-  const selectedRequest = state.changeRequests.find((request) => request.id === state.selectedRequestId);
   const noticeClassName = `notice ${state.isError ? 'notice-error' : state.isSuccess ? 'notice-success' : ''}`;
   const noticeMessage = state.errorMessage || state.successMessage || state.message;
 
@@ -36,7 +45,7 @@ const DepartmentRequestsPage = ({ departmentCode, title }: DepartmentRequestsPag
   }, [actions, departmentCode, departmentNode, state.activeNode.departmentCode]);
 
   return (
-    <main className="department-proposal-page">
+    <main className="department-proposal-page compact-department-page">
       <section className="proposal-intro">
         <div>
           <p className="eyebrow">{title} Workspace</p>
@@ -48,14 +57,14 @@ const DepartmentRequestsPage = ({ departmentCode, title }: DepartmentRequestsPag
 
       <section className={noticeClassName} aria-live="polite">{noticeMessage}</section>
 
-      <section className="proposal-metrics">
+      <section className="proposal-metrics compact-metrics">
         <Metric label="Open Requests" value={pendingRequests.length} />
         <Metric label="Approved Requests" value={approvedRequests.length} />
         <Metric label="Department Users" value={state.users.length} />
         <Metric label="Ledger Entries" value={state.ledger.length} />
       </section>
 
-      <div className="proposal-dashboard-grid">
+      <div className="proposal-dashboard-grid department-request-grid">
         <section className="panel">
           <div className="proposal-card-heading">
             <h2>Pending Approvals</h2>
@@ -66,9 +75,8 @@ const DepartmentRequestsPage = ({ departmentCode, title }: DepartmentRequestsPag
             {pendingRequests.map((request) => {
               const approval = request.approvals.find((item) => item.approvingNodeId === firstApprover?.departmentNodeId);
               const hasApproved = approval?.decision === 2;
-              const canRequestApproval = request.status === 1 && !approval;
-              const canApprove = request.status !== 4 && request.status !== 5 && !hasApproved;
               const fieldSummary = request.fieldChanges.map((change) => `${change.fieldName} -> ${change.newValue}`).join(', ');
+              const requestCitizen = state.citizens.find((citizen) => citizen.id === request.citizenId);
 
               return (
                 <article
@@ -80,27 +88,20 @@ const DepartmentRequestsPage = ({ departmentCode, title }: DepartmentRequestsPag
                     <strong>{request.id.slice(0, 8).toUpperCase()}</strong>
                     <span className={`status-pill ${request.status === 3 ? 'status-pill-success' : 'status-pill-warning'}`}>{statusText[request.status] ?? `Status ${request.status}`}</span>
                   </div>
+                  <strong>{requestCitizen?.displayName ?? 'Unknown citizen'}</strong>
                   <small>{request.reason}</small>
                   <div className="approval-change">{fieldSummary || 'No field changes'}</div>
                   <div className="approval-actions">
                     <Button
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        actions.requestApproval(request.id);
-                      }}
-                      disabled={state.isLoading || !canRequestApproval}
-                    >
-                      {approval ? 'Requested' : 'Request'}
-                    </Button>
-                    <Button
                       className="primary-button"
                       onClick={(event) => {
                         event.stopPropagation();
-                        actions.approveRequest(request.id);
+                        actions.setSelectedRequestId(request.id);
+                        navigate(`${departmentRoutes[departmentCode]}/requests/${request.id}`);
                       }}
-                      disabled={state.isLoading || !canApprove}
+                      disabled={state.isLoading}
                     >
-                      {hasApproved ? 'Approved' : 'Approve'}
+                      {hasApproved ? 'Review approved' : 'Review details'}
                     </Button>
                   </div>
                 </article>
@@ -111,12 +112,12 @@ const DepartmentRequestsPage = ({ departmentCode, title }: DepartmentRequestsPag
 
         <aside className="department-side-stack">
           <section className="panel">
-            <h2>Selected Request</h2>
-            <div className="access-summary-list">
-              <div className="access-summary-row"><span>Request</span><strong>{selectedRequest?.id.slice(0, 8).toUpperCase() ?? 'None selected'}</strong></div>
-              <div className="access-summary-row"><span>Status</span><strong>{selectedRequest ? statusText[selectedRequest.status] ?? selectedRequest.status : 'None'}</strong></div>
-              <div className="access-summary-row"><span>Approvals</span><strong>{selectedRequest ? `${selectedRequest.approvals.length}/${nodes.length}` : '0/0'}</strong></div>
-              <div className="access-summary-row"><span>Approver</span><strong>{firstApprover ? `${firstApprover.fullName} (${firstApprover.role})` : 'No user loaded'}</strong></div>
+            <h2>Review process</h2>
+            <div className="review-checklist">
+              <div><span>1</span><p>Select a request from the queue.</p></div>
+              <div><span>2</span><p>Open the full review dossier for the citizen and request history.</p></div>
+              <div><span>3</span><p>Request this department's approval record if it does not exist yet.</p></div>
+              <div><span>4</span><p>Approve only after confirming the field ownership and old/new values.</p></div>
             </div>
           </section>
 
@@ -135,4 +136,3 @@ const DepartmentRequestsPage = ({ departmentCode, title }: DepartmentRequestsPag
 };
 
 export default DepartmentRequestsPage;
-

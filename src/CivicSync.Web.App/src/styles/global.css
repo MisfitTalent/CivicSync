@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   --lime: #b8f24b;
   --lime-deep: #6fbf16;
   --orange: #ff8a1d;
@@ -125,6 +125,7 @@ button:disabled {
 .topbar-link {
   display: inline-flex;
   align-items: center;
+  gap: 8px;
   padding: 0 20px;
   border-bottom: 3px solid transparent;
   color: #9fb0cf;
@@ -138,6 +139,21 @@ button:disabled {
 .topbar-link:hover {
   border-bottom-color: var(--lime);
   color: var(--lime);
+}
+
+.nav-count-badge {
+  display: inline-flex;
+  min-width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--orange);
+  color: var(--white);
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .topbar-actions {
@@ -1106,6 +1122,10 @@ input:focus {
   gap: 10px;
 }
 
+.approval-actions > button:only-child {
+  grid-column: 1 / -1;
+}
+
 .access-summary-row {
   display: flex;
   align-items: center;
@@ -1713,6 +1733,302 @@ textarea:focus,
   min-height: 520px;
 }
 
+.inbox-workspace-panel {
+  min-height: 0;
+}
+
+.inbox-entry-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.inbox-entry-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: #f8fafc;
+}
+
+.inbox-entry-heading {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.inbox-entry-heading div {
+  min-width: 0;
+}
+
+.inbox-entry-heading strong,
+.inbox-entry-heading span {
+  display: block;
+}
+
+.inbox-entry-heading strong {
+  overflow: hidden;
+  color: #001b3d;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inbox-entry-heading span:not(.status-pill) {
+  margin-top: 4px;
+  color: #7f91b3;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.inbox-entry-body {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.inbox-entry-body div {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #dfe7f3;
+  border-radius: var(--radius-sm);
+  background: var(--white);
+}
+
+.inbox-entry-body span,
+.inbox-entry-body strong {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inbox-entry-body span {
+  color: #8ca0c0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.inbox-entry-body strong {
+  margin-top: 4px;
+  color: #243654;
+  font-size: 0.86rem;
+}
+
+.inbox-payload-preview {
+  max-height: 92px;
+  margin: 0;
+  overflow: auto;
+  padding: 10px;
+  border: 1px solid #dfe7f3;
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  color: #405172;
+  font-size: 0.78rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.request-review-panel {
+  position: sticky;
+  top: 88px;
+  max-height: calc(100vh - 110px);
+  overflow-y: auto;
+}
+
+.request-review-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.request-review-section {
+  display: grid;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.request-review-section h3 {
+  margin: 0;
+  color: #001b3d;
+  font-size: 0.94rem;
+}
+
+.request-review-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.request-review-grid div,
+.request-change-row,
+.approval-trail-row {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #dfe7f3;
+  border-radius: var(--radius-sm);
+  background: #f8fafc;
+}
+
+.request-review-grid span,
+.request-change-row span,
+.approval-trail-row span {
+  display: block;
+  color: #8ca0c0;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.request-review-grid strong,
+.request-change-row strong,
+.approval-trail-row strong,
+.approval-trail-row small {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  color: #001b3d;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.request-review-grid strong,
+.request-change-row strong,
+.approval-trail-row strong {
+  margin-top: 4px;
+  font-size: 0.88rem;
+}
+
+.request-change-list,
+.request-approval-trail {
+  display: grid;
+  gap: 8px;
+}
+
+.request-change-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.9fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+}
+
+.approval-trail-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.8fr) minmax(90px, 0.6fr) minmax(0, 1fr) minmax(120px, 0.8fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.approval-trail-row small {
+  color: #536584;
+  font-size: 0.78rem;
+}
+
+.request-review-actions {
+  grid-template-columns: 1fr 1fr;
+}
+
+.request-detail-page {
+  max-width: 1480px;
+  margin: 0 auto;
+}
+
+.request-detail-hero {
+  align-items: flex-start;
+}
+
+.back-link {
+  display: inline-flex;
+  margin-bottom: 8px;
+  color: #526b91;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.back-link:hover {
+  color: #001b3d;
+}
+
+.request-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.review-grid-wide {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.request-change-row-wide {
+  grid-template-columns: minmax(180px, 0.9fr) minmax(0, 1fr) minmax(0, 1fr) minmax(180px, 0.9fr);
+}
+
+.request-change-row small {
+  display: block;
+  min-width: 0;
+  margin-top: 4px;
+  overflow: hidden;
+  color: #536584;
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.review-checklist {
+  display: grid;
+  gap: 10px;
+}
+
+.review-checklist div {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 10px;
+  border: 1px solid #dfe7f3;
+  border-radius: var(--radius-sm);
+  background: #f8fafc;
+}
+
+.review-checklist span {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #ecffd6;
+  color: var(--lime-deep);
+  font-weight: 900;
+}
+
+.review-checklist p {
+  margin: 0;
+  color: #263b5b;
+}
+
+.decision-warning {
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid #ffd37f;
+  border-radius: var(--radius-sm);
+  background: #fff8e8;
+  color: #9b4900;
+  font-weight: 700;
+}
+
+.request-detail-actions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .ledger-timeline {
   display: flex;
   flex-direction: column;
@@ -1820,3 +2136,207 @@ textarea:focus,
   }
 }
 
+
+/* Department workspace density fixes */
+.compact-department-page {
+  gap: 14px;
+}
+
+.compact-department-page .proposal-intro {
+  padding: 18px 22px;
+}
+
+.compact-metrics {
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.compact-metrics .metric-card,
+.compact-metrics .panel {
+  min-height: auto;
+  padding: 14px 16px;
+}
+
+.department-overview-grid {
+  grid-template-columns: minmax(0, 2.1fr) minmax(320px, 0.9fr);
+}
+
+.department-workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2.1fr) minmax(340px, 0.9fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.department-workspace-stack {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  min-width: 0;
+}
+
+.department-field-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.department-field-grid .field-card {
+  min-height: 46px;
+  padding: 8px 10px;
+}
+
+.department-field-grid .field-card strong {
+  font-size: 0.95rem;
+}
+
+.department-field-grid .field-card small {
+  display: block;
+  margin-top: 5px;
+  overflow: hidden;
+  position: static;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.department-side-stack .panel {
+  padding: 16px 18px;
+}
+
+.department-side-stack .approval-list {
+  max-height: 360px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.department-side-stack .approval-card {
+  min-width: 0;
+}
+
+.department-side-stack .approval-change {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.officer-request-list {
+  max-height: calc(100vh - 380px);
+  min-height: 340px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.officer-request-list .approval-card {
+  gap: 6px;
+  padding: 10px;
+}
+
+.officer-request-list .approval-change {
+  padding: 8px 10px;
+}
+
+.department-request-grid {
+  grid-template-columns: minmax(0, 1.9fr) minmax(300px, 0.8fr);
+}
+
+.department-workflow-grid {
+  grid-template-columns: minmax(320px, 1.1fr) minmax(300px, 0.95fr) minmax(300px, 0.95fr);
+}
+
+.compact-ledger-grid {
+  grid-template-columns: minmax(0, 1.8fr) minmax(320px, 0.9fr);
+}
+
+.ledger-history-panel {
+  min-height: 0;
+}
+
+.ledger-timeline {
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+@media (max-width: 1180px) {
+  .department-overview-grid,
+  .department-workspace-grid,
+  .department-request-grid,
+  .department-workflow-grid,
+  .compact-ledger-grid,
+  .inbox-entry-list,
+  .request-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .department-field-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .review-grid-wide {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .request-change-row-wide {
+    grid-template-columns: 1fr;
+  }
+
+  .request-review-panel {
+    position: static;
+    max-height: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .compact-metrics,
+  .department-field-grid,
+  .request-review-grid,
+  .request-change-row,
+  .approval-trail-row,
+  .request-review-actions,
+  .review-grid-wide,
+  .request-detail-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .inbox-entry-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Department page overflow and dead-space corrections */
+.department-side-stack .access-summary-list {
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.department-access-summary .access-summary-list {
+  max-height: 260px;
+}
+
+.department-side-stack .access-summary-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.department-side-stack .access-summary-row span,
+.department-side-stack .access-summary-row strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.department-side-stack .access-summary-row strong {
+  max-width: none;
+  text-align: right;
+}
+.department-workspace-stack .audit-list {
+  max-height: 260px;
+}
+
+.department-node-context .access-summary-list {
+  max-height: none;
+  overflow: visible;
+}
