@@ -1,7 +1,7 @@
-using CivicSync.Node.Api.Infrastructure.Swagger;
+using CivicSync.Web.Core.Infrastructure.Swagger;
 using Microsoft.OpenApi;
 
-namespace CivicSync.Node.Api.Tests.Infrastructure;
+namespace CivicSync.Web.Host.Tests.Infrastructure;
 
 public sealed class CivicSyncSwaggerDocumentationTests
 {

@@ -1,12 +1,12 @@
-using CivicSync.Node.Api.Application.Configuration;
-using CivicSync.Node.Api.Infrastructure.Persistence;
-using CivicSync.Node.Api.Infrastructure.Persistence.Seed;
+using CivicSync.Core.Configuration;
+using CivicSync.EntityFrameworkCore.Infrastructure.Persistence;
+using CivicSync.EntityFrameworkCore.Infrastructure.Persistence.Seed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Volo.Abp.Autofac;
 using Volo.Abp.Modularity;
 
-namespace CivicSync.Node.Api.Migrator;
+namespace CivicSync.Migrator;
 
 [DependsOn(
     typeof(AbpAutofacModule),

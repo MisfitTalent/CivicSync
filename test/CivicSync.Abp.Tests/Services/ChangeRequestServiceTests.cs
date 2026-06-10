@@ -1,16 +1,16 @@
-using CivicSync.Node.Api.Application.Configuration;
-using CivicSync.Node.Api.Application.Services.ChangeRequests;
-using CivicSync.Node.Api.Contracts.ChangeRequests;
-using CivicSync.Node.Api.Domain.ChangeRequests;
-using CivicSync.Node.Api.Domain.Citizens;
-using CivicSync.Node.Api.Domain.Enums;
-using CivicSync.Node.Api.Domain.Nodes;
-using CivicSync.Node.Api.Domain.ValueObjects;
-using CivicSync.Node.Api.Infrastructure.Persistence;
-using CivicSync.Node.Api.Tests.TestSupport;
+using CivicSync.Core.Configuration;
+using CivicSync.Application.Services.ChangeRequests;
+using CivicSync.Application.Contracts.ChangeRequests;
+using CivicSync.Core.Domain.ChangeRequests;
+using CivicSync.Core.Domain.Citizens;
+using CivicSync.Core.Domain.Enums;
+using CivicSync.Core.Domain.Nodes;
+using CivicSync.Core.Domain.ValueObjects;
+using CivicSync.EntityFrameworkCore.Infrastructure.Persistence;
+using CivicSync.Web.Host.Tests.TestSupport;
 using Microsoft.Extensions.Options;
 
-namespace CivicSync.Node.Api.Tests.Services;
+namespace CivicSync.Web.Host.Tests.Services;
 
 public sealed class ChangeRequestServiceTests
 {

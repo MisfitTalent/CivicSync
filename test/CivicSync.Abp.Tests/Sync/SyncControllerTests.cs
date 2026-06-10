@@ -1,13 +1,13 @@
-﻿using CivicSync.Node.Api.Application.Configuration;
-using CivicSync.Node.Api.Application.Services.Sync;
-using CivicSync.Node.Api.Contracts.Sync;
-using CivicSync.Node.Api.Controllers;
-using CivicSync.Node.Api.Domain.Enums;
+using CivicSync.Core.Configuration;
+using CivicSync.Application.Services.Sync;
+using CivicSync.Application.Contracts.Sync;
+using CivicSync.Web.Host.Controllers;
+using CivicSync.Core.Domain.Enums;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
-namespace CivicSync.Node.Api.Tests.Sync;
+namespace CivicSync.Web.Host.Tests.Sync;
 
 public sealed class SyncControllerTests
 {

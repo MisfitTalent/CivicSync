@@ -1,6 +1,6 @@
-using CivicSync.Node.Api.Contracts.Sync;
+using CivicSync.Application.Contracts.Sync;
 
-namespace CivicSync.Node.Api.Application.Services.Sync;
+namespace CivicSync.Application.Services.Sync;
 
 public interface ISyncService
 {

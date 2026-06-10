@@ -1,8 +1,8 @@
-using CivicSync.Node.Api.Infrastructure.Security;
+using CivicSync.Web.Core.Infrastructure.Security;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 
-namespace CivicSync.Node.Api.Tests.Infrastructure;
+namespace CivicSync.Web.Host.Tests.Infrastructure;
 
 public sealed class ApiKeyAuthenticationMiddlewareTests
 {

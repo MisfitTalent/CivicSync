@@ -1,6 +1,6 @@
-using CivicSync.Node.Api.Contracts.Nodes;
+using CivicSync.Application.Contracts.Nodes;
 
-namespace CivicSync.Node.Api.Application.Services.Nodes;
+namespace CivicSync.Application.Services.Nodes;
 
 public interface IDepartmentNodeService
 {

@@ -1,6 +1,6 @@
-using CivicSync.Node.Api.Contracts.Ledger;
+using CivicSync.Application.Contracts.Ledger;
 
-namespace CivicSync.Node.Api.Application.Services.Ledger;
+namespace CivicSync.Application.Services.Ledger;
 
 public interface ILedgerService
 {

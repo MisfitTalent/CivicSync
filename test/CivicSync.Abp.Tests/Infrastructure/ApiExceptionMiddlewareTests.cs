@@ -1,9 +1,9 @@
-﻿using System.Text.Json;
-using CivicSync.Node.Api.Infrastructure.Errors;
+using System.Text.Json;
+using CivicSync.Web.Core.Infrastructure.Errors;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace CivicSync.Node.Api.Tests.Infrastructure;
+namespace CivicSync.Web.Host.Tests.Infrastructure;
 
 public sealed class ApiExceptionMiddlewareTests
 {

@@ -1,6 +1,6 @@
-using CivicSync.Node.Api.Contracts.Audit;
+using CivicSync.Application.Contracts.Audit;
 
-namespace CivicSync.Node.Api.Application.Services.Audit;
+namespace CivicSync.Application.Services.Audit;
 
 public interface IAuditService
 {
