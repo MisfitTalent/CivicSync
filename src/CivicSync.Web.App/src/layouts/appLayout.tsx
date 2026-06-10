@@ -26,8 +26,8 @@ const navigationItems: NavigationItem[] = [
   { label: 'Update Requests', path: '/municipality/requests', roles: ['MunicipalityOfficer'] },
   { label: 'Ledger', path: '/municipality/ledger', roles: ['MunicipalityOfficer'] },
   { label: 'Admin Console', path: '/admin', roles: ['Admin'], isPrimary: true },
-  { label: 'Ledger', path: '/admin#ledger', roles: ['Admin'] },
-  { label: 'Sync Audit', path: '/admin#sync-audit', roles: ['Admin'] },
+  { label: 'Ledger', path: '/admin/ledger', roles: ['Admin'] },
+  { label: 'Sync Audit', path: '/admin/sync-audit', roles: ['Admin'] },
 ];
 
 const roleLabel: Record<UserRole, string> = {

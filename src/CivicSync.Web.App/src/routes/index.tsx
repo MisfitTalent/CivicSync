@@ -1,6 +1,8 @@
 ﻿import { Navigate, Route, Routes } from 'react-router-dom';
 import AppLayout from '../layouts/appLayout';
 import AdminPage from '../pages/admin/AdminPage';
+import AdminLedgerPage from '../pages/admin/AdminLedgerPage';
+import AdminSyncAuditPage from '../pages/admin/AdminSyncAuditPage';
 import CitizenPage from '../pages/citizen/CitizenPage';
 import CitizenLedgerPage from '../pages/citizen/CitizenLedgerPage';
 import RequestUpdatePage from '../pages/citizen/RequestUpdatePage';
@@ -38,6 +40,8 @@ const AppRoutes = () => (
         </Route>
         <Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
           <Route path="admin" element={<AdminPage />} />
+          <Route path="admin/ledger" element={<AdminLedgerPage />} />
+          <Route path="admin/sync-audit" element={<AdminSyncAuditPage />} />
         </Route>
       </Route>
     </Route>
