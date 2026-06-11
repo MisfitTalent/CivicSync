@@ -2,6 +2,15 @@ import { AuditPanel, Info, Metric, PanelHeader } from '../../components/dashboar
 import CitizenRegistrationPanel from '../../components/workflow/CitizenRegistrationPanel';
 import { useAuthState } from '../../providers/authProvider';
 import { useCivicSyncActions, useCivicSyncState } from '../../providers/civicSyncProvider';
+import { statusText } from '../../providers/civicSyncProvider/context';
+
+const receiptResultText: Record<number, string> = {
+  1: 'Applied by peer',
+  2: 'Queued for review',
+  3: 'Stored for matching',
+  4: 'Security check failed',
+  5: 'Delivery failed',
+};
 
 const AdminPage = () => {
   const state = useCivicSyncState();
@@ -33,20 +42,20 @@ const AdminPage = () => {
           <div className="info-grid">
             <Info label="Signed In" value={currentUser?.displayName ?? 'Unknown'} />
             <Info label="Active Node" value={state.activeNode.name} />
-            <Info label="API Base URL" value={state.nodeInfo?.apiBaseUrl ?? state.activeNode.baseUrl} />
-            <Info label="Peer Count" value={state.nodeInfo?.peers?.length ?? 0} />
+            <Info label="Connection" value="Secure department workspace" />
+            <Info label="Peer Departments" value={state.nodeInfo?.peers?.length ?? 0} />
           </div>
         </section>
 
         <CitizenRegistrationPanel title="Admin Citizen Registration" />
         <div id="ledger">
-          <AuditPanel title="Ledger" rows={state.ledger.slice(0, 8).map((entry) => [`#${entry.sequenceNumber}`, entry.currentProofHash.slice(0, 16), new Date(entry.createdAtUtc).toLocaleString()])} />
+          <AuditPanel title="Ledger" rows={state.ledger.slice(0, 8).map((entry) => [`Entry ${entry.sequenceNumber}`, 'Verified record change', new Date(entry.createdAtUtc).toLocaleString()])} />
         </div>
         <div id="sync-audit">
-          <AuditPanel title="Outbox Queue" rows={state.outbox.slice(0, 8).map((entry) => [entry.status.toString(), `Retries ${entry.retryCount}`, entry.ledgerEntryId.slice(0, 8)])} />
+          <AuditPanel title="Outbox Queue" rows={state.outbox.slice(0, 8).map((entry) => [statusText[entry.status] ?? 'Queued', entry.retryCount > 0 ? 'Retry scheduled' : 'Ready for delivery', 'Peer departments'])} />
         </div>
-        <AuditPanel title="Inbox Queue" rows={state.inbox.slice(0, 8).map((entry) => [entry.status.toString(), entry.citizenNationalIdNumber || 'Unknown citizen', entry.ledgerEntryId.slice(0, 8)])} />
-        <AuditPanel title="Sync Receipts" rows={state.receipts.slice(0, 8).map((receipt) => [receipt.result.toString(), receipt.targetNodeId.slice(0, 8), new Date(receipt.receivedAtUtc).toLocaleString()])} />
+        <AuditPanel title="Inbox Queue" rows={state.inbox.slice(0, 8).map((entry) => [statusText[entry.status] ?? 'Received', entry.citizenNationalIdNumber ? 'Citizen record matched' : 'Citizen pending match', entry.appliedAtUtc ? 'Applied' : 'Awaiting review'])} />
+        <AuditPanel title="Sync Receipts" rows={state.receipts.slice(0, 8).map((receipt) => [receiptResultText[receipt.result] ?? 'Delivery recorded', 'Peer department', new Date(receipt.receivedAtUtc).toLocaleString()])} />
       </div>
     </main>
   );

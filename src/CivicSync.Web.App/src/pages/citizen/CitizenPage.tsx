@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Info, Metric } from '../../components/dashboard/DashboardWidgets';
 import { nodes, statusText } from '../../providers/civicSyncProvider/context';
 import { useCivicSyncActions, useCivicSyncState } from '../../providers/civicSyncProvider';
+import { formatCitizenFieldValue, getCitizenFieldLabel } from '../../utils/departmentFieldPolicy';
 
 const formatDate = (value: string) => new Date(value).toLocaleString();
 
@@ -45,7 +46,7 @@ const CitizenPage = () => {
           <section className="panel citizen-record-panel">
             <div className="panel-header">
               <h2>My Linked Citizen Record</h2>
-              {selectedCitizen && <span className="status-pill">SA-CSL-{selectedCitizen.id.slice(0, 4).toUpperCase()}</span>}
+              {selectedCitizen && <span className="status-pill">Verified profile</span>}
             </div>
 
             {selectedCitizen ? (
@@ -54,8 +55,8 @@ const CitizenPage = () => {
                 <Info label="National ID" value={selectedCitizen.nationalIdNumber} />
                 <Info label="Email Address" value={selectedCitizen.emailAddress} />
                 <Info label="Phone Number" value={selectedCitizen.phoneNumber} />
-                <Info label="Record Version" value={selectedCitizen.recordVersion} />
-                <Info label="Created At" value={formatDate(selectedCitizen.createdAtUtc)} />
+                <Info label="Record Status" value="Active department record" />
+                <Info label="Registered On" value={formatDate(selectedCitizen.createdAtUtc)} />
               </div>
             ) : (
               <Empty className="empty-text" description="No linked citizen record found. Ask Home Affairs or Admin to register the citizen first." />
@@ -69,7 +70,7 @@ const CitizenPage = () => {
             </div>
             <div className="request-context-grid">
               <Info label="Selected Citizen" value={selectedCitizen?.displayName ?? 'None'} />
-              <Info label="Selected Request" value={selectedRequest ? `${selectedRequest.id.slice(0, 8)} - ${statusText[selectedRequest.status] ?? selectedRequest.status}` : 'None'} />
+              <Info label="Selected Request" value={selectedRequest ? `${selectedRequest.fieldChanges[0] ? getCitizenFieldLabel(selectedRequest.fieldChanges[0].fieldName) : 'Citizen record'} - ${statusText[selectedRequest.status] ?? 'In progress'}` : 'None'} />
             </div>
             <p className="helper-text">Use the guided request flow to choose a supported citizen field, provide the new value, and submit it for department approval.</p>
           </section>
@@ -82,18 +83,26 @@ const CitizenPage = () => {
               <Button className="primary-button" disabled={!selectedCitizen} onClick={() => navigate('/citizen/request-update')}>+ New</Button>
             </div>
             <div className="request-card-list">
-              {state.changeRequests.length === 0 ? <Empty className="empty-text" description="No update requests yet." /> : state.changeRequests.slice(0, 5).map((request) => (
-                <button className={`request-card ${request.id === state.selectedRequestId ? 'selected' : ''}`} key={request.id} onClick={() => actions.setSelectedRequestId(request.id)}>
-                  <div className="request-card-header">
-                    <strong>{request.fieldChanges[0]?.fieldName ?? 'Citizen Record'}</strong>
-                    <span className={`status-pill ${request.status === 3 || request.status === 5 ? 'status-pill-success' : 'status-pill-warning'}`}>{statusText[request.status] ?? `Status ${request.status}`}</span>
-                  </div>
-                  <small>{formatDate(request.createdAtUtc)}</small>
-                  <span>{request.reason}</span>
-                  <small>{request.fieldChanges[0]?.oldValue ?? 'No previous value'}{' -> '}{request.fieldChanges[0]?.newValue ?? 'No new value'}</small>
-                  <small>{request.approvals.length}/{nodes.length} departments</small>
-                </button>
-              ))}
+              {state.changeRequests.length === 0 ? <Empty className="empty-text" description="No update requests yet." /> : state.changeRequests.slice(0, 5).map((request) => {
+                const fieldChange = request.fieldChanges[0];
+
+                return (
+                  <button className={`request-card ${request.id === state.selectedRequestId ? 'selected' : ''}`} key={request.id} onClick={() => actions.setSelectedRequestId(request.id)}>
+                    <div className="request-card-header">
+                      <strong>{fieldChange ? getCitizenFieldLabel(fieldChange.fieldName) : 'Citizen record'}</strong>
+                      <span className={`status-pill ${request.status === 3 || request.status === 5 ? 'status-pill-success' : 'status-pill-warning'}`}>{statusText[request.status] ?? `Status ${request.status}`}</span>
+                    </div>
+                    <small>{formatDate(request.createdAtUtc)}</small>
+                    <span>{request.reason || 'No reason supplied'}</span>
+                    <small>
+                      {fieldChange
+                        ? `${formatCitizenFieldValue(fieldChange.fieldName, fieldChange.oldValue)} → ${formatCitizenFieldValue(fieldChange.fieldName, fieldChange.newValue)}`
+                        : 'No field change recorded'}
+                    </small>
+                    <small>{request.approvals.length}/{nodes.length} departments</small>
+                  </button>
+                );
+              })}
             </div>
           </section>
 

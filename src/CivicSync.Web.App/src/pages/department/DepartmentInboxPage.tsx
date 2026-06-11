@@ -83,14 +83,14 @@ const DepartmentInboxPage = ({ departmentCode, title }: DepartmentInboxPageProps
                 <div className="inbox-entry-heading">
                   <div>
                     <strong>{entry.citizenNationalIdNumber || 'Unknown citizen'}</strong>
-                    <span>Ledger {entry.ledgerEntryId.slice(0, 8).toUpperCase()}</span>
+                    <span>Citizen record synchronization</span>
                   </div>
                   <span className={getInboxEntryStatusClassName(entry)}>{syncStatusText[entry.status] ?? `Status ${entry.status}`}</span>
                 </div>
                 <div className="inbox-entry-body">
                   <div>
-                    <span>Received from</span>
-                    <strong>{entry.receivedFromNodeId.slice(0, 8).toUpperCase()}</strong>
+                    <span>Source</span>
+                    <strong>Peer department</strong>
                   </div>
                   <div>
                     <span>Received at</span>
@@ -101,7 +101,7 @@ const DepartmentInboxPage = ({ departmentCode, title }: DepartmentInboxPageProps
                     <strong>{entry.appliedAtUtc ? new Date(entry.appliedAtUtc).toLocaleString() : 'Not applied yet'}</strong>
                   </div>
                 </div>
-                <pre className="inbox-payload-preview">{entry.fieldChangesJson || 'No field payload stored.'}</pre>
+                <p className="inbox-payload-preview">{entry.fieldChangesJson ? 'Field change package received for review.' : 'No field change details supplied.'}</p>
               </article>
             ))}
           </div>

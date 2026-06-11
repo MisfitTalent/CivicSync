@@ -2,17 +2,9 @@
 import { Metric } from '../../components/dashboard/DashboardWidgets';
 import { nodes, statusText } from '../../providers/civicSyncProvider/context';
 import { useCivicSyncState } from '../../providers/civicSyncProvider';
+import { formatCitizenFieldValue, getCitizenFieldLabel } from '../../utils/departmentFieldPolicy';
 
 const formatDate = (value: string) => new Date(value).toLocaleString();
-
-const formatFieldValue = (value?: string) => {
-  if (!value) {
-    return 'No value recorded';
-  }
-
-  return value.replace('|', ' / ');
-};
-
 
 const approvalDecisionText: Record<number, string> = {
   1: 'Pending',
@@ -62,7 +54,7 @@ const CitizenLedgerPage = () => {
       <section className="panel ledger-history-panel">
         <div className="panel-header">
           <h2>Transaction History</h2>
-          {selectedCitizen && <span className="status-pill">SA-CSL-{selectedCitizen.id.slice(0, 4).toUpperCase()}</span>}
+          {selectedCitizen && <span className="status-pill">Verified profile</span>}
         </div>
 
         {citizenRequests.length === 0 ? (
@@ -80,21 +72,21 @@ const CitizenLedgerPage = () => {
 
                   <div className="ledger-entry-main">
                     <div>
-                      <strong>{fieldChange?.fieldName ?? 'Citizen Record'}</strong>
+                      <strong>{fieldChange ? getCitizenFieldLabel(fieldChange.fieldName) : 'Citizen record'}</strong>
                       <p>{request.reason}</p>
                     </div>
-                    <code>{request.id.slice(0, 8).toUpperCase()}</code>
+                    <span className="status-pill">Tracked request</span>
                   </div>
 
                   <div className="ledger-value-flow">
                     <div>
                       <span>Previous value</span>
-                      <strong>{formatFieldValue(fieldChange?.oldValue)}</strong>
+                      <strong>{fieldChange ? formatCitizenFieldValue(fieldChange.fieldName, fieldChange.oldValue) : 'No value recorded'}</strong>
                     </div>
                     <b>-&gt;</b>
                     <div>
                       <span>New value</span>
-                      <strong>{formatFieldValue(fieldChange?.newValue)}</strong>
+                      <strong>{fieldChange ? formatCitizenFieldValue(fieldChange.fieldName, fieldChange.newValue) : 'No value recorded'}</strong>
                     </div>
                   </div>
 

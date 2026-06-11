@@ -2,6 +2,7 @@
 import { AuditPanel, Info, Metric, PanelHeader, TextInput } from '../../components/dashboard/DashboardWidgets';
 import { statusText } from '../../providers/civicSyncProvider/context';
 import { useCivicSyncActions, useCivicSyncState } from '../../providers/civicSyncProvider';
+import { getCitizenFieldLabel } from '../../utils/departmentFieldPolicy';
 
 const DashboardPage = () => {
   const state = useCivicSyncState();
@@ -29,9 +30,9 @@ const DashboardPage = () => {
         <section className="panel span-2">
           <PanelHeader title="Node Overview" actionLabel="Refresh" onAction={actions.refreshAll} />
           <div className="info-grid">
-            <Info label="Department Code" value={state.nodeInfo?.departmentCode ?? '-'} />
-            <Info label="API Base URL" value={state.nodeInfo?.apiBaseUrl ?? state.activeNode.baseUrl} />
-            <Info label="Peer Count" value={state.nodeInfo?.peers?.length ?? 0} />
+            <Info label="Department" value={state.activeNode.name} />
+            <Info label="Connection" value="Secure department workspace" />
+            <Info label="Peer Departments" value={state.nodeInfo?.peers?.length ?? 0} />
             <Info label="Default Approver" value={firstApprover ? `${firstApprover.fullName} (${firstApprover.role})` : 'No approver loaded'} />
           </div>
         </section>
@@ -73,7 +74,7 @@ const DashboardPage = () => {
             </form>
 
             <div className="action-stack">
-              <Info label="Selected Request" value={selectedRequest ? `${selectedRequest.id.slice(0, 8)} - ${statusText[selectedRequest.status] ?? selectedRequest.status}` : 'None'} />
+              <Info label="Selected Request" value={selectedRequest ? `${selectedRequest.fieldChanges[0] ? getCitizenFieldLabel(selectedRequest.fieldChanges[0].fieldName) : 'Citizen record'} - ${statusText[selectedRequest.status] ?? 'In progress'}` : 'None'} />
               <Button onClick={() => actions.requestApproval()} disabled={state.isLoading || !selectedRequest}>Request Approval</Button>
               <Button onClick={() => actions.approveRequest()} disabled={state.isLoading || !selectedRequest}>Approve</Button>
               <Button onClick={() => actions.commitRequest()} disabled={state.isLoading || !selectedRequest}>Commit Ledger</Button>
@@ -90,15 +91,15 @@ const DashboardPage = () => {
               <button className={`list-item ${request.id === state.selectedRequestId ? 'selected' : ''}`} key={request.id} onClick={() => actions.setSelectedRequestId(request.id)}>
                 <strong>{statusText[request.status] ?? `Status ${request.status}`}</strong>
                 <span>{request.reason}</span>
-                <small>{request.fieldChanges.map((change) => change.fieldName).join(', ') || 'No field changes'}</small>
+                <small>{request.fieldChanges.map((change) => getCitizenFieldLabel(change.fieldName)).join(', ') || 'No field changes'}</small>
               </button>
             ))}
           </div>
         </section>
 
-        <AuditPanel title="Ledger" rows={state.ledger.slice(0, 6).map((entry) => [`#${entry.sequenceNumber}`, entry.currentProofHash.slice(0, 16), new Date(entry.createdAtUtc).toLocaleString()])} />
-        <AuditPanel title="Outbox" rows={state.outbox.slice(0, 6).map((entry) => [entry.status.toString(), `Retries ${entry.retryCount}`, entry.ledgerEntryId.slice(0, 8)])} />
-        <AuditPanel title="Inbox" rows={state.inbox.slice(0, 6).map((entry) => [entry.status.toString(), entry.citizenNationalIdNumber || 'Unknown citizen', entry.ledgerEntryId.slice(0, 8)])} />
+        <AuditPanel title="Ledger" rows={state.ledger.slice(0, 6).map((entry) => [`Entry ${entry.sequenceNumber}`, 'Verified record change', new Date(entry.createdAtUtc).toLocaleString()])} />
+        <AuditPanel title="Outbox" rows={state.outbox.slice(0, 6).map((entry) => [statusText[entry.status] ?? 'Queued', entry.retryCount > 0 ? 'Retry scheduled' : 'Ready for delivery', 'Peer departments'])} />
+        <AuditPanel title="Inbox" rows={state.inbox.slice(0, 6).map((entry) => [statusText[entry.status] ?? 'Received', entry.citizenNationalIdNumber ? 'Citizen record matched' : 'Citizen pending match', entry.appliedAtUtc ? 'Applied' : 'Awaiting review'])} />
       </div>
     </main>
   );
