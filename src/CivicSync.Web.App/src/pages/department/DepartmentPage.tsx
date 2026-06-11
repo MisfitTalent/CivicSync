@@ -1,26 +1,18 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button, Input } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { AuditPanel, Metric, PanelHeader } from '../../components/dashboard/DashboardWidgets';
+import { Metric, PanelHeader } from '../../components/dashboard/DashboardWidgets';
 import CitizenRegistrationPanel from '../../components/workflow/CitizenRegistrationPanel';
-import type { DepartmentCode } from '../../api/types';
+import type { ChangeRequest, DepartmentCode } from '../../api/types';
 import { nodes, statusText } from '../../providers/civicSyncProvider/context';
 import { useCivicSyncActions, useCivicSyncState } from '../../providers/civicSyncProvider';
-import { buildCitizenFieldPolicies, departmentShortName } from '../../utils/departmentFieldPolicy';
+import { buildCitizenFieldPolicies, departmentShortName, getCitizenFieldLabel } from '../../utils/departmentFieldPolicy';
 
 interface DepartmentPageProps {
   departmentCode: DepartmentCode;
   title: string;
   responsibility: string;
 }
-
-const departmentAccent: Record<DepartmentCode, string> = {
-  1: 'lime',
-  2: 'orange',
-  3: 'blue',
-  4: 'lime',
-  5: 'orange',
-};
 
 const departmentRoutes: Record<DepartmentCode, string> = {
   1: '/home-affairs',
@@ -30,10 +22,19 @@ const departmentRoutes: Record<DepartmentCode, string> = {
   5: '/home-affairs',
 };
 
+const requestNeedsDepartmentReview = (request: ChangeRequest, approvingNodeId?: string) => {
+  const approval = request.approvals.find((item) => item.approvingNodeId === approvingNodeId);
+  const requestIsOpen = request.status === 1 || request.status === 2;
+  const approvalIsOpen = !approval || approval.decision === 1;
+
+  return requestIsOpen && approvalIsOpen;
+};
+
 const DepartmentPage = ({ departmentCode, title, responsibility }: DepartmentPageProps) => {
   const state = useCivicSyncState();
   const actions = useCivicSyncActions();
   const navigate = useNavigate();
+  const [expandedLedgerEntryId, setExpandedLedgerEntryId] = useState<string>();
   const departmentNode = nodes.find((node) => node.departmentCode === departmentCode) ?? nodes[0];
   const selectedCitizen = state.citizens.find((citizen) => citizen.id === state.selectedCitizenId) ?? state.citizens[0];
   const selectedRequest = state.changeRequests.find((request) => request.id === state.selectedRequestId);
@@ -45,8 +46,37 @@ const DepartmentPage = ({ departmentCode, title, responsibility }: DepartmentPag
   const citizenFields = useMemo(() => buildCitizenFieldPolicies(selectedCitizen), [selectedCitizen]);
   const accessibleFields = citizenFields.filter((field) => field.accessDepartmentCodes.includes(departmentCode));
   const restrictedFields = citizenFields.filter((field) => !field.accessDepartmentCodes.includes(departmentCode));
-  const pendingRequests = state.changeRequests.filter((request) => request.status !== 5).slice(0, 4);
+  const requestsNeedingReview = state.changeRequests.filter((request) =>
+    requestNeedsDepartmentReview(request, firstApprover?.departmentNodeId)
+  );
+  const pendingRequests = requestsNeedingReview.slice(0, 4);
   const canCommitSelectedRequest = selectedRequest?.status === 3;
+  const pendingOutboxCount = state.outbox.filter((event) => event.status !== 2).length;
+  const awaitingInboxCount = state.inbox.filter((entry) => !entry.appliedAtUtc).length;
+  const latestLedgerSequence = state.ledger[0]?.sequenceNumber ?? 0;
+  const latestLedgerDate = state.ledger[0]
+    ? new Date(state.ledger[0].createdAtUtc).toLocaleString()
+    : 'No ledger entries yet';
+  const activeDepartmentUsers = state.users.filter((user) => user.isActive).length;
+  const ledgerPreviewEntries = state.ledger.slice(0, 5).map((entry) => {
+    const ledgerRequest = state.changeRequests.find((request) => request.id === entry.changeRequestId);
+    const fieldNames = ledgerRequest?.fieldChanges.map((fieldChange) => getCitizenFieldLabel(fieldChange.fieldName)) ?? [];
+    const requestCitizen = ledgerRequest
+      ? state.citizens.find((citizen) => citizen.id === ledgerRequest.citizenId)
+      : undefined;
+    const outboxEvent = state.outbox.find((event) => event.ledgerEntryId === entry.id);
+    const syncState = outboxEvent ? statusText[outboxEvent.status] ?? 'Queued for peers' : 'Not published yet';
+
+    return {
+      entry,
+      fieldSummary: fieldNames.length > 0 ? fieldNames.join(', ') : 'Citizen record',
+      citizenName: requestCitizen?.displayName ?? 'Citizen record',
+      requestStatus: ledgerRequest ? statusText[ledgerRequest.status] ?? 'Committed' : 'Committed',
+      requestReason: ledgerRequest?.reason || 'No request reason captured.',
+      fieldCount: ledgerRequest?.fieldChanges.length ?? 0,
+      syncState,
+    };
+  });
 
   useEffect(() => {
     if (state.activeNode.departmentCode !== departmentCode) {
@@ -64,27 +94,14 @@ const DepartmentPage = ({ departmentCode, title, responsibility }: DepartmentPag
         <span className="trust-pill">POPIA Enforced</span>
       </section>
 
-      <section className="department-switcher" aria-label="Department views">
-        {nodes.map((node) => (
-          <button
-            className={`department-chip ${node.departmentCode === departmentCode ? 'active' : ''}`}
-            key={node.departmentCode}
-            type="button"
-            aria-current={node.departmentCode === departmentCode ? 'page' : undefined}
-            title="Use the matching department login to open this workspace."
-          >
-            <span className={`status-dot ${departmentAccent[node.departmentCode]}`} />
-            {node.name}
-          </button>
-        ))}
-      </section>
-
-      <section className={noticeClassName} aria-live="polite">{noticeMessage}</section>
+      {(state.isError || state.isSuccess) && (
+        <section className={noticeClassName} aria-live="polite">{noticeMessage}</section>
+      )}
 
       <section className="proposal-metrics compact-metrics">
         <Metric label="Accessible Fields" value={accessibleFields.length} />
         <Metric label="Restricted Fields" value={restrictedFields.length} />
-        <Metric label="Pending Requests" value={pendingRequests.length} />
+        <Metric label="Needs Review" value={requestsNeedingReview.length} />
         <Metric label="Ledger Entries" value={state.ledger.length} />
       </section>
       <div className="department-workspace-grid">
@@ -94,7 +111,7 @@ const DepartmentPage = ({ departmentCode, title, responsibility }: DepartmentPag
             <Input placeholder="Search by name or ID number..." aria-label="Search citizen records" />
 
             <div className="popia-warning">
-              Fields marked restricted are not accessible to {title} under the current POPIA field policy.
+              Restricted fields are hidden under the current POPIA field policy.
             </div>
 
             <div className="field-card-grid department-field-grid">
@@ -112,21 +129,124 @@ const DepartmentPage = ({ departmentCode, title, responsibility }: DepartmentPag
           </section>
 
           {canRegisterCitizens && <CitizenRegistrationPanel />}
-          <AuditPanel title="Outbox" rows={state.outbox.slice(0, 5).map((entry) => [statusText[entry.status] ?? entry.status.toString(), `Retries ${entry.retryCount}`, entry.ledgerEntryId.slice(0, 8)])} />
-          <AuditPanel title="Inbox" rows={state.inbox.slice(0, 5).map((entry) => [statusText[entry.status] ?? entry.status.toString(), entry.citizenNationalIdNumber || 'Unknown citizen', entry.ledgerEntryId.slice(0, 8)])} />
+          {!canRegisterCitizens && (
+            <>
+              <section className="panel ledger-preview-panel" id="ledger">
+                <div className="proposal-card-heading">
+                  <h2>Ledger</h2>
+                  <span className="count-pill">{state.ledger.length}</span>
+                </div>
+                <div className="ledger-preview-list ledger-preview-list-wide">
+                  {ledgerPreviewEntries.length === 0 && <p className="empty-text">No ledger entries recorded yet.</p>}
+                  {ledgerPreviewEntries.map((item) => {
+                    const isExpanded = expandedLedgerEntryId === item.entry.id;
+
+                    return (
+                      <article className="ledger-preview-card" key={item.entry.id}>
+                        <div className="ledger-preview-heading">
+                          <strong>Sequence {item.entry.sequenceNumber}</strong>
+                          <span>{item.fieldSummary}</span>
+                        </div>
+                        <p>{item.requestStatus} change locked into the audit chain.</p>
+                        <small>{item.syncState} - {new Date(item.entry.createdAtUtc).toLocaleString()}</small>
+                        {isExpanded && (
+                          <div className="ledger-preview-detail">
+                            <div>
+                              <span>Citizen</span>
+                              <strong>{item.citizenName}</strong>
+                            </div>
+                            <div>
+                              <span>Changed fields</span>
+                              <strong>{item.fieldSummary}</strong>
+                            </div>
+                            <div>
+                              <span>Request reason</span>
+                              <strong>{item.requestReason}</strong>
+                            </div>
+                            <div>
+                              <span>Sync meaning</span>
+                              <strong>
+                                {item.fieldCount > 0
+                                  ? `${item.fieldCount} field ${item.fieldCount === 1 ? 'change is' : 'changes are'} ready for peer verification.`
+                                  : 'Citizen record proof is ready for peer verification.'}
+                              </strong>
+                            </div>
+                          </div>
+                        )}
+                        <Button
+                          className="ledger-more-button"
+                          type="link"
+                          onClick={() => setExpandedLedgerEntryId(isExpanded ? undefined : item.entry.id)}
+                        >
+                          {isExpanded ? 'Show less' : 'More details'}
+                        </Button>
+                      </article>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <section className="panel department-node-context">
+                <h2>Workspace Context</h2>
+                <div className="workspace-context-grid workspace-context-grid-wide">
+                  <div className="workspace-context-item">
+                    <span>Department</span>
+                    <strong>{departmentShortName[departmentCode]}</strong>
+                  </div>
+                  <div className="workspace-context-item">
+                    <span>Peer departments</span>
+                    <strong>{state.nodeInfo?.peers?.length ?? 0}</strong>
+                  </div>
+                  <div className="workspace-context-item">
+                    <span>Accessible fields</span>
+                    <strong>{accessibleFields.length}/{citizenFields.length}</strong>
+                  </div>
+                  <div className="workspace-context-item">
+                    <span>Needs review</span>
+                    <strong>{requestsNeedingReview.length}</strong>
+                  </div>
+                  <div className="workspace-context-item">
+                    <span>Outbox pending</span>
+                    <strong>{pendingOutboxCount}</strong>
+                  </div>
+                  <div className="workspace-context-item">
+                    <span>Inbox awaiting</span>
+                    <strong>{awaitingInboxCount}</strong>
+                  </div>
+                  <div className="workspace-context-item workspace-context-wide">
+                    <span>Connection</span>
+                    <strong>Secure department workspace</strong>
+                    <small>Signs approvals, records ledger entries, and exchanges sync events with peer departments.</small>
+                  </div>
+                  <div className="workspace-context-item workspace-context-wide">
+                    <span>Latest ledger position</span>
+                    <strong>{latestLedgerSequence > 0 ? `Sequence ${latestLedgerSequence}` : 'No ledger entries yet'}</strong>
+                    <small>{latestLedgerDate}</small>
+                  </div>
+                </div>
+                {firstApprover && (
+                  <div className="workspace-approver">
+                    <span>Current approver</span>
+                    <strong>{firstApprover.fullName}</strong>
+                    <small>{firstApprover.role}</small>
+                  </div>
+                )}
+              </section>
+            </>
+          )}
         </div>
 
         <aside className="department-workspace-stack department-side-stack">
           <section className="panel" id="approvals">
             <div className="proposal-card-heading">
-              <h2>Pending Approvals</h2>
-              <span className="count-pill">{pendingRequests.length}</span>
+              <h2>Review Queue</h2>
+              <span className="count-pill">{requestsNeedingReview.length}</span>
             </div>
             <div className="approval-list">
-              {pendingRequests.length === 0 && <p className="empty-text">No pending approvals on this node.</p>}
+              {pendingRequests.length === 0 && <p className="empty-text">No requests currently need this department's review.</p>}
               {pendingRequests.map((request) => {
-                const approval = request.approvals.find((item) => item.approvingNodeId === firstApprover?.departmentNodeId);
-                const hasApproved = approval?.decision === 2;
+                const requestCitizen = state.citizens.find((citizen) => citizen.id === request.citizenId);
+                const primaryField = request.fieldChanges[0];
 
                 return (
                   <article
@@ -134,10 +254,18 @@ const DepartmentPage = ({ departmentCode, title, responsibility }: DepartmentPag
                     key={request.id}
                     onClick={() => actions.setSelectedRequestId(request.id)}
                   >
-                    <strong>{selectedCitizen?.displayName ?? 'Citizen record'}</strong>
-                    <small>{statusText[request.status] ?? `Status ${request.status}`}</small>
-                    <div className="approval-change">
-                      {request.fieldChanges.map((change) => `${change.fieldName} -> ${change.newValue}`).join(', ')}
+                    <div className="request-card-header">
+                      <strong>{primaryField ? getCitizenFieldLabel(primaryField.fieldName) : 'Citizen record update'}</strong>
+                    </div>
+                    <span className="compact-request-status">{statusText[request.status] ?? `Status ${request.status}`}</span>
+                    <div className="request-card-person">
+                      <span>Citizen</span>
+                      <strong>{requestCitizen?.displayName ?? selectedCitizen?.displayName ?? 'Citizen record'}</strong>
+                    </div>
+                    <small className="request-card-reason">{request.reason || 'No reason supplied'}</small>
+                    <div className="compact-request-meta">
+                      <span>{request.fieldChanges.length} field {request.fieldChanges.length === 1 ? 'change' : 'changes'}</span>
+                      <span>Full dossier required</span>
                     </div>
                     <div className="approval-actions">
                       <Button
@@ -149,28 +277,10 @@ const DepartmentPage = ({ departmentCode, title, responsibility }: DepartmentPag
                         }}
                         disabled={state.isLoading}
                       >
-                        {hasApproved ? 'Review approved' : 'Review details'}
+                        Open review
                       </Button>
                     </div>
                   </article>
-                );
-              })}
-            </div>
-          </section>
-
-          <section className="panel department-access-summary">
-            <div className="proposal-card-heading">
-              <h2>Access Summary</h2>
-              <span className="count-pill">{accessibleFields.length}/{citizenFields.length}</span>
-            </div>
-            <div className="access-summary-list">
-              {citizenFields.map((field) => {
-                const canAccess = field.accessDepartmentCodes.includes(departmentCode);
-                return (
-                  <div className="access-summary-row" key={field.key}>
-                    <span>{field.label}</span>
-                    <strong className={canAccess ? 'accessible' : 'restricted'}>{canAccess ? 'Accessible' : 'Restricted'}</strong>
-                  </div>
                 );
               })}
             </div>
@@ -181,7 +291,7 @@ const DepartmentPage = ({ departmentCode, title, responsibility }: DepartmentPag
             <div className="action-stack">
               <div className="action-context">
                 <span>Selected Request</span>
-                <strong>{selectedRequest ? `${selectedRequest.id.slice(0, 8)} - ${statusText[selectedRequest.status] ?? selectedRequest.status}` : 'None selected'}</strong>
+                <strong>{selectedRequest ? `${selectedRequest.fieldChanges[0] ? getCitizenFieldLabel(selectedRequest.fieldChanges[0].fieldName) : 'Citizen record'} - ${statusText[selectedRequest.status] ?? 'In progress'}` : 'None selected'}</strong>
               </div>
               <Button onClick={() => actions.commitRequest(selectedRequest?.id)} disabled={state.isLoading || !canCommitSelectedRequest}>Commit Ledger</Button>
               <Button onClick={actions.publishOutbox} disabled={state.isLoading}>Publish Outbox</Button>
@@ -189,19 +299,114 @@ const DepartmentPage = ({ departmentCode, title, responsibility }: DepartmentPag
             </div>
           </section>
 
-          <div id="ledger">
-            <AuditPanel title="Ledger" rows={state.ledger.slice(0, 5).map((entry) => [`#${entry.sequenceNumber}`, entry.currentProofHash.slice(0, 16), new Date(entry.createdAtUtc).toLocaleString()])} />
-          </div>
+          {canRegisterCitizens && (
+            <section className="panel ledger-preview-panel" id="ledger">
+              <div className="proposal-card-heading">
+                <h2>Ledger</h2>
+                <span className="count-pill">{state.ledger.length}</span>
+              </div>
+              <div className="ledger-preview-list">
+                {ledgerPreviewEntries.length === 0 && <p className="empty-text">No ledger entries recorded yet.</p>}
+                {ledgerPreviewEntries.map((item) => {
+                  const isExpanded = expandedLedgerEntryId === item.entry.id;
 
-          <section className="panel department-node-context">
-            <h2>Node Context</h2>
-            <div className="access-summary-list">
-              <div className="access-summary-row"><span>Department</span><strong>{departmentShortName[departmentCode]}</strong></div>
-              <div className="access-summary-row"><span>API</span><strong>{state.nodeInfo?.apiBaseUrl ?? departmentNode.baseUrl}</strong></div>
-              <div className="access-summary-row"><span>Peers</span><strong>{state.nodeInfo?.peers?.length ?? 0}</strong></div>
-              <div className="access-summary-row"><span>Approver</span><strong>{firstApprover ? `${firstApprover.fullName} (${firstApprover.role})` : 'No user loaded'}</strong></div>
+                  return (
+                    <article className="ledger-preview-card" key={item.entry.id}>
+                      <div className="ledger-preview-heading">
+                        <strong>Sequence {item.entry.sequenceNumber}</strong>
+                        <span>{item.fieldSummary}</span>
+                      </div>
+                      <p>{item.requestStatus} change locked into the audit chain.</p>
+                      <small>{item.syncState} - {new Date(item.entry.createdAtUtc).toLocaleString()}</small>
+                      {isExpanded && (
+                        <div className="ledger-preview-detail">
+                          <div>
+                            <span>Citizen</span>
+                            <strong>{item.citizenName}</strong>
+                          </div>
+                          <div>
+                            <span>Changed fields</span>
+                            <strong>{item.fieldSummary}</strong>
+                          </div>
+                          <div>
+                            <span>Request reason</span>
+                            <strong>{item.requestReason}</strong>
+                          </div>
+                          <div>
+                            <span>Sync meaning</span>
+                            <strong>
+                              {item.fieldCount > 0
+                                ? `${item.fieldCount} field ${item.fieldCount === 1 ? 'change is' : 'changes are'} ready for peer verification.`
+                                : 'Citizen record proof is ready for peer verification.'}
+                            </strong>
+                          </div>
+                        </div>
+                      )}
+                      <Button
+                        className="ledger-more-button"
+                        type="link"
+                        onClick={() => setExpandedLedgerEntryId(isExpanded ? undefined : item.entry.id)}
+                      >
+                        {isExpanded ? 'Show less' : 'More details'}
+                      </Button>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+        {canRegisterCitizens && <section className="panel department-node-context">
+          <h2>Workspace Context</h2>
+          <div className="workspace-context-grid">
+            <div className="workspace-context-item">
+              <span>Department</span>
+              <strong>{departmentShortName[departmentCode]}</strong>
             </div>
-          </section>
+            <div className="workspace-context-item">
+              <span>Peer departments</span>
+              <strong>{state.nodeInfo?.peers?.length ?? 0}</strong>
+            </div>
+            <div className="workspace-context-item">
+              <span>Accessible fields</span>
+              <strong>{accessibleFields.length}/{citizenFields.length}</strong>
+            </div>
+            <div className="workspace-context-item">
+              <span>Needs review</span>
+              <strong>{requestsNeedingReview.length}</strong>
+            </div>
+            <div className="workspace-context-item">
+              <span>Outbox pending</span>
+              <strong>{pendingOutboxCount}</strong>
+            </div>
+            <div className="workspace-context-item">
+              <span>Inbox awaiting</span>
+              <strong>{awaitingInboxCount}</strong>
+            </div>
+            <div className="workspace-context-item workspace-context-wide">
+              <span>Connection</span>
+              <strong>Secure department workspace</strong>
+              <small>Signs approvals, records ledger entries, and exchanges sync events with peer departments.</small>
+            </div>
+            <div className="workspace-context-item workspace-context-wide">
+              <span>Latest ledger position</span>
+              <strong>{latestLedgerSequence > 0 ? `Sequence ${latestLedgerSequence}` : 'No ledger entries yet'}</strong>
+              <small>{latestLedgerDate}</small>
+            </div>
+            <div className="workspace-context-item workspace-context-wide">
+              <span>Active department users</span>
+              <strong>{activeDepartmentUsers}</strong>
+              <small>Users loaded for this department workspace.</small>
+            </div>
+          </div>
+          {firstApprover && (
+            <div className="workspace-approver">
+              <span>Current approver</span>
+              <strong>{firstApprover.fullName}</strong>
+              <small>{firstApprover.role}</small>
+            </div>
+          )}
+        </section>}
         </aside>
       </div>
     </main>

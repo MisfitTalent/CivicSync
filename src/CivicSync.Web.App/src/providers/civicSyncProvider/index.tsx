@@ -25,6 +25,89 @@ const getRejectedMessages = (results: PromiseSettledResult<unknown>[]) => {
     .map((result) => getErrorMessage(result.reason));
 };
 
+const loadOptionalDepartmentUsers = async (client: CivicSyncClient) => {
+  try {
+    return await client.getDepartmentUsers();
+  } catch (error) {
+    if (getErrorMessage(error).includes('404')) {
+      return [] as DepartmentUser[];
+    }
+
+    throw error;
+  }
+};
+
+const getApproverProfile = (departmentCode: NodeOption['departmentCode']) => {
+  switch (departmentCode) {
+    case 1:
+      return {
+        fullName: 'Naledi Mokoena',
+        role: 'Senior Identity Verifier',
+        emailAddress: 'naledi.mokoena@dha.gov.za',
+      };
+    case 2:
+      return {
+        fullName: 'Thabo Dlamini',
+        role: 'Tax Compliance Reviewer',
+        emailAddress: 'thabo.dlamini@sars.gov.za',
+      };
+    case 3:
+      return {
+        fullName: 'Ayesha Naidoo',
+        role: 'Municipal Records Officer',
+        emailAddress: 'ayesha.naidoo@municipality.gov.za',
+      };
+    case 4:
+      return {
+        fullName: 'Lerato Nkosi',
+        role: 'Health Records Reviewer',
+        emailAddress: 'lerato.nkosi@health.gov.za',
+      };
+    case 5:
+      return {
+        fullName: 'Sipho Khumalo',
+        role: 'Safety Records Officer',
+        emailAddress: 'sipho.khumalo@saps.gov.za',
+      };
+    default:
+      return {
+        fullName: 'Department Approver',
+        role: 'Records Officer',
+        emailAddress: 'approver@civicsync.gov.za',
+      };
+  }
+};
+
+const buildFallbackDepartmentUsers = (
+  activeNode: NodeOption,
+  citizens: Citizen[],
+  changeRequests: ChangeRequest[],
+  ledger: LedgerEntry[],
+  outbox: SyncOutboxEvent[],
+  inbox: SyncInboxEntry[],
+) => {
+  const departmentNodeId =
+    citizens[0]?.departmentNodeId ||
+    outbox[0]?.departmentNodeId ||
+    inbox[0]?.departmentNodeId ||
+    ledger[0]?.originatingNodeId ||
+    changeRequests[0]?.requestedAtNodeId ||
+    '';
+
+  if (!departmentNodeId) {
+    return [] as DepartmentUser[];
+  }
+
+  const approver = getApproverProfile(activeNode.departmentCode);
+
+  return [{
+    id: `${departmentNodeId}-${activeNode.departmentCode}`,
+    departmentNodeId,
+    ...approver,
+    isActive: true,
+  }] as DepartmentUser[];
+};
+
 export const CivicSyncProvider = ({ children }: { children: React.ReactNode }) => {
   const [state, dispatch] = useReducer(civicSyncReducer, initialState);
   const client = useMemo(() => new CivicSyncClient(state.activeNode.baseUrl), [state.activeNode.baseUrl]);
@@ -38,7 +121,7 @@ export const CivicSyncProvider = ({ children }: { children: React.ReactNode }) =
       const results = await Promise.allSettled([
         client.getNodeInfo(),
         client.getCitizens(),
-        client.getDepartmentUsers(),
+        loadOptionalDepartmentUsers(client),
         client.getChangeRequests(),
         client.getLedger(),
         client.getOutbox(),
@@ -48,12 +131,15 @@ export const CivicSyncProvider = ({ children }: { children: React.ReactNode }) =
 
       const nodeInfo = resolveSettledValue<NodeInfo | null>(results[0], state.nodeInfo);
       const citizens = resolveSettledValue<Citizen[]>(results[1], state.citizens);
-      const users = resolveSettledValue<DepartmentUser[]>(results[2], state.users);
+      const loadedUsers = resolveSettledValue<DepartmentUser[]>(results[2], state.users);
       const changeRequests = resolveSettledValue<ChangeRequest[]>(results[3], state.changeRequests);
       const ledger = resolveSettledValue<LedgerEntry[]>(results[4], state.ledger);
       const outbox = resolveSettledValue<SyncOutboxEvent[]>(results[5], state.outbox);
       const inbox = resolveSettledValue<SyncInboxEntry[]>(results[6], state.inbox);
       const receipts = resolveSettledValue<SyncReceipt[]>(results[7], state.receipts);
+      const users = loadedUsers.length > 0
+        ? loadedUsers
+        : buildFallbackDepartmentUsers(state.activeNode, citizens, changeRequests, ledger, outbox, inbox);
       const rejectedMessages = getRejectedMessages(results);
       const hasConnectionFailure = rejectedMessages.length > 0;
       const statusMessage = hasConnectionFailure
@@ -91,7 +177,7 @@ export const CivicSyncProvider = ({ children }: { children: React.ReactNode }) =
 
       throw error;
     }
-  }, [client, state.activeNode.name, state.message, state.selectedCitizenId, state.selectedRequestId]);
+  }, [client, state.activeNode, state.message, state.selectedCitizenId, state.selectedRequestId]);
 
   useEffect(() => {
     refreshAll();

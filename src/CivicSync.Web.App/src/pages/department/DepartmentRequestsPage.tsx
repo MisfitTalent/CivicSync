@@ -1,10 +1,11 @@
 import { useEffect } from 'react';
 import { Button } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import type { DepartmentCode } from '../../api/types';
+import type { ChangeRequest, DepartmentCode } from '../../api/types';
 import { Metric } from '../../components/dashboard/DashboardWidgets';
 import { nodes, statusText } from '../../providers/civicSyncProvider/context';
 import { useCivicSyncActions, useCivicSyncState } from '../../providers/civicSyncProvider';
+import { formatCitizenFieldValue, getCitizenFieldLabel } from '../../utils/departmentFieldPolicy';
 
 interface DepartmentRequestsPageProps {
   departmentCode: DepartmentCode;
@@ -27,14 +28,29 @@ const departmentRoutes: Record<DepartmentCode, string> = {
   5: '/home-affairs',
 };
 
+const requestNeedsDepartmentReview = (request: ChangeRequest, approvingNodeId?: string) => {
+  const approval = request.approvals.find((item) => item.approvingNodeId === approvingNodeId);
+  const requestIsOpen = request.status === 1 || request.status === 2;
+  const approvalIsOpen = !approval || approval.decision === 1;
+
+  return requestIsOpen && approvalIsOpen;
+};
+
+const requestApprovedByDepartment = (request: ChangeRequest, approvingNodeId?: string) =>
+  request.approvals.some((item) => item.approvingNodeId === approvingNodeId && item.decision === 2);
+
 const DepartmentRequestsPage = ({ departmentCode, title }: DepartmentRequestsPageProps) => {
   const state = useCivicSyncState();
   const actions = useCivicSyncActions();
   const navigate = useNavigate();
   const departmentNode = nodes.find((node) => node.departmentCode === departmentCode) ?? nodes[0];
   const firstApprover = state.users[0];
-  const pendingRequests = state.changeRequests.filter((request) => request.status !== 5);
-  const approvedRequests = state.changeRequests.filter((request) => request.status === 3);
+  const requestsNeedingReview = state.changeRequests.filter((request) =>
+    requestNeedsDepartmentReview(request, firstApprover?.departmentNodeId)
+  );
+  const approvedRequests = state.changeRequests.filter((request) =>
+    requestApprovedByDepartment(request, firstApprover?.departmentNodeId)
+  );
   const noticeClassName = `notice ${state.isError ? 'notice-error' : state.isSuccess ? 'notice-success' : ''}`;
   const noticeMessage = state.errorMessage || state.successMessage || state.message;
 
@@ -55,11 +71,13 @@ const DepartmentRequestsPage = ({ departmentCode, title }: DepartmentRequestsPag
         <span className="trust-pill">POPIA Enforced</span>
       </section>
 
-      <section className={noticeClassName} aria-live="polite">{noticeMessage}</section>
+      {(state.isError || state.isSuccess) && (
+        <section className={noticeClassName} aria-live="polite">{noticeMessage}</section>
+      )}
 
       <section className="proposal-metrics compact-metrics">
-        <Metric label="Open Requests" value={pendingRequests.length} />
-        <Metric label="Approved Requests" value={approvedRequests.length} />
+        <Metric label="Needs Review" value={requestsNeedingReview.length} />
+        <Metric label="Approved By Department" value={approvedRequests.length} />
         <Metric label="Department Users" value={state.users.length} />
         <Metric label="Ledger Entries" value={state.ledger.length} />
       </section>
@@ -67,15 +85,13 @@ const DepartmentRequestsPage = ({ departmentCode, title }: DepartmentRequestsPag
       <div className="proposal-dashboard-grid department-request-grid">
         <section className="panel">
           <div className="proposal-card-heading">
-            <h2>Pending Approvals</h2>
-            <span className="count-pill">{pendingRequests.length}</span>
+            <h2>Review Queue</h2>
+            <span className="count-pill">{requestsNeedingReview.length}</span>
           </div>
           <div className="approval-list officer-request-list">
-            {pendingRequests.length === 0 && <p className="empty-text">No pending approvals on this node.</p>}
-            {pendingRequests.map((request) => {
-              const approval = request.approvals.find((item) => item.approvingNodeId === firstApprover?.departmentNodeId);
-              const hasApproved = approval?.decision === 2;
-              const fieldSummary = request.fieldChanges.map((change) => `${change.fieldName} -> ${change.newValue}`).join(', ');
+            {requestsNeedingReview.length === 0 && <p className="empty-text">No requests currently need this department's review.</p>}
+            {requestsNeedingReview.map((request) => {
+              const primaryField = request.fieldChanges[0];
               const requestCitizen = state.citizens.find((citizen) => citizen.id === request.citizenId);
 
               return (
@@ -85,12 +101,23 @@ const DepartmentRequestsPage = ({ departmentCode, title }: DepartmentRequestsPag
                   onClick={() => actions.setSelectedRequestId(request.id)}
                 >
                   <div className="request-card-header">
-                    <strong>{request.id.slice(0, 8).toUpperCase()}</strong>
-                    <span className={`status-pill ${request.status === 3 ? 'status-pill-success' : 'status-pill-warning'}`}>{statusText[request.status] ?? `Status ${request.status}`}</span>
+                    <strong>{primaryField ? getCitizenFieldLabel(primaryField.fieldName) : 'Citizen record update'}</strong>
+                    <span className="status-pill status-pill-warning">{statusText[request.status] ?? `Status ${request.status}`}</span>
                   </div>
-                  <strong>{requestCitizen?.displayName ?? 'Unknown citizen'}</strong>
-                  <small>{request.reason}</small>
-                  <div className="approval-change">{fieldSummary || 'No field changes'}</div>
+                  <div className="request-card-person">
+                    <span>Citizen</span>
+                    <strong>{requestCitizen?.displayName ?? 'Unknown citizen'}</strong>
+                  </div>
+                  <small>{request.reason || 'No reason supplied'}</small>
+                  <div className="request-field-list">
+                    {request.fieldChanges.length === 0 && <span className="empty-text">No field changes recorded.</span>}
+                    {request.fieldChanges.map((change) => (
+                      <div className="request-field-row" key={change.id}>
+                        <span>{getCitizenFieldLabel(change.fieldName)}</span>
+                        <strong>{formatCitizenFieldValue(change.fieldName, change.newValue)}</strong>
+                      </div>
+                    ))}
+                  </div>
                   <div className="approval-actions">
                     <Button
                       className="primary-button"
@@ -101,7 +128,7 @@ const DepartmentRequestsPage = ({ departmentCode, title }: DepartmentRequestsPag
                       }}
                       disabled={state.isLoading}
                     >
-                      {hasApproved ? 'Review approved' : 'Review details'}
+                      Open review
                     </Button>
                   </div>
                 </article>
@@ -122,11 +149,11 @@ const DepartmentRequestsPage = ({ departmentCode, title }: DepartmentRequestsPag
           </section>
 
           <section className="panel">
-            <h2>Node Context</h2>
+            <h2>Workspace Context</h2>
             <div className="access-summary-list">
               <div className="access-summary-row"><span>Department</span><strong>{departmentShortName[departmentCode]}</strong></div>
-              <div className="access-summary-row"><span>API</span><strong>{state.nodeInfo?.apiBaseUrl ?? departmentNode.baseUrl}</strong></div>
-              <div className="access-summary-row"><span>Peers</span><strong>{state.nodeInfo?.peers?.length ?? 0}</strong></div>
+              <div className="access-summary-row"><span>Connection</span><strong>Secure department workspace</strong></div>
+              <div className="access-summary-row"><span>Peer Departments</span><strong>{state.nodeInfo?.peers?.length ?? 0}</strong></div>
             </div>
           </section>
         </aside>

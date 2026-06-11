@@ -5,7 +5,7 @@ import type { DepartmentCode } from '../../api/types';
 import { Metric } from '../../components/dashboard/DashboardWidgets';
 import { nodes, statusText } from '../../providers/civicSyncProvider/context';
 import { useCivicSyncActions, useCivicSyncState } from '../../providers/civicSyncProvider';
-import { buildCitizenFieldPolicies, departmentDisplayName, departmentShortName } from '../../utils/departmentFieldPolicy';
+import { buildCitizenFieldPolicies, departmentDisplayName, departmentShortName, formatCitizenFieldValue, getCitizenFieldLabel, normalizeFieldName } from '../../utils/departmentFieldPolicy';
 
 interface DepartmentRequestReviewPageProps {
   departmentCode: DepartmentCode;
@@ -27,8 +27,6 @@ const departmentRoutes: Record<DepartmentCode, string> = {
 };
 
 const formatDate = (value?: string) => (value ? new Date(value).toLocaleString() : 'Not recorded');
-const normalizeFieldName = (value: string) => value.replace(/\s/g, '').toLowerCase();
-
 const DepartmentRequestReviewPage = ({ departmentCode, title }: DepartmentRequestReviewPageProps) => {
   const { requestId } = useParams();
   const navigate = useNavigate();
@@ -110,7 +108,7 @@ const DepartmentRequestReviewPage = ({ departmentCode, title }: DepartmentReques
       <section className={noticeClassName} aria-live="polite">{noticeMessage}</section>
 
       <section className="proposal-metrics compact-metrics">
-        <Metric label="Status Code" value={request.status} />
+        <Metric label="Required Reviews" value={requiredApprovalCount} />
         <Metric label="Field Changes" value={request.fieldChanges.length} />
         <Metric label="Approvals Recorded" value={completedApprovals} />
         <Metric label="Record Version" value={citizen?.recordVersion ?? request.expectedCitizenVersion} />
@@ -132,8 +130,8 @@ const DepartmentRequestReviewPage = ({ departmentCode, title }: DepartmentReques
         <section className="panel">
           <h2>Request summary</h2>
           <div className="request-review-grid review-grid-wide">
-            <div><span>Request ID</span><strong>{request.id.toUpperCase()}</strong></div>
-            <div><span>Owning node</span><strong>{departmentShortName[departmentCode]}</strong></div>
+            <div><span>Request</span><strong>{request.fieldChanges[0] ? getCitizenFieldLabel(request.fieldChanges[0].fieldName) : 'Citizen record update'}</strong></div>
+            <div><span>Reviewing department</span><strong>{departmentShortName[departmentCode]}</strong></div>
             <div><span>Reason</span><strong>{request.reason || 'No reason supplied'}</strong></div>
             <div><span>Submitted</span><strong>{formatDate(request.createdAtUtc)}</strong></div>
             <div><span>Expected version</span><strong>{request.expectedCitizenVersion}</strong></div>
@@ -165,16 +163,16 @@ const DepartmentRequestReviewPage = ({ departmentCode, title }: DepartmentReques
                 <article className="request-change-row request-change-row-wide" key={change.id}>
                   <div>
                     <span>Field</span>
-                    <strong>{change.fieldName}</strong>
+                    <strong>{getCitizenFieldLabel(change.fieldName)}</strong>
                     <small>{ownershipText}</small>
                   </div>
                   <div>
                     <span>Old value</span>
-                    <strong>{change.oldValue || 'No previous value'}</strong>
+                    <strong>{formatCitizenFieldValue(change.fieldName, change.oldValue)}</strong>
                   </div>
                   <div>
                     <span>New value</span>
-                    <strong>{change.newValue}</strong>
+                    <strong>{formatCitizenFieldValue(change.fieldName, change.newValue)}</strong>
                   </div>
                   <div>
                     <span>Required approvers</span>

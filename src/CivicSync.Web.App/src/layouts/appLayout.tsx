@@ -20,14 +20,17 @@ const navigationItems: NavigationItem[] = [
   { label: 'Departments', path: '/home-affairs', roles: ['HomeAffairsOfficer'], isPrimary: true },
   { label: 'Update Requests', path: '/home-affairs/requests', roles: ['HomeAffairsOfficer'] },
   { label: 'Inbox', path: '/home-affairs/inbox', roles: ['HomeAffairsOfficer'], badgeKey: 'inbox' },
+  { label: 'Sync', path: '/home-affairs/sync', roles: ['HomeAffairsOfficer'] },
   { label: 'Ledger', path: '/home-affairs/ledger', roles: ['HomeAffairsOfficer'] },
   { label: 'Departments', path: '/sars', roles: ['SarsOfficer'], isPrimary: true },
   { label: 'Update Requests', path: '/sars/requests', roles: ['SarsOfficer'] },
   { label: 'Inbox', path: '/sars/inbox', roles: ['SarsOfficer'], badgeKey: 'inbox' },
+  { label: 'Sync', path: '/sars/sync', roles: ['SarsOfficer'] },
   { label: 'Ledger', path: '/sars/ledger', roles: ['SarsOfficer'] },
   { label: 'Departments', path: '/municipality', roles: ['MunicipalityOfficer'], isPrimary: true },
   { label: 'Update Requests', path: '/municipality/requests', roles: ['MunicipalityOfficer'] },
   { label: 'Inbox', path: '/municipality/inbox', roles: ['MunicipalityOfficer'], badgeKey: 'inbox' },
+  { label: 'Sync', path: '/municipality/sync', roles: ['MunicipalityOfficer'] },
   { label: 'Ledger', path: '/municipality/ledger', roles: ['MunicipalityOfficer'] },
   { label: 'Admin Console', path: '/admin', roles: ['Admin'], isPrimary: true },
   { label: 'Inbox', path: '/admin/inbox', roles: ['Admin'], badgeKey: 'inbox' },
@@ -102,7 +105,7 @@ const AppLayout = () => {
             <span>{isLoading ? 'Working' : roleLabel[currentUser?.role ?? 'Citizen']}</span>
             <strong>{currentUser?.displayName ?? 'Unknown user'}</strong>
             <small>
-              {activeNode.name} • {activeNode.baseUrl}
+              {activeNode.name} workspace
             </small>
           </div>
 

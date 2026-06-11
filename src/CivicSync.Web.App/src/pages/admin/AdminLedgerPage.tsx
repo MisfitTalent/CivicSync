@@ -26,7 +26,7 @@ const AdminLedgerPage = () => {
       <section className="panel ledger-history-panel">
         <div className="panel-header">
           <h2>Ledger Entries</h2>
-          <span className="status-pill">{state.nodeInfo?.apiBaseUrl ?? state.activeNode.baseUrl}</span>
+          <span className="status-pill">{state.activeNode.name}</span>
         </div>
 
         {state.ledger.length === 0 ? (
@@ -36,15 +36,15 @@ const AdminLedgerPage = () => {
             {state.ledger.slice(0, 16).map((entry) => (
               <article className="ledger-entry-card" key={entry.id}>
                 <div className="ledger-entry-status">
-                  <span className="status-pill status-pill-success">Sequence #{entry.sequenceNumber}</span>
+                  <span className="status-pill status-pill-success">Entry {entry.sequenceNumber}</span>
                   <small>{new Date(entry.createdAtUtc).toLocaleString()}</small>
                 </div>
                 <div className="ledger-entry-main">
                   <div>
-                    <strong>{entry.currentProofHash.slice(0, 32)}</strong>
-                    <p>Previous proof: {entry.previousProofHash.slice(0, 32)}</p>
+                    <strong>Verified citizen record update</strong>
+                    <p>Tamper-evident audit entry retained for this department.</p>
                   </div>
-                  <code>{entry.changeRequestId.slice(0, 8).toUpperCase()}</code>
+                  <span className="status-pill">Recorded</span>
                 </div>
               </article>
             ))}

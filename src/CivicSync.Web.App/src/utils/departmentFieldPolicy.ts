@@ -197,3 +197,41 @@ export const buildCitizenFieldPolicies = (citizen?: Citizen): CitizenFieldPolicy
     helper: 'Municipality-owned service state for local records.',
   },
 ];
+
+export const normalizeFieldName = (value: string) => value.replace(/\s/g, '').toLowerCase();
+
+export const getCitizenFieldLabel = (fieldName: string) => {
+  const normalizedFieldName = normalizeFieldName(fieldName);
+
+  if (normalizedFieldName === 'contactdetails') {
+    return 'Contact Details';
+  }
+
+  return buildCitizenFieldPolicies().find((field) => {
+    const fieldKey = normalizeFieldName(field.key);
+    const fieldLabel = normalizeFieldName(field.label);
+
+    return fieldKey === normalizedFieldName || fieldLabel === normalizedFieldName;
+  })?.label ?? fieldName;
+};
+
+export const formatCitizenFieldValue = (fieldName: string, value: string) => {
+  if (!value) {
+    return 'No value recorded';
+  }
+
+  if (normalizeFieldName(fieldName) !== 'contactdetails') {
+    return value;
+  }
+
+  const [emailAddress, phoneNumber] = value.split('|');
+  const parts = [
+    emailAddress ? `Email: ${emailAddress}` : '',
+    phoneNumber ? `Phone: ${phoneNumber}` : '',
+  ].filter(Boolean);
+
+  return parts.length > 0 ? parts.join(' • ') : value;
+};
+
+export const formatCitizenFieldChange = (fieldName: string, newValue: string) =>
+  `${getCitizenFieldLabel(fieldName)} update requested: ${formatCitizenFieldValue(fieldName, newValue)}`;

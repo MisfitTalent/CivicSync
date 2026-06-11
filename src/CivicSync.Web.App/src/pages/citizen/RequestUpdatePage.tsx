@@ -155,7 +155,7 @@ const RequestUpdatePage = () => {
           <h2>Request Submitted</h2>
           <p>Your update request has been sent to the active department node for approval and ledger processing.</p>
           <div className="submission-summary">
-            <span><small>Request ID</small><strong>{submittedRequestId || state.selectedRequestId.slice(0, 8) || 'Pending refresh'}</strong></span>
+            <span><small>Request Status</small><strong>{(submittedRequestId || state.selectedRequestId) ? 'Submitted for review' : 'Pending refresh'}</strong></span>
             <span><small>Field</small><strong>{selectedField.label}</strong></span>
             <span><small>New Value</small><strong>{newValue}</strong></span>
             <span><small>Expected</small><strong>After department approval</strong></span>

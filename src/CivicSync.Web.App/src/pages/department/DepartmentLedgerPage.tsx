@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
 import { Button, Empty } from 'antd';
 import type { DepartmentCode } from '../../api/types';
-import { AuditPanel, Metric } from '../../components/dashboard/DashboardWidgets';
+import { Metric } from '../../components/dashboard/DashboardWidgets';
 import { nodes, statusText } from '../../providers/civicSyncProvider/context';
 import { useCivicSyncActions, useCivicSyncState } from '../../providers/civicSyncProvider';
+import { getCitizenFieldLabel } from '../../utils/departmentFieldPolicy';
 
 interface DepartmentLedgerPageProps {
   departmentCode: DepartmentCode;
@@ -31,12 +32,39 @@ const DepartmentLedgerPage = ({ departmentCode, title }: DepartmentLedgerPagePro
         <div>
           <p className="eyebrow">{title} Workspace</p>
           <h2>Ledger & Sync</h2>
-          <p>Inspect ledger entries, publish approved outbox events, and apply received inbox updates for this node.</p>
+          <p>
+            The ledger is this node&apos;s official, tamper-evident history of approved citizen record changes. It
+            keeps the audit trail and provides the proof used when syncing peer departments.
+          </p>
         </div>
         <span className="status-pill status-pill-success">Chain verified</span>
       </section>
 
       <section className={noticeClassName} aria-live="polite">{noticeMessage}</section>
+
+      <section className="ledger-explainer-grid" aria-label="How the ledger works">
+        <article className="ledger-explainer-card">
+          <span>1</span>
+          <div>
+            <strong>Approved changes are recorded here</strong>
+            <p>Once a request is approved, it becomes a ledger entry instead of silently overwriting history.</p>
+          </div>
+        </article>
+        <article className="ledger-explainer-card">
+          <span>2</span>
+          <div>
+            <strong>Each entry proves the previous entry</strong>
+            <p>Proof hashes link entries together, so edited or missing history becomes detectable.</p>
+          </div>
+        </article>
+        <article className="ledger-explainer-card">
+          <span>3</span>
+          <div>
+            <strong>Ledger entries drive department sync</strong>
+            <p>Publishing turns committed entries into outbox events that peer departments receive through inbox.</p>
+          </div>
+        </article>
+      </section>
 
       <section className="proposal-metrics compact-metrics">
         <Metric label="Ledger Entries" value={state.ledger.length} />
@@ -58,15 +86,15 @@ const DepartmentLedgerPage = ({ departmentCode, title }: DepartmentLedgerPagePro
               {state.ledger.slice(0, 12).map((entry) => (
                 <article className="ledger-entry-card" key={entry.id}>
                   <div className="ledger-entry-status">
-                    <span className="status-pill status-pill-success">Sequence #{entry.sequenceNumber}</span>
+                    <span className="status-pill status-pill-success">Entry {entry.sequenceNumber}</span>
                     <small>{new Date(entry.createdAtUtc).toLocaleString()}</small>
                   </div>
                   <div className="ledger-entry-main">
                     <div>
-                      <strong>{entry.currentProofHash.slice(0, 24)}</strong>
-                      <p>Previous proof: {entry.previousProofHash.slice(0, 24)}</p>
+                      <strong>Approved change committed to ledger</strong>
+                      <p>This entry locks the change into the audit chain and can be published to peer departments.</p>
                     </div>
-                    <code>{entry.changeRequestId.slice(0, 8).toUpperCase()}</code>
+                    <span className="status-pill">Recorded</span>
                   </div>
                 </article>
               ))}
@@ -80,16 +108,17 @@ const DepartmentLedgerPage = ({ departmentCode, title }: DepartmentLedgerPagePro
             <div className="action-stack">
               <div className="action-context">
                 <span>Selected Request</span>
-                <strong>{selectedRequest ? `${selectedRequest.id.slice(0, 8)} - ${statusText[selectedRequest.status] ?? selectedRequest.status}` : 'None selected'}</strong>
+                <strong>{selectedRequest ? `${selectedRequest.fieldChanges[0] ? getCitizenFieldLabel(selectedRequest.fieldChanges[0].fieldName) : 'Citizen record'} - ${statusText[selectedRequest.status] ?? 'In progress'}` : 'None selected'}</strong>
               </div>
+              <p className="action-helper">
+                Commit creates the ledger entry. Publish sends it to peers. Apply processes received peer updates.
+              </p>
               <Button onClick={() => actions.commitRequest(selectedRequest?.id)} disabled={state.isLoading || !canCommitSelectedRequest}>Commit Ledger</Button>
               <Button onClick={actions.publishOutbox} disabled={state.isLoading}>Publish Outbox</Button>
               <Button onClick={actions.applyInbox} disabled={state.isLoading}>Apply Inbox</Button>
             </div>
           </section>
 
-          <AuditPanel title="Outbox" rows={state.outbox.slice(0, 5).map((entry) => [statusText[entry.status] ?? entry.status.toString(), `Retries ${entry.retryCount}`, entry.ledgerEntryId.slice(0, 8)])} />
-          <AuditPanel title="Inbox" rows={state.inbox.slice(0, 5).map((entry) => [statusText[entry.status] ?? entry.status.toString(), entry.citizenNationalIdNumber || 'Unknown citizen', entry.ledgerEntryId.slice(0, 8)])} />
         </aside>
       </div>
     </main>
