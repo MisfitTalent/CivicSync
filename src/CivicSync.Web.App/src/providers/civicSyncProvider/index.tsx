@@ -10,10 +10,12 @@ import {
   initialState,
   type ChangeFormState,
   type CitizenFormState,
+  nodes,
   type SubmitFieldChangeInput,
 } from './context';
 import type { ChangeRequest, Citizen, DepartmentUser, LedgerEntry, NodeInfo, NodeOption, SyncInboxEntry, SyncOutboxEvent, SyncReceipt } from '../../api/types';
 import { civicSyncReducer } from './reducer';
+import { findDepartmentApproval } from '../../utils/departmentApprovals';
 
 const resolveSettledValue = <T,>(result: PromiseSettledResult<unknown>, fallback: T) => {
   return result.status === 'fulfilled' ? result.value as T : fallback;
@@ -35,6 +37,73 @@ const loadOptionalDepartmentUsers = async (client: CivicSyncClient) => {
 
     throw error;
   }
+};
+
+interface NodeChangeRequestResult {
+  node: NodeOption;
+  requests: ChangeRequest[];
+}
+
+const getApprovalMergeKey = (approval: ChangeRequest['approvals'][number]) => {
+  return approval.id || approval.approvingNodeId || approval.approverDepartmentName;
+};
+
+const getRequestCompletenessScore = (request: ChangeRequest) => {
+  return request.fieldChanges.length * 5 + request.approvals.length * 10 + request.status;
+};
+
+const mergeChangeRequest = (existing: ChangeRequest, incoming: ChangeRequest) => {
+  const useIncomingBase = getRequestCompletenessScore(incoming) >= getRequestCompletenessScore(existing);
+  const baseRequest = useIncomingBase ? incoming : existing;
+  const secondaryRequest = useIncomingBase ? existing : incoming;
+  const approvalsByKey = new Map<string, ChangeRequest['approvals'][number]>();
+
+  [...secondaryRequest.approvals, ...baseRequest.approvals].forEach((approval) => {
+    approvalsByKey.set(getApprovalMergeKey(approval), approval);
+  });
+
+  return {
+    ...secondaryRequest,
+    ...baseRequest,
+    fieldChanges: baseRequest.fieldChanges.length >= secondaryRequest.fieldChanges.length
+      ? baseRequest.fieldChanges
+      : secondaryRequest.fieldChanges,
+    approvals: Array.from(approvalsByKey.values()),
+  };
+};
+
+const mergeChangeRequestsBySource = (
+  results: PromiseSettledResult<NodeChangeRequestResult>[],
+  fallbackRequests: ChangeRequest[],
+  fallbackMap: Record<string, string>,
+) => {
+  const requestsById = new Map<string, ChangeRequest>();
+  const requestNodeBaseUrls: Record<string, string> = {};
+
+  const addRequest = (request: ChangeRequest, baseUrl?: string) => {
+    const existingRequest = requestsById.get(request.id);
+    requestsById.set(request.id, existingRequest ? mergeChangeRequest(existingRequest, request) : request);
+
+    if (baseUrl && !requestNodeBaseUrls[request.id]) {
+      requestNodeBaseUrls[request.id] = baseUrl;
+    }
+  };
+
+  results.forEach((result) => {
+    if (result.status !== 'fulfilled') {
+      return;
+    }
+
+    result.value.requests.forEach((request) => addRequest(request, result.value.node.baseUrl));
+  });
+
+  fallbackRequests.forEach((request) => addRequest(request, fallbackMap[request.id]));
+
+  const requests = Array.from(requestsById.values()).sort(
+    (left, right) => new Date(right.createdAtUtc).getTime() - new Date(left.createdAtUtc).getTime(),
+  );
+
+  return { requests, requestNodeBaseUrls };
 };
 
 const getApproverProfile = (departmentCode: NodeOption['departmentCode']) => {
@@ -129,10 +198,22 @@ export const CivicSyncProvider = ({ children }: { children: React.ReactNode }) =
         client.getReceipts(),
       ]);
 
+      const changeRequestResults = await Promise.allSettled(
+        nodes.map(async (node) => ({
+          node,
+          requests: await new CivicSyncClient(node.baseUrl).getChangeRequests(),
+        })),
+      );
+
       const nodeInfo = resolveSettledValue<NodeInfo | null>(results[0], state.nodeInfo);
       const citizens = resolveSettledValue<Citizen[]>(results[1], state.citizens);
       const loadedUsers = resolveSettledValue<DepartmentUser[]>(results[2], state.users);
-      const changeRequests = resolveSettledValue<ChangeRequest[]>(results[3], state.changeRequests);
+      const activeNodeChangeRequests = resolveSettledValue<ChangeRequest[]>(results[3], state.changeRequests);
+      const { requests: changeRequests, requestNodeBaseUrls } = mergeChangeRequestsBySource(
+        changeRequestResults,
+        activeNodeChangeRequests,
+        state.requestNodeBaseUrls,
+      );
       const ledger = resolveSettledValue<LedgerEntry[]>(results[4], state.ledger);
       const outbox = resolveSettledValue<SyncOutboxEvent[]>(results[5], state.outbox);
       const inbox = resolveSettledValue<SyncInboxEntry[]>(results[6], state.inbox);
@@ -140,7 +221,7 @@ export const CivicSyncProvider = ({ children }: { children: React.ReactNode }) =
       const users = loadedUsers.length > 0
         ? loadedUsers
         : buildFallbackDepartmentUsers(state.activeNode, citizens, changeRequests, ledger, outbox, inbox);
-      const rejectedMessages = getRejectedMessages(results);
+      const rejectedMessages = getRejectedMessages([...results, ...changeRequestResults]);
       const hasConnectionFailure = rejectedMessages.length > 0;
       const statusMessage = hasConnectionFailure
         ? `${state.activeNode.name} partially loaded. ${rejectedMessages[0]}`
@@ -151,6 +232,7 @@ export const CivicSyncProvider = ({ children }: { children: React.ReactNode }) =
           citizens,
           users,
           changeRequests,
+          requestNodeBaseUrls,
           ledger,
           outbox,
           inbox,
@@ -177,7 +259,7 @@ export const CivicSyncProvider = ({ children }: { children: React.ReactNode }) =
 
       throw error;
     }
-  }, [client, state.activeNode, state.message, state.selectedCitizenId, state.selectedRequestId]);
+  }, [client, state.activeNode, state.changeRequests, state.message, state.requestNodeBaseUrls, state.selectedCitizenId, state.selectedRequestId]);
 
   useEffect(() => {
     refreshAll();
@@ -196,7 +278,6 @@ export const CivicSyncProvider = ({ children }: { children: React.ReactNode }) =
 
   const selectedCitizen = state.citizens.find((citizen) => citizen.id === state.selectedCitizenId);
   const selectedRequest = state.changeRequests.find((request) => request.id === state.selectedRequestId);
-  const firstApprover = state.users[0];
   const buildSharedFieldChange = (request: SubmitFieldChangeInput) => {
     if (!selectedCitizen) {
       throw new Error('Select a citizen first.');
@@ -214,20 +295,21 @@ export const CivicSyncProvider = ({ children }: { children: React.ReactNode }) =
     }
 
     switch (fieldName) {
-      case 'FullName':
-      case 'NationalIdNumber':
-        return { fieldName, newValue };
       case 'EmailAddress':
         return { fieldName: 'ContactDetails', newValue: `${newValue}|${selectedCitizen.phoneNumber}` };
       case 'PhoneNumber':
         return { fieldName: 'ContactDetails', newValue: `${selectedCitizen.emailAddress}|${newValue}` };
       default:
-        throw new Error(`${fieldName} is not supported by the backend shared citizen record yet.`);
+        return { fieldName, newValue };
     }
   };
 
   const getTargetRequest = (requestId?: string) => {
     return state.changeRequests.find((request) => request.id === (requestId || state.selectedRequestId));
+  };
+
+  const getRequestClient = (request: ChangeRequest) => {
+    return new CivicSyncClient(state.requestNodeBaseUrls[request.id] ?? state.activeNode.baseUrl);
   };
 
   const actions = {
@@ -294,33 +376,43 @@ export const CivicSyncProvider = ({ children }: { children: React.ReactNode }) =
     requestApproval: (requestId?: string) => runAction('Request approval', async () => {
       const targetRequest = getTargetRequest(requestId);
 
-      if (!targetRequest || !firstApprover) {
-        throw new Error('Select a request and make sure this node has a department user.');
+      if (!targetRequest) {
+        throw new Error('Select a request first.');
       }
 
-      const existingApproval = targetRequest.approvals.find((approval) => approval.approvingNodeId === firstApprover.departmentNodeId);
+      const departmentApproval = findDepartmentApproval(targetRequest, state.activeNode.departmentCode);
 
-      if (existingApproval) {
-        throw new Error('This node has already been asked to approve the selected request.');
+      if (departmentApproval) {
+        throw new Error('This department has already been asked to approve the selected request.');
       }
 
-      const updated = await client.requestApproval(targetRequest.id, firstApprover.departmentNodeId, firstApprover.id);
-      dispatch(setCivicSyncState({ selectedRequestId: updated.id }));
+      throw new Error('This request is not assigned to this department.');
     }),
     approveRequest: (requestId?: string) => runAction('Approve request', async () => {
       const targetRequest = getTargetRequest(requestId);
 
-      if (!targetRequest || !firstApprover) {
-        throw new Error('Select a request and make sure this node has a department user.');
+      if (!targetRequest) {
+        throw new Error('Select a request first.');
       }
 
-      const existingApproval = targetRequest.approvals.find((approval) => approval.approvingNodeId === firstApprover.departmentNodeId);
-      const requestToApprove = existingApproval
-        ? targetRequest
-        : await client.requestApproval(targetRequest.id, firstApprover.departmentNodeId, firstApprover.id);
+      const departmentApproval = findDepartmentApproval(targetRequest, state.activeNode.departmentCode);
 
-      await client.recordDecision(requestToApprove.id, firstApprover.departmentNodeId, firstApprover.id, 'Approved from CivicSync frontend');
-      dispatch(setCivicSyncState({ selectedRequestId: requestToApprove.id }));
+      if (!departmentApproval) {
+        throw new Error('This request is not assigned to this department.');
+      }
+
+      if (!departmentApproval.approverUserId) {
+        throw new Error('This request does not have an assigned approver for this department.');
+      }
+
+      const requestClient = getRequestClient(targetRequest);
+      await requestClient.recordDecision(
+        targetRequest.id,
+        departmentApproval.approvingNodeId,
+        departmentApproval.approverUserId,
+        'Approved from CivicSync frontend',
+      );
+      dispatch(setCivicSyncState({ selectedRequestId: targetRequest.id }));
     }),
     commitRequest: (requestId?: string) => runAction('Commit request', async () => {
       const targetRequest = getTargetRequest(requestId);
@@ -333,7 +425,7 @@ export const CivicSyncProvider = ({ children }: { children: React.ReactNode }) =
         throw new Error('Only approved change requests can be committed.');
       }
 
-      await client.commitChangeRequest(targetRequest.id);
+      await getRequestClient(targetRequest).commitChangeRequest(targetRequest.id);
       dispatch(setCivicSyncState({ selectedRequestId: targetRequest.id }));
     }),
     publishOutbox: () => runAction('Publish outbox', async () => {
@@ -366,3 +458,4 @@ export const useCivicSyncActions = () => {
   }
   return context;
 };
+
