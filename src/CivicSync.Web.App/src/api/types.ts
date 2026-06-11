@@ -26,6 +26,17 @@ export interface Citizen {
   displayName: string;
   emailAddress: string;
   phoneNumber: string;
+  dateOfBirth: string;
+  passportNumber: string;
+  biometricReference: string;
+  relationshipStatus: string;
+  taxNumber: string;
+  employmentHistory: string;
+  incomeAndInvestmentProfile: string;
+  bankingAndAssets: string;
+  residentialAddress: string;
+  ratesAccount: string;
+  municipalServiceStatus: string;
   status: number;
   recordVersion: number;
   createdAtUtc: string;
@@ -121,6 +132,17 @@ export interface CreateCitizenRequest {
   lastName: string;
   emailAddress: string;
   phoneNumber: string;
+  dateOfBirth?: string;
+  passportNumber?: string;
+  biometricReference?: string;
+  relationshipStatus?: string;
+  taxNumber?: string;
+  employmentHistory?: string;
+  incomeAndInvestmentProfile?: string;
+  bankingAndAssets?: string;
+  residentialAddress?: string;
+  ratesAccount?: string;
+  municipalServiceStatus?: string;
 }
 
 export interface SubmitChangeRequest {
