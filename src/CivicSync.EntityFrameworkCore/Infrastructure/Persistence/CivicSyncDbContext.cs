@@ -163,8 +163,6 @@ public sealed class CivicSyncDbContext : AbpDbContext<CivicSyncDbContext>
                 .WithOne()
                 .HasForeignKey(item => item.ChangeRequestId)
                 .OnDelete(DeleteBehavior.Cascade);
-            entity.Navigation(item => item.FieldChanges).UsePropertyAccessMode(PropertyAccessMode.Field);
-            entity.Navigation(item => item.Approvals).UsePropertyAccessMode(PropertyAccessMode.Field);
         });
     }
 

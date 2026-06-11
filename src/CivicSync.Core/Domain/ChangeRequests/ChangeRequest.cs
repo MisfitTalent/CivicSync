@@ -5,9 +5,6 @@ namespace CivicSync.Core.Domain.ChangeRequests;
 
 public sealed class ChangeRequest : EntityBase
 {
-    private readonly List<FieldChange> _fieldChanges = [];
-    private readonly List<DepartmentApproval> _approvals = [];
-
     private ChangeRequest()
     {
     }
@@ -27,8 +24,8 @@ public sealed class ChangeRequest : EntityBase
     public long ExpectedCitizenVersion { get; set; }
     public long? CommittedCitizenVersion { get; set; }
     public ChangeRequestStatus Status { get; set; }
-    public IReadOnlyCollection<FieldChange> FieldChanges => _fieldChanges.AsReadOnly();
-    public IReadOnlyCollection<DepartmentApproval> Approvals => _approvals.AsReadOnly();
+    public List<FieldChange> FieldChanges { get; set; } = [];
+    public List<DepartmentApproval> Approvals { get; set; } = [];
 
     public void AddFieldChange(string fieldName, string oldValue, string newValue)
     {
@@ -37,7 +34,7 @@ public sealed class ChangeRequest : EntityBase
             throw new InvalidOperationException("Field changes can only be added while the request is still a draft.");
         }
 
-        _fieldChanges.Add(new FieldChange(Id, fieldName, oldValue, newValue));
+        FieldChanges.Add(new FieldChange(Id, fieldName, oldValue, newValue));
         MarkUpdated();
     }
 
@@ -48,7 +45,7 @@ public sealed class ChangeRequest : EntityBase
         string approverRole,
         string approverDepartmentName)
     {
-        var existingApproval = _approvals.SingleOrDefault(approval => approval.ApprovingNodeId == approvingNodeId);
+        var existingApproval = Approvals.SingleOrDefault(approval => approval.ApprovingNodeId == approvingNodeId);
 
         if (existingApproval is not null)
         {
@@ -62,7 +59,7 @@ public sealed class ChangeRequest : EntityBase
             approverFullName,
             approverRole,
             approverDepartmentName);
-        _approvals.Add(approval);
+        Approvals.Add(approval);
         Status = ChangeRequestStatus.PendingApproval;
         MarkUpdated();
 
@@ -71,13 +68,13 @@ public sealed class ChangeRequest : EntityBase
 
     public void RecordDecision(Guid approvingNodeId, ApprovalDecision decision, string? comment)
     {
-        var approval = _approvals.SingleOrDefault(item => item.ApprovingNodeId == approvingNodeId)
+        var approval = Approvals.SingleOrDefault(item => item.ApprovingNodeId == approvingNodeId)
             ?? throw new InvalidOperationException("The selected node is not required to approve this change request.");
 
         approval.RecordDecision(decision, comment);
-        Status = _approvals.Any(item => item.Decision == ApprovalDecision.Rejected)
+        Status = Approvals.Any(item => item.Decision == ApprovalDecision.Rejected)
             ? ChangeRequestStatus.Rejected
-            : _approvals.All(item => item.Decision == ApprovalDecision.Approved)
+            : Approvals.All(item => item.Decision == ApprovalDecision.Approved)
                 ? ChangeRequestStatus.Approved
                 : ChangeRequestStatus.PendingApproval;
 

@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
 import { Button } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import type { ChangeRequest, DepartmentCode } from '../../api/types';
+import type { DepartmentCode } from '../../api/types';
 import { Metric } from '../../components/dashboard/DashboardWidgets';
 import { nodes, statusText } from '../../providers/civicSyncProvider/context';
 import { useCivicSyncActions, useCivicSyncState } from '../../providers/civicSyncProvider';
 import { formatCitizenFieldValue, getCitizenFieldLabel } from '../../utils/departmentFieldPolicy';
+import { requestApprovedByDepartment, requestNeedsDepartmentReview } from '../../utils/departmentApprovals';
 
 interface DepartmentRequestsPageProps {
   departmentCode: DepartmentCode;
@@ -28,28 +29,16 @@ const departmentRoutes: Record<DepartmentCode, string> = {
   5: '/home-affairs',
 };
 
-const requestNeedsDepartmentReview = (request: ChangeRequest, approvingNodeId?: string) => {
-  const approval = request.approvals.find((item) => item.approvingNodeId === approvingNodeId);
-  const requestIsOpen = request.status === 1 || request.status === 2;
-  const approvalIsOpen = !approval || approval.decision === 1;
-
-  return requestIsOpen && approvalIsOpen;
-};
-
-const requestApprovedByDepartment = (request: ChangeRequest, approvingNodeId?: string) =>
-  request.approvals.some((item) => item.approvingNodeId === approvingNodeId && item.decision === 2);
-
 const DepartmentRequestsPage = ({ departmentCode, title }: DepartmentRequestsPageProps) => {
   const state = useCivicSyncState();
   const actions = useCivicSyncActions();
   const navigate = useNavigate();
   const departmentNode = nodes.find((node) => node.departmentCode === departmentCode) ?? nodes[0];
-  const firstApprover = state.users[0];
   const requestsNeedingReview = state.changeRequests.filter((request) =>
-    requestNeedsDepartmentReview(request, firstApprover?.departmentNodeId)
+    requestNeedsDepartmentReview(request, departmentCode)
   );
   const approvedRequests = state.changeRequests.filter((request) =>
-    requestApprovedByDepartment(request, firstApprover?.departmentNodeId)
+    requestApprovedByDepartment(request, departmentCode)
   );
   const noticeClassName = `notice ${state.isError ? 'notice-error' : state.isSuccess ? 'notice-success' : ''}`;
   const noticeMessage = state.errorMessage || state.successMessage || state.message;

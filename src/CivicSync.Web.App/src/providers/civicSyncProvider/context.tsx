@@ -45,6 +45,7 @@ export interface CivicSyncStateContextValue {
   citizens: Citizen[];
   users: DepartmentUser[];
   changeRequests: ChangeRequest[];
+  requestNodeBaseUrls: Record<string, string>;
   ledger: LedgerEntry[];
   outbox: SyncOutboxEvent[];
   inbox: SyncInboxEntry[];
@@ -100,6 +101,7 @@ export const initialState: CivicSyncStateContextValue = {
   citizens: [],
   users: [],
   changeRequests: [],
+  requestNodeBaseUrls: {},
   ledger: [],
   outbox: [],
   inbox: [],
@@ -120,3 +122,4 @@ export const initialState: CivicSyncStateContextValue = {
 
 export const CivicSyncStateContext = createContext<CivicSyncStateContextValue | undefined>(undefined);
 export const CivicSyncActionContext = createContext<CivicSyncActionContextValue | undefined>(undefined);
+

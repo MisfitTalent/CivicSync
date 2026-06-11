@@ -1,7 +1,6 @@
-﻿import { ConfigProvider } from 'antd';
+import { ConfigProvider } from 'antd';
 import { BrowserRouter } from 'react-router-dom';
-import { AuthProvider } from './providers/authProvider';
-import { CivicSyncProvider } from './providers/civicSyncProvider';
+import { AppProviders } from './providers';
 import AppRoutes from './routes';
 import './styles/global.css';
 
@@ -18,13 +17,12 @@ const App = () => (
     }}
   >
     <BrowserRouter>
-      <AuthProvider>
-        <CivicSyncProvider>
-          <AppRoutes />
-        </CivicSyncProvider>
-      </AuthProvider>
+      <AppProviders>
+        <AppRoutes />
+      </AppProviders>
     </BrowserRouter>
   </ConfigProvider>
 );
 
 export default App;
+
