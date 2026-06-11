@@ -12,6 +12,17 @@ public sealed class CitizenDto
     public string DisplayName { get; set; } = string.Empty;
     public string EmailAddress { get; set; } = string.Empty;
     public string PhoneNumber { get; set; } = string.Empty;
+    public string DateOfBirth { get; set; } = string.Empty;
+    public string PassportNumber { get; set; } = string.Empty;
+    public string BiometricReference { get; set; } = string.Empty;
+    public string RelationshipStatus { get; set; } = string.Empty;
+    public string TaxNumber { get; set; } = string.Empty;
+    public string EmploymentHistory { get; set; } = string.Empty;
+    public string IncomeAndInvestmentProfile { get; set; } = string.Empty;
+    public string BankingAndAssets { get; set; } = string.Empty;
+    public string ResidentialAddress { get; set; } = string.Empty;
+    public string RatesAccount { get; set; } = string.Empty;
+    public string MunicipalServiceStatus { get; set; } = string.Empty;
     public CitizenStatus Status { get; set; }
     public long RecordVersion { get; set; }
     public DateTime CreatedAtUtc { get; set; }

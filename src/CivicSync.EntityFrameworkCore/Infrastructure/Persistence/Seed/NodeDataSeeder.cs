@@ -106,19 +106,22 @@ public sealed class NodeDataSeeder
     private async Task SeedDemoCitizensAsync(Guid localDepartmentNodeId, CancellationToken cancellationToken)
     {
         var citizens = await _citizenRepository.GetQueryableAsync();
-        var existingNationalIds = await citizens
+        var existingCitizens = await citizens
             .Where(item => item.DepartmentNodeId == localDepartmentNodeId)
-            .Select(item => item.NationalIdNumber)
             .ToListAsync(cancellationToken);
 
-        foreach (var citizen in GetDemoCitizens(localDepartmentNodeId))
+        foreach (var demoCitizen in GetDemoCitizens(localDepartmentNodeId))
         {
-            if (existingNationalIds.Contains(citizen.NationalIdNumber))
+            var existingCitizen = existingCitizens.SingleOrDefault(item => item.NationalIdNumber == demoCitizen.NationalIdNumber);
+
+            if (existingCitizen is null)
             {
+                await _citizenRepository.InsertAsync(demoCitizen, autoSave: true, cancellationToken);
                 continue;
             }
 
-            await _citizenRepository.InsertAsync(citizen, autoSave: true, cancellationToken);
+            CopyDemoProfile(existingCitizen, demoCitizen);
+            await _citizenRepository.UpdateAsync(existingCitizen, autoSave: true, cancellationToken);
         }
     }
 
@@ -202,13 +205,56 @@ public sealed class NodeDataSeeder
             new Citizen(
                 localDepartmentNodeId,
                 "0008289830183",
-                new PersonName("Mike", "Johnson"),
-                new ContactDetails("mike.johnson@example.com", "+27821234567")),
+                new PersonName("Kagiso Thabo Edwin", "Tsiane"),
+                new ContactDetails("teboho.moloi@gmail.com", "0824774749"))
+            {
+                DateOfBirth = "28 August 2000",
+                PassportNumber = "M12345678",
+                BiometricReference = "Fingerprint and facial scan enrolled",
+                RelationshipStatus = "Civil registry relationships verified",
+                TaxNumber = "9876543210",
+                EmploymentHistory = "IRP5 employer payroll history available from SARS third-party submissions",
+                IncomeAndInvestmentProfile = "Salary, interest, investment returns, pension and investment contributions on file",
+                BankingAndAssets = "Bank interest certificates, investment portfolio data, and property deed reference on file",
+                ResidentialAddress = "14 Ubuntu Street, Soweto, 1804",
+                RatesAccount = "MUN-2024-88821",
+                MunicipalServiceStatus = "Active municipal services"
+            },
             new Citizen(
                 localDepartmentNodeId,
                 "9001015009087",
                 new PersonName("Thandi", "Mokoena"),
-                new ContactDetails("thandi.mokoena@example.com", "+27827654321"))
+                new ContactDetails("thandi.mokoena@example.com", "0827654321"))
+            {
+                DateOfBirth = "01 January 1990",
+                PassportNumber = "A98765432",
+                BiometricReference = "Fingerprint and facial scan enrolled",
+                RelationshipStatus = "Spouse and dependant links recorded",
+                TaxNumber = "3021456789",
+                EmploymentHistory = "Employer payroll and annual IRP5 submissions available",
+                IncomeAndInvestmentProfile = "Employment income, medical aid contributions, and retirement annuity records on file",
+                BankingAndAssets = "Bank interest certificates and property ownership references on file",
+                ResidentialAddress = "25 Protea Avenue, Midrand, 1685",
+                RatesAccount = "MUN-2024-55210",
+                MunicipalServiceStatus = "Municipal account in good standing"
+            }
         ];
+    }
+
+    private static void CopyDemoProfile(Citizen existingCitizen, Citizen demoCitizen)
+    {
+        existingCitizen.FullName = demoCitizen.FullName;
+        existingCitizen.ContactDetails = demoCitizen.ContactDetails;
+        existingCitizen.DateOfBirth = demoCitizen.DateOfBirth;
+        existingCitizen.PassportNumber = demoCitizen.PassportNumber;
+        existingCitizen.BiometricReference = demoCitizen.BiometricReference;
+        existingCitizen.RelationshipStatus = demoCitizen.RelationshipStatus;
+        existingCitizen.TaxNumber = demoCitizen.TaxNumber;
+        existingCitizen.EmploymentHistory = demoCitizen.EmploymentHistory;
+        existingCitizen.IncomeAndInvestmentProfile = demoCitizen.IncomeAndInvestmentProfile;
+        existingCitizen.BankingAndAssets = demoCitizen.BankingAndAssets;
+        existingCitizen.ResidentialAddress = demoCitizen.ResidentialAddress;
+        existingCitizen.RatesAccount = demoCitizen.RatesAccount;
+        existingCitizen.MunicipalServiceStatus = demoCitizen.MunicipalServiceStatus;
     }
 }

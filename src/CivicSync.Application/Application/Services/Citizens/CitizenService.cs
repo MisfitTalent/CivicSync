@@ -43,7 +43,20 @@ public sealed class CitizenService : ICitizenService
             departmentNode.Id,
             request.NationalIdNumber,
             new PersonName(request.FirstName, request.LastName),
-            new ContactDetails(request.EmailAddress, request.PhoneNumber));
+            new ContactDetails(request.EmailAddress, request.PhoneNumber))
+        {
+            DateOfBirth = request.DateOfBirth,
+            PassportNumber = request.PassportNumber,
+            BiometricReference = request.BiometricReference,
+            RelationshipStatus = request.RelationshipStatus,
+            TaxNumber = request.TaxNumber,
+            EmploymentHistory = request.EmploymentHistory,
+            IncomeAndInvestmentProfile = request.IncomeAndInvestmentProfile,
+            BankingAndAssets = request.BankingAndAssets,
+            ResidentialAddress = request.ResidentialAddress,
+            RatesAccount = request.RatesAccount,
+            MunicipalServiceStatus = request.MunicipalServiceStatus
+        };
 
         await _citizenRepository.InsertAsync(citizen, autoSave: true, cancellationToken);
 
@@ -88,6 +101,17 @@ public sealed class CitizenService : ICitizenService
             DisplayName = citizen.FullName.DisplayName,
             EmailAddress = citizen.ContactDetails.EmailAddress,
             PhoneNumber = citizen.ContactDetails.PhoneNumber,
+            DateOfBirth = citizen.DateOfBirth,
+            PassportNumber = citizen.PassportNumber,
+            BiometricReference = citizen.BiometricReference,
+            RelationshipStatus = citizen.RelationshipStatus,
+            TaxNumber = citizen.TaxNumber,
+            EmploymentHistory = citizen.EmploymentHistory,
+            IncomeAndInvestmentProfile = citizen.IncomeAndInvestmentProfile,
+            BankingAndAssets = citizen.BankingAndAssets,
+            ResidentialAddress = citizen.ResidentialAddress,
+            RatesAccount = citizen.RatesAccount,
+            MunicipalServiceStatus = citizen.MunicipalServiceStatus,
             Status = citizen.Status,
             RecordVersion = citizen.RecordVersion,
             CreatedAtUtc = citizen.CreatedAtUtc

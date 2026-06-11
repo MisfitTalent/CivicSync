@@ -36,7 +36,15 @@ public sealed class NodeDataSeederTests
         Assert.Contains(dbContext.DepartmentNodes.Local, item => item.DepartmentCode == DepartmentCode.Health);
         Assert.Equal(8, dbContext.DepartmentUsers.Local.Count);
         Assert.Equal(2, dbContext.Citizens.Local.Count);
-        Assert.Contains(dbContext.Citizens.Local, item => item.NationalIdNumber == "0008289830183");
+        var seededCitizen = Assert.Single(dbContext.Citizens.Local, item => item.NationalIdNumber == "0008289830183");
+        Assert.Equal("28 August 2000", seededCitizen.DateOfBirth);
+        Assert.Equal("M12345678", seededCitizen.PassportNumber);
+        Assert.Equal("9876543210", seededCitizen.TaxNumber);
+        Assert.Equal("14 Ubuntu Street, Soweto, 1804", seededCitizen.ResidentialAddress);
+        Assert.Equal("MUN-2024-88821", seededCitizen.RatesAccount);
+        Assert.Contains("IRP5", seededCitizen.EmploymentHistory);
+        Assert.Contains("investment returns", seededCitizen.IncomeAndInvestmentProfile);
+        Assert.Contains("Bank interest certificates", seededCitizen.BankingAndAssets);
         Assert.All(dbContext.Citizens.Local, item => Assert.Equal(1, item.RecordVersion));
     }
 }

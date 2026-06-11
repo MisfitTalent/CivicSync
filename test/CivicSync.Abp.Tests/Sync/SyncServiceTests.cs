@@ -272,6 +272,17 @@ public sealed class SyncServiceTests
             CitizenLastName = "Tester",
             CitizenEmailAddress = "smoke.updated@example.com",
             CitizenPhoneNumber = "+27829999999",
+            CitizenDateOfBirth = "05 November 1988",
+            CitizenPassportNumber = "B76543210",
+            CitizenBiometricReference = "Fingerprint and facial scan enrolled",
+            CitizenRelationshipStatus = "Civil registry relationships verified",
+            CitizenTaxNumber = "1122334455",
+            CitizenEmploymentHistory = "Employer payroll and IRP5 submissions available",
+            CitizenIncomeAndInvestmentProfile = "Employment income and investment interest records on file",
+            CitizenBankingAndAssets = "Bank interest certificates and property references on file",
+            CitizenResidentialAddress = "25 Protea Avenue, Midrand, 1685",
+            CitizenRatesAccount = "MUN-2024-55210",
+            CitizenMunicipalServiceStatus = "Municipal account in good standing",
             FieldChanges =
             [
                 new SyncedFieldChangeDto
@@ -301,6 +312,17 @@ public sealed class SyncServiceTests
         Assert.Equal("Tester", citizen.FullName.LastName);
         Assert.Equal("smoke.updated@example.com", citizen.ContactDetails.EmailAddress);
         Assert.Equal("+27829999999", citizen.ContactDetails.PhoneNumber);
+        Assert.Equal("05 November 1988", citizen.DateOfBirth);
+        Assert.Equal("B76543210", citizen.PassportNumber);
+        Assert.Equal("Fingerprint and facial scan enrolled", citizen.BiometricReference);
+        Assert.Equal("Civil registry relationships verified", citizen.RelationshipStatus);
+        Assert.Equal("1122334455", citizen.TaxNumber);
+        Assert.Equal("Employer payroll and IRP5 submissions available", citizen.EmploymentHistory);
+        Assert.Equal("Employment income and investment interest records on file", citizen.IncomeAndInvestmentProfile);
+        Assert.Equal("Bank interest certificates and property references on file", citizen.BankingAndAssets);
+        Assert.Equal("25 Protea Avenue, Midrand, 1685", citizen.ResidentialAddress);
+        Assert.Equal("MUN-2024-55210", citizen.RatesAccount);
+        Assert.Equal("Municipal account in good standing", citizen.MunicipalServiceStatus);
         Assert.Equal(1, citizen.RecordVersion);
         var inboxEntry = Assert.Single(dbContext.SyncInboxEntries.Local);
         Assert.Equal(SyncStatus.Applied, inboxEntry.Status);

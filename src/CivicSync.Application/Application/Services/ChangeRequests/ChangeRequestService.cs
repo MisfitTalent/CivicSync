@@ -2,6 +2,7 @@ using CivicSync.Core.Configuration;
 using CivicSync.Application.Contracts.ChangeRequests;
 using CivicSync.Core.Domain.ChangeRequests;
 using CivicSync.Core.Domain.Citizens;
+using CivicSync.Core.Domain.Enums;
 using CivicSync.Core.Domain.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -55,6 +56,11 @@ public sealed class ChangeRequestService : IChangeRequestService
             changeRequest.AddFieldChange(fieldChange.FieldName, oldValue, fieldChange.NewValue);
         }
 
+        await RequestRequiredApprovalsAsync(
+            changeRequest,
+            request.FieldChanges.Select(item => item.FieldName),
+            cancellationToken);
+
         await _changeRequestRepository.InsertAsync(changeRequest, autoSave: true, cancellationToken);
 
         return await GetRequiredByIdAsync(changeRequest.Id, cancellationToken);
@@ -96,13 +102,18 @@ public sealed class ChangeRequestService : IChangeRequestService
 
         ValidateApproverForNode(approver, approvingNode);
 
+        var approvalAlreadyExists = changeRequest.Approvals.Any(item => item.ApprovingNodeId == approvingNode.Id);
         var approval = changeRequest.RequestApprovalFrom(
             approvingNode.Id,
             approver.Id,
             approver.FullName,
             approver.Role,
             approvingNode.DepartmentCode.ToString());
-        await _departmentApprovalRepository.InsertAsync(approval, autoSave: true, cancellationToken);
+
+        if (!approvalAlreadyExists)
+        {
+            await _departmentApprovalRepository.InsertAsync(approval, autoSave: true, cancellationToken);
+        }
 
         return MapToDto(changeRequest);
     }
@@ -133,6 +144,46 @@ public sealed class ChangeRequestService : IChangeRequestService
         await _changeRequestRepository.UpdateAsync(changeRequest, autoSave: true, cancellationToken);
 
         return MapToDto(changeRequest);
+    }
+
+    private async Task RequestRequiredApprovalsAsync(
+        ChangeRequest changeRequest,
+        IEnumerable<string> fieldNames,
+        CancellationToken cancellationToken)
+    {
+        var requiredDepartmentCodes = CitizenFieldApprovalPolicy.GetRequiredApprovalDepartments(fieldNames);
+        if (requiredDepartmentCodes.Count == 0)
+        {
+            return;
+        }
+
+        var departmentNodes = await _departmentNodeRepository.GetQueryableAsync();
+        var requiredNodes = await departmentNodes
+            .Where(item => requiredDepartmentCodes.Contains(item.DepartmentCode))
+            .ToListAsync(cancellationToken);
+
+        var nodeIds = requiredNodes.Select(item => item.Id).ToList();
+        var departmentUsers = await _departmentUserRepository.GetQueryableAsync();
+        var activeApprovers = await departmentUsers
+            .Where(item => nodeIds.Contains(item.DepartmentNodeId) && item.IsActive)
+            .OrderBy(item => item.FullName)
+            .ToListAsync(cancellationToken);
+
+        foreach (var departmentCode in requiredDepartmentCodes)
+        {
+            var node = requiredNodes.SingleOrDefault(item => item.DepartmentCode == departmentCode)
+                ?? throw new InvalidOperationException($"Required approval node '{departmentCode}' is not registered.");
+
+            var approver = activeApprovers.FirstOrDefault(item => item.DepartmentNodeId == node.Id)
+                ?? throw new InvalidOperationException($"Required approval node '{departmentCode}' has no active approver user.");
+
+            changeRequest.RequestApprovalFrom(
+                node.Id,
+                approver.Id,
+                approver.FullName,
+                approver.Role,
+                node.DepartmentCode.ToString());
+        }
     }
 
     private static void ValidateApproverForNode(DepartmentUser approver, DepartmentNode approvingNode)
@@ -212,6 +263,17 @@ public sealed class ChangeRequestService : IChangeRequestService
             nameof(citizen.NationalIdNumber) => citizen.NationalIdNumber,
             nameof(citizen.FullName) => citizen.FullName.DisplayName,
             nameof(citizen.ContactDetails) => $"{citizen.ContactDetails.EmailAddress}|{citizen.ContactDetails.PhoneNumber}",
+            nameof(citizen.DateOfBirth) => citizen.DateOfBirth,
+            nameof(citizen.PassportNumber) => citizen.PassportNumber,
+            nameof(citizen.BiometricReference) => citizen.BiometricReference,
+            nameof(citizen.RelationshipStatus) => citizen.RelationshipStatus,
+            nameof(citizen.TaxNumber) => citizen.TaxNumber,
+            nameof(citizen.EmploymentHistory) => citizen.EmploymentHistory,
+            nameof(citizen.IncomeAndInvestmentProfile) => citizen.IncomeAndInvestmentProfile,
+            nameof(citizen.BankingAndAssets) => citizen.BankingAndAssets,
+            nameof(citizen.ResidentialAddress) => citizen.ResidentialAddress,
+            nameof(citizen.RatesAccount) => citizen.RatesAccount,
+            nameof(citizen.MunicipalServiceStatus) => citizen.MunicipalServiceStatus,
             _ => throw new InvalidOperationException($"Field '{fieldName}' is not a supported shared citizen field.")
         };
     }
@@ -254,4 +316,5 @@ public sealed class ChangeRequestService : IChangeRequestService
         };
     }
 }
+
 
