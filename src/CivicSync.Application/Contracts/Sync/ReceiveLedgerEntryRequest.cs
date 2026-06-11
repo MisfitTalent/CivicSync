@@ -48,6 +48,39 @@ public sealed class ReceiveLedgerEntryRequest
     [MaxLength(30)]
     public string CitizenPhoneNumber { get; set; } = string.Empty;
 
+    [MaxLength(60)]
+    public string CitizenDateOfBirth { get; set; } = string.Empty;
+
+    [MaxLength(30)]
+    public string CitizenPassportNumber { get; set; } = string.Empty;
+
+    [MaxLength(200)]
+    public string CitizenBiometricReference { get; set; } = string.Empty;
+
+    [MaxLength(200)]
+    public string CitizenRelationshipStatus { get; set; } = string.Empty;
+
+    [MaxLength(30)]
+    public string CitizenTaxNumber { get; set; } = string.Empty;
+
+    [MaxLength(500)]
+    public string CitizenEmploymentHistory { get; set; } = string.Empty;
+
+    [MaxLength(500)]
+    public string CitizenIncomeAndInvestmentProfile { get; set; } = string.Empty;
+
+    [MaxLength(500)]
+    public string CitizenBankingAndAssets { get; set; } = string.Empty;
+
+    [MaxLength(300)]
+    public string CitizenResidentialAddress { get; set; } = string.Empty;
+
+    [MaxLength(50)]
+    public string CitizenRatesAccount { get; set; } = string.Empty;
+
+    [MaxLength(100)]
+    public string CitizenMunicipalServiceStatus { get; set; } = string.Empty;
+
     [Required]
     [MinLength(1)]
     public List<SyncedFieldChangeDto> FieldChanges { get; set; } = [];

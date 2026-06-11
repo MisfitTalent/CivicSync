@@ -24,6 +24,17 @@ public sealed class Citizen : EntityBase
     public string NationalIdNumber { get; set; } = string.Empty;
     public PersonName FullName { get; set; } = new(string.Empty, string.Empty);
     public ContactDetails ContactDetails { get; set; } = new(string.Empty, string.Empty);
+    public string DateOfBirth { get; set; } = string.Empty;
+    public string PassportNumber { get; set; } = string.Empty;
+    public string BiometricReference { get; set; } = string.Empty;
+    public string RelationshipStatus { get; set; } = string.Empty;
+    public string TaxNumber { get; set; } = string.Empty;
+    public string EmploymentHistory { get; set; } = string.Empty;
+    public string IncomeAndInvestmentProfile { get; set; } = string.Empty;
+    public string BankingAndAssets { get; set; } = string.Empty;
+    public string ResidentialAddress { get; set; } = string.Empty;
+    public string RatesAccount { get; set; } = string.Empty;
+    public string MunicipalServiceStatus { get; set; } = string.Empty;
     public CitizenStatus Status { get; set; }
     public long RecordVersion { get; set; }
 
@@ -39,6 +50,39 @@ public sealed class Citizen : EntityBase
                 break;
             case nameof(NationalIdNumber):
                 NationalIdNumber = newValue;
+                break;
+            case nameof(DateOfBirth):
+                DateOfBirth = newValue;
+                break;
+            case nameof(PassportNumber):
+                PassportNumber = newValue;
+                break;
+            case nameof(BiometricReference):
+                BiometricReference = newValue;
+                break;
+            case nameof(RelationshipStatus):
+                RelationshipStatus = newValue;
+                break;
+            case nameof(TaxNumber):
+                TaxNumber = newValue;
+                break;
+            case nameof(EmploymentHistory):
+                EmploymentHistory = newValue;
+                break;
+            case nameof(IncomeAndInvestmentProfile):
+                IncomeAndInvestmentProfile = newValue;
+                break;
+            case nameof(BankingAndAssets):
+                BankingAndAssets = newValue;
+                break;
+            case nameof(ResidentialAddress):
+                ResidentialAddress = newValue;
+                break;
+            case nameof(RatesAccount):
+                RatesAccount = newValue;
+                break;
+            case nameof(MunicipalServiceStatus):
+                MunicipalServiceStatus = newValue;
                 break;
             default:
                 throw new InvalidOperationException($"Field '{fieldName}' is not a supported shared citizen field.");

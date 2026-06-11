@@ -28,13 +28,35 @@ public sealed class CitizenServiceTests
             FirstName = "Test",
             LastName = "Citizen",
             EmailAddress = "test@example.com",
-            PhoneNumber = "+27820000000"
+            PhoneNumber = "+27820000000",
+            DateOfBirth = "01 January 1990",
+            PassportNumber = "A12345678",
+            BiometricReference = "Fingerprint and facial scan enrolled",
+            RelationshipStatus = "Civil registry relationships verified",
+            TaxNumber = "9876543210",
+            EmploymentHistory = "IRP5 employer payroll history available from SARS third-party submissions",
+            IncomeAndInvestmentProfile = "Salary, interest, investment returns, pension and investment contributions on file",
+            BankingAndAssets = "Bank interest certificates, investment portfolio data, and property deed reference on file",
+            ResidentialAddress = "14 Ubuntu Street, Soweto, 1804",
+            RatesAccount = "MUN-2024-88821",
+            MunicipalServiceStatus = "Active municipal services"
         });
 
         Assert.Equal(node.Id, result.DepartmentNodeId);
         Assert.Equal("9001015009087", result.NationalIdNumber);
         Assert.Equal("Test Citizen", result.DisplayName);
         Assert.Equal(CitizenStatus.Active, result.Status);
+        Assert.Equal("01 January 1990", result.DateOfBirth);
+        Assert.Equal("A12345678", result.PassportNumber);
+        Assert.Equal("Fingerprint and facial scan enrolled", result.BiometricReference);
+        Assert.Equal("Civil registry relationships verified", result.RelationshipStatus);
+        Assert.Equal("9876543210", result.TaxNumber);
+        Assert.Equal("IRP5 employer payroll history available from SARS third-party submissions", result.EmploymentHistory);
+        Assert.Equal("Salary, interest, investment returns, pension and investment contributions on file", result.IncomeAndInvestmentProfile);
+        Assert.Equal("Bank interest certificates, investment portfolio data, and property deed reference on file", result.BankingAndAssets);
+        Assert.Equal("14 Ubuntu Street, Soweto, 1804", result.ResidentialAddress);
+        Assert.Equal("MUN-2024-88821", result.RatesAccount);
+        Assert.Equal("Active municipal services", result.MunicipalServiceStatus);
     }
 
     [Fact]

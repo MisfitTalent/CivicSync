@@ -298,6 +298,17 @@ public sealed class SyncService : ISyncService
             CitizenLastName = citizen.FullName.LastName,
             CitizenEmailAddress = citizen.ContactDetails.EmailAddress,
             CitizenPhoneNumber = citizen.ContactDetails.PhoneNumber,
+            CitizenDateOfBirth = citizen.DateOfBirth,
+            CitizenPassportNumber = citizen.PassportNumber,
+            CitizenBiometricReference = citizen.BiometricReference,
+            CitizenRelationshipStatus = citizen.RelationshipStatus,
+            CitizenTaxNumber = citizen.TaxNumber,
+            CitizenEmploymentHistory = citizen.EmploymentHistory,
+            CitizenIncomeAndInvestmentProfile = citizen.IncomeAndInvestmentProfile,
+            CitizenBankingAndAssets = citizen.BankingAndAssets,
+            CitizenResidentialAddress = citizen.ResidentialAddress,
+            CitizenRatesAccount = citizen.RatesAccount,
+            CitizenMunicipalServiceStatus = citizen.MunicipalServiceStatus,
             FieldChanges = changeRequest.FieldChanges
                 .Select(item => new SyncedFieldChangeDto
                 {
@@ -403,7 +414,20 @@ public sealed class SyncService : ISyncService
             departmentNodeId,
             request.CitizenNationalIdNumber.Trim(),
             new PersonName(request.CitizenFirstName.Trim(), request.CitizenLastName.Trim()),
-            new ContactDetails(request.CitizenEmailAddress.Trim(), request.CitizenPhoneNumber.Trim()));
+            new ContactDetails(request.CitizenEmailAddress.Trim(), request.CitizenPhoneNumber.Trim()))
+        {
+            DateOfBirth = request.CitizenDateOfBirth.Trim(),
+            PassportNumber = request.CitizenPassportNumber.Trim(),
+            BiometricReference = request.CitizenBiometricReference.Trim(),
+            RelationshipStatus = request.CitizenRelationshipStatus.Trim(),
+            TaxNumber = request.CitizenTaxNumber.Trim(),
+            EmploymentHistory = request.CitizenEmploymentHistory.Trim(),
+            IncomeAndInvestmentProfile = request.CitizenIncomeAndInvestmentProfile.Trim(),
+            BankingAndAssets = request.CitizenBankingAndAssets.Trim(),
+            ResidentialAddress = request.CitizenResidentialAddress.Trim(),
+            RatesAccount = request.CitizenRatesAccount.Trim(),
+            MunicipalServiceStatus = request.CitizenMunicipalServiceStatus.Trim()
+        };
     }
 
     private async Task<DepartmentNode> GetLocalNodeAsync(CancellationToken cancellationToken)
