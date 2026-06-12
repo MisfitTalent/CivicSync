@@ -18,6 +18,12 @@ This folder contains the ASP.NET/ABP backend implementation for the CivicSync Le
 - Sync inbox/outbox flow for peer delivery
 - xUnit backend tests
 
+## Biometric Authentication
+
+CivicSync uses browser WebAuthn/passkeys for real device biometric sign-in in the frontend demo. The browser asks the operating system authenticator, such as Windows Hello, Face ID, or fingerprint, to unlock a passkey. CivicSync never receives raw face or fingerprint images.
+
+The existing face-camera enrollment remains a prototype citizen verification workflow. For real login, use the passkey buttons on the sign-in page.
+
 ## Local Development
 
 Use the launch profiles in `aspnet-core/src/CivicSync.Web.Host/Properties/launchSettings.json` to run separate nodes:

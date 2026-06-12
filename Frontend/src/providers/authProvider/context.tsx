@@ -28,10 +28,13 @@ export interface AuthStateContextValue {
 
 export interface AuthActionContextValue {
   signIn: (emailAddress: string, password: string) => AppUserProfile | null;
+  registerPasskey: (emailAddress: string, password: string) => Promise<AppUserProfile | null>;
+  signInWithPasskey: (emailAddress: string) => Promise<AppUserProfile | null>;
   signOut: () => void;
 }
 
 export const authStorageKey = 'civicsync.currentUser';
+export const passkeyStorageKey = 'civicsync.passkeys';
 
 export const loginAccounts: LoginAccount[] = [
   {
