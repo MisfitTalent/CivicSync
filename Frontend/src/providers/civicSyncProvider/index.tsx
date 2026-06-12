@@ -434,6 +434,32 @@ export const CivicSyncProvider = ({ children }: { children: React.ReactNode }) =
     applyInbox: () => runAction('Apply inbox', async () => {
       await client.applyInbox();
     }),
+    enrollBiometric: (descriptor: string) => runAction('Enroll biometric', async () => {
+      if (!selectedCitizen) {
+        throw new Error('Select or register a citizen before enrolling biometrics.');
+      }
+
+      await client.enrollBiometric(selectedCitizen.id, {
+        method: 'Face scan',
+        deviceLabel: 'Browser camera',
+        descriptor,
+      });
+    }),
+    verifyBiometric: (descriptor: string) => runAction('Verify biometric', async () => {
+      if (!selectedCitizen) {
+        throw new Error('Select or register a citizen before verifying biometrics.');
+      }
+
+      const result = await client.verifyBiometric(selectedCitizen.id, {
+        method: 'Face scan',
+        deviceLabel: 'Browser camera',
+        descriptor,
+      });
+
+      if (!result.isVerified) {
+        throw new Error(result.message);
+      }
+    }),
   };
 
   return (

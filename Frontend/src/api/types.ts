@@ -42,6 +42,25 @@ export interface Citizen {
   createdAtUtc: string;
 }
 
+export interface BiometricEnrollmentRequest {
+  method: string;
+  deviceLabel: string;
+  descriptor: string;
+}
+
+export interface BiometricVerificationRequest {
+  method: string;
+  deviceLabel: string;
+  descriptor: string;
+}
+
+export interface BiometricVerificationResult {
+  citizenId: string;
+  isVerified: boolean;
+  message: string;
+  verifiedAtUtc: string;
+}
+
 export interface DepartmentUser {
   id: string;
   departmentNodeId: string;

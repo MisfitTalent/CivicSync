@@ -20,7 +20,7 @@ This folder contains the ASP.NET/ABP backend implementation for the CivicSync Le
 
 ## Local Development
 
-Use the launch profiles in `src/CivicSync.Web.Host/Properties/launchSettings.json` to run separate nodes:
+Use the launch profiles in `aspnet-core/src/CivicSync.Web.Host/Properties/launchSettings.json` to run separate nodes:
 
 - `HomeAffairs` on `http://localhost:5076`
 - `Sars` on `http://localhost:5077`
@@ -31,16 +31,62 @@ The checked-in shared secret is development-only. Replace it with environment va
 ## Validation
 
 ```powershell
-dotnet build .\CivicSync.Abp.slnx
-dotnet test .\CivicSync.Abp.slnx --no-restore
+dotnet build .\aspnet-core\CivicSync.Abp.slnx
+dotnet test .\aspnet-core\CivicSync.Abp.slnx --no-restore
 ```
 
 ## Database Migration
 
-Run the migrator before starting a node against a fresh SQL Server database:
+CivicSync uses one SQL Server database per department node for the local decentralized demo:
+
+- `CivicSync_HomeAffairs`
+- `CivicSync_Sars`
+- `CivicSync_Municipality`
+
+Run all node migrations and seed data with Windows Authentication:
 
 ```powershell
-dotnet run --project .\src\CivicSync.Migrator\CivicSync.Migrator.csproj
+.\scripts\migrate-all-nodes.ps1
 ```
 
-Override `ConnectionStrings__CivicSyncNode` and `Node__DepartmentCode` when migrating a different department database.
+Run all node migrations against a SQL Server container or SQL login:
+
+```powershell
+$env:CIVICSYNC_SQL_PASSWORD = "your-local-sa-password"
+.\scripts\migrate-all-nodes.ps1 -SqlServer "localhost,1433" -UseSqlLogin
+```
+
+Run one node migration only:
+
+```powershell
+.\scripts\migrate-node.ps1 -Node HomeAffairs
+.\scripts\migrate-node.ps1 -Node Sars
+.\scripts\migrate-node.ps1 -Node Municipality
+```
+
+After migration, confirm in SQL Server Management Studio that the three databases exist and contain seeded `DepartmentNodes`, `Citizens`, and peer configuration.
+
+## Running The Demo
+
+Start each API in a separate terminal:
+
+```powershell
+.\scripts\run-node-api.ps1 -Node HomeAffairs
+.\scripts\run-node-api.ps1 -Node Sars
+.\scripts\run-node-api.ps1 -Node Municipality
+```
+
+Or open all three node API terminals at once:
+
+```powershell
+.\scripts\run-all-node-apis.ps1
+```
+
+Start the frontend:
+
+```powershell
+npm run dev --prefix .\Frontend
+```
+
+The checked-in shared secret remains development-only. For deployment, set `CIVICSYNC_NODE_SHARED_SECRET` and environment-specific SQL Server connection strings outside source control.
+

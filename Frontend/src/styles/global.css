@@ -3124,3 +3124,67 @@ textarea:focus,
   font-weight: 700;
   line-height: 1.45;
 }
+
+.biometric-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.biometric-action-row .ant-btn {
+  min-width: 160px;
+}
+
+
+.biometric-camera-panel {
+  position: relative;
+  display: grid;
+  min-height: 220px;
+  margin-top: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #0f172a;
+}
+
+.biometric-video {
+  width: 100%;
+  min-height: 220px;
+  max-height: 320px;
+  object-fit: cover;
+  background: #0f172a;
+}
+
+.biometric-video-idle {
+  opacity: 0;
+}
+
+.biometric-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  color: #dbeafe;
+  font-weight: 800;
+  text-align: center;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.94));
+}
+
+.biometric-canvas {
+  display: none;
+}
+
+.biometric-status-text {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.biometric-error-text {
+  margin: 10px 0 0;
+  color: #9b1c0f;
+  font-weight: 900;
+}

@@ -25,6 +25,20 @@ public sealed class CitizensController : ControllerBase
         return Created($"/api/citizens/{citizen.Id}", citizen);
     }
 
+    [HttpPost("{id:guid}/biometrics/enroll")]
+    public async Task<ActionResult<CitizenDto>> EnrollBiometricAsync(Guid id, BiometricEnrollmentRequest request, CancellationToken cancellationToken)
+    {
+        var citizen = await _citizenService.EnrollBiometricAsync(id, request, cancellationToken);
+        return Ok(citizen);
+    }
+
+    [HttpPost("{id:guid}/biometrics/verify")]
+    public async Task<ActionResult<BiometricVerificationResult>> VerifyBiometricAsync(Guid id, BiometricVerificationRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _citizenService.VerifyBiometricAsync(id, request, cancellationToken);
+        return Ok(result);
+    }
+
     [HttpGet]
     public async Task<ActionResult<IReadOnlyCollection<CitizenDto>>> GetAllAsync(CancellationToken cancellationToken)
     {
