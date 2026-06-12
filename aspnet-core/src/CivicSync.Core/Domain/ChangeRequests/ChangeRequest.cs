@@ -26,6 +26,7 @@ public sealed class ChangeRequest : EntityBase
     public ChangeRequestStatus Status { get; set; }
     public List<FieldChange> FieldChanges { get; set; } = [];
     public List<DepartmentApproval> Approvals { get; set; } = [];
+    public List<ChangeRequestEvidence> EvidenceFiles { get; set; } = [];
 
     public void AddFieldChange(string fieldName, string oldValue, string newValue)
     {
@@ -35,6 +36,22 @@ public sealed class ChangeRequest : EntityBase
         }
 
         FieldChanges.Add(new FieldChange(Id, fieldName, oldValue, newValue));
+        MarkUpdated();
+    }
+
+    public void AddEvidenceFile(
+        string fileName,
+        string contentType,
+        long sizeBytes,
+        string contentHash,
+        byte[] content)
+    {
+        if (Status != ChangeRequestStatus.Draft)
+        {
+            throw new InvalidOperationException("Evidence files can only be added while the request is still a draft.");
+        }
+
+        EvidenceFiles.Add(new ChangeRequestEvidence(Id, fileName, contentType, sizeBytes, contentHash, content));
         MarkUpdated();
     }
 

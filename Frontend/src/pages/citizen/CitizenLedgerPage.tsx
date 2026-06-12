@@ -75,7 +75,7 @@ const CitizenLedgerPage = () => {
                       <strong>{fieldChange ? getCitizenFieldLabel(fieldChange.fieldName) : 'Citizen record'}</strong>
                       <p>{request.reason}</p>
                     </div>
-                    <span className="status-pill">Tracked request</span>
+                    <span className="status-pill">{(request.evidenceFiles?.length ?? 0) > 0 ? `${request.evidenceFiles.length} evidence file${request.evidenceFiles.length === 1 ? '' : 's'}` : 'Tracked request'}</span>
                   </div>
 
                   <div className="ledger-value-flow">

@@ -35,6 +35,79 @@ public sealed class ChangeRequestServiceTests
     }
 
     [Fact]
+    public async Task SubmitAsync_PersistsEvidenceFilesWithMetadata()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var setup = AddCoreDepartmentApprovalSetup(dbContext);
+        await Task.CompletedTask;
+        var service = CreateService(dbContext, DepartmentCode.HomeAffairs);
+
+        var result = await service.SubmitAsync(new SubmitChangeRequest
+        {
+            CitizenId = setup.Citizen.Id,
+            Reason = "Update contact details with proof",
+            FieldChanges =
+            [
+                new SubmitFieldChangeRequest
+                {
+                    FieldName = "ContactDetails",
+                    NewValue = "new@example.test|+27820000000"
+                }
+            ],
+            EvidenceFiles =
+            [
+                new SubmitEvidenceFileRequest
+                {
+                    FileName = "proof-of-address.pdf",
+                    ContentType = "application/pdf",
+                    ContentBase64 = Convert.ToBase64String("fake-pdf-content"u8.ToArray())
+                }
+            ]
+        });
+
+        var evidence = Assert.Single(result.EvidenceFiles);
+        Assert.Equal("proof-of-address.pdf", evidence.FileName);
+        Assert.Equal("application/pdf", evidence.ContentType);
+        Assert.Equal(16, evidence.SizeBytes);
+        Assert.False(string.IsNullOrWhiteSpace(evidence.ContentHash));
+        Assert.Equal(16, Assert.Single(dbContext.ChangeRequestEvidenceFiles.Local).Content.Length);
+    }
+
+    [Fact]
+    public async Task SubmitAsync_Throws_WhenEvidenceContentIsInvalidBase64()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var setup = AddCoreDepartmentApprovalSetup(dbContext);
+        await Task.CompletedTask;
+        var service = CreateService(dbContext, DepartmentCode.HomeAffairs);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SubmitAsync(new SubmitChangeRequest
+        {
+            CitizenId = setup.Citizen.Id,
+            Reason = "Update contact details with invalid proof",
+            FieldChanges =
+            [
+                new SubmitFieldChangeRequest
+                {
+                    FieldName = "ContactDetails",
+                    NewValue = "new@example.test|+27820000000"
+                }
+            ],
+            EvidenceFiles =
+            [
+                new SubmitEvidenceFileRequest
+                {
+                    FileName = "proof.pdf",
+                    ContentType = "application/pdf",
+                    ContentBase64 = "not valid base64"
+                }
+            ]
+        }));
+
+        Assert.Equal("Evidence file content must be valid base64.", exception.Message);
+    }
+
+    [Fact]
     public async Task SubmitAsync_Throws_WhenRequesterCannotChangeField()
     {
         await using var dbContext = TestDbContextFactory.Create();

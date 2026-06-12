@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using CivicSync.Core.Configuration;
 using CivicSync.Application.Contracts.ChangeRequests;
 using CivicSync.Core.Domain.ChangeRequests;
@@ -12,6 +13,8 @@ namespace CivicSync.Application.Services.ChangeRequests;
 
 public sealed class ChangeRequestService : IChangeRequestService
 {
+    private const int MaximumEvidenceFileCount = 5;
+    private const long MaximumEvidenceFileSizeBytes = 10 * 1024 * 1024;
     private readonly IRepository<ChangeRequest, Guid> _changeRequestRepository;
     private readonly IRepository<Citizen, Guid> _citizenRepository;
     private readonly IRepository<DepartmentApproval, Guid> _departmentApprovalRepository;
@@ -57,6 +60,8 @@ public sealed class ChangeRequestService : IChangeRequestService
             var oldValue = GetCitizenFieldValue(citizen, fieldChange.FieldName);
             changeRequest.AddFieldChange(fieldChange.FieldName, oldValue, fieldChange.NewValue);
         }
+
+        AddEvidenceFiles(changeRequest, request.EvidenceFiles);
 
         await RequestRequiredApprovalsAsync(
             changeRequest,
@@ -258,7 +263,10 @@ public sealed class ChangeRequestService : IChangeRequestService
 
     private async Task<IQueryable<ChangeRequest>> GetChangeRequestsWithDetailsAsync()
     {
-        return await _changeRequestRepository.WithDetailsAsync(item => item.FieldChanges, item => item.Approvals);
+        return await _changeRequestRepository.WithDetailsAsync(
+            item => item.FieldChanges,
+            item => item.EvidenceFiles,
+            item => item.Approvals);
     }
 
     private async Task<DepartmentNode> GetLocalDepartmentNodeAsync(CancellationToken cancellationToken)
@@ -291,6 +299,79 @@ public sealed class ChangeRequestService : IChangeRequestService
         };
     }
 
+    private static void AddEvidenceFiles(
+        ChangeRequest changeRequest,
+        IReadOnlyCollection<SubmitEvidenceFileRequest> evidenceFiles)
+    {
+        if (evidenceFiles.Count > MaximumEvidenceFileCount)
+        {
+            throw new InvalidOperationException($"A change request can include at most {MaximumEvidenceFileCount} evidence files.");
+        }
+
+        foreach (var evidenceFile in evidenceFiles)
+        {
+            var fileName = ValidateEvidenceFileName(evidenceFile.FileName);
+            var contentType = ValidateContentType(evidenceFile.ContentType);
+            var content = DecodeEvidenceContent(evidenceFile.ContentBase64);
+
+            if (content.LongLength > MaximumEvidenceFileSizeBytes)
+            {
+                throw new InvalidOperationException("Evidence files cannot be larger than 10 MB.");
+            }
+
+            changeRequest.AddEvidenceFile(
+                fileName,
+                contentType,
+                content.LongLength,
+                ComputeContentHash(content),
+                content);
+        }
+    }
+
+    private static string ValidateEvidenceFileName(string fileName)
+    {
+        var normalizedFileName = Path.GetFileName(fileName?.Trim() ?? string.Empty);
+        if (string.IsNullOrWhiteSpace(normalizedFileName))
+        {
+            throw new InvalidOperationException("Evidence file name is required.");
+        }
+
+        return normalizedFileName;
+    }
+
+    private static string ValidateContentType(string contentType)
+    {
+        var normalizedContentType = contentType?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(normalizedContentType))
+        {
+            throw new InvalidOperationException("Evidence content type is required.");
+        }
+
+        return normalizedContentType;
+    }
+
+    private static byte[] DecodeEvidenceContent(string contentBase64)
+    {
+        if (string.IsNullOrWhiteSpace(contentBase64))
+        {
+            throw new InvalidOperationException("Evidence file content is required.");
+        }
+
+        try
+        {
+            return Convert.FromBase64String(contentBase64);
+        }
+        catch (FormatException)
+        {
+            throw new InvalidOperationException("Evidence file content must be valid base64.");
+        }
+    }
+
+    private static string ComputeContentHash(byte[] content)
+    {
+        return Convert.ToHexString(SHA256.HashData(content));
+    }
+
     private static ChangeRequestDto MapToDto(ChangeRequest changeRequest, DepartmentCode departmentCode)
     {
         static string VisibleFieldValue(DepartmentCode departmentCode, FieldChange fieldChange, string value)
@@ -315,6 +396,18 @@ public sealed class ChangeRequestService : IChangeRequestService
                     FieldName = item.FieldName,
                     OldValue = VisibleFieldValue(departmentCode, item, item.OldValue),
                     NewValue = VisibleFieldValue(departmentCode, item, item.NewValue)
+                })
+                .ToList(),
+            EvidenceFiles = changeRequest.EvidenceFiles
+                .OrderBy(item => item.CreatedAtUtc)
+                .Select(item => new EvidenceFileDto
+                {
+                    Id = item.Id,
+                    FileName = item.FileName,
+                    ContentType = item.ContentType,
+                    SizeBytes = item.SizeBytes,
+                    ContentHash = item.ContentHash,
+                    UploadedAtUtc = item.CreatedAtUtc
                 })
                 .ToList(),
             Approvals = changeRequest.Approvals

@@ -14,4 +14,6 @@ public sealed class SubmitChangeRequest
     [Required]
     [MinLength(1)]
     public List<SubmitFieldChangeRequest> FieldChanges { get; set; } = [];
+
+    public List<SubmitEvidenceFileRequest> EvidenceFiles { get; set; } = [];
 }

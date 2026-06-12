@@ -474,6 +474,7 @@ const CitizenPage = () => {
                         : 'No field change recorded'}
                     </small>
                     <small>{request.approvals.length}/{nodes.length} departments</small>
+                    <small>{(request.evidenceFiles?.length ?? 0) > 0 ? `${request.evidenceFiles.length} evidence file${request.evidenceFiles.length === 1 ? '' : 's'} stored` : 'No evidence attached'}</small>
                   </button>
                 );
               })}

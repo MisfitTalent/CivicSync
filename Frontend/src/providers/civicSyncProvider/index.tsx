@@ -48,8 +48,12 @@ const getApprovalMergeKey = (approval: ChangeRequest['approvals'][number]) => {
   return approval.id || approval.approvingNodeId || approval.approverDepartmentName;
 };
 
+const getEvidenceMergeKey = (evidenceFile: ChangeRequest['evidenceFiles'][number]) => {
+  return evidenceFile.id || `${evidenceFile.fileName}:${evidenceFile.contentHash}`;
+};
+
 const getRequestCompletenessScore = (request: ChangeRequest) => {
-  return request.fieldChanges.length * 5 + request.approvals.length * 10 + request.status;
+  return request.fieldChanges.length * 5 + (request.evidenceFiles?.length ?? 0) * 5 + request.approvals.length * 10 + request.status;
 };
 
 const mergeChangeRequest = (existing: ChangeRequest, incoming: ChangeRequest) => {
@@ -57,9 +61,14 @@ const mergeChangeRequest = (existing: ChangeRequest, incoming: ChangeRequest) =>
   const baseRequest = useIncomingBase ? incoming : existing;
   const secondaryRequest = useIncomingBase ? existing : incoming;
   const approvalsByKey = new Map<string, ChangeRequest['approvals'][number]>();
+  const evidenceByKey = new Map<string, ChangeRequest['evidenceFiles'][number]>();
 
   [...secondaryRequest.approvals, ...baseRequest.approvals].forEach((approval) => {
     approvalsByKey.set(getApprovalMergeKey(approval), approval);
+  });
+
+  [...(secondaryRequest.evidenceFiles ?? []), ...(baseRequest.evidenceFiles ?? [])].forEach((evidenceFile) => {
+    evidenceByKey.set(getEvidenceMergeKey(evidenceFile), evidenceFile);
   });
 
   return {
@@ -68,6 +77,7 @@ const mergeChangeRequest = (existing: ChangeRequest, incoming: ChangeRequest) =>
     fieldChanges: baseRequest.fieldChanges.length >= secondaryRequest.fieldChanges.length
       ? baseRequest.fieldChanges
       : secondaryRequest.fieldChanges,
+    evidenceFiles: Array.from(evidenceByKey.values()),
     approvals: Array.from(approvalsByKey.values()),
   };
 };
@@ -362,6 +372,7 @@ export const CivicSyncProvider = ({ children }: { children: React.ReactNode }) =
           citizenId: selectedCitizen.id,
           reason: request.reason.trim(),
           fieldChanges: [fieldChange],
+          evidenceFiles: request.evidenceFiles ?? [],
         });
 
         dispatch(setCivicSyncState({ selectedRequestId: created.id }));

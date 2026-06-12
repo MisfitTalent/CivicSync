@@ -99,7 +99,7 @@ const DepartmentRequestReviewPage = ({ departmentCode, title }: DepartmentReques
   const baseRoute = departmentRoutes[departmentCode];
   const latestLedgerEntry = request ? state.ledger.find((entry) => entry.changeRequestId === request.id) : undefined;
   const nextApproverName = departmentApproval?.approverFullName;
-  const hasDocumentStorage = false;
+  const evidenceFiles = request?.evidenceFiles ?? [];
 
   useEffect(() => {
     if (state.activeNode.departmentCode !== departmentCode) {
@@ -196,13 +196,23 @@ const DepartmentRequestReviewPage = ({ departmentCode, title }: DepartmentReques
 
         <section className="panel request-summary-panel">
           <h2>Evidence</h2>
-          <div className="evidence-status-card">
-            <span>Document storage</span>
-            <strong>{hasDocumentStorage ? 'Stored with request' : 'Not implemented yet'}</strong>
-            <p>
-              The upload control currently captures a selected file name in the citizen form only. Backend document persistence and reviewer download are still required before evidence can appear here.
-            </p>
-          </div>
+          {evidenceFiles.length === 0 ? (
+            <div className="evidence-status-card">
+              <span>Stored evidence</span>
+              <strong>No files attached</strong>
+              <p>The requester submitted this change without supporting evidence files.</p>
+            </div>
+          ) : (
+            <div className="evidence-file-list evidence-file-list-stacked">
+              {evidenceFiles.map((file) => (
+                <article className="evidence-file-card" key={file.id}>
+                  <span>{file.contentType}</span>
+                  <strong>{file.fileName}</strong>
+                  <small>{Math.ceil(file.sizeBytes / 1024)} KB - proof hash {file.contentHash.slice(0, 12)}</small>
+                </article>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="panel span-2">
