@@ -3002,6 +3002,8 @@ textarea:focus,
 
 .evidence-file-pill {
   display: inline-flex;
+  align-items: center;
+  gap: 8px;
   max-width: 100%;
   padding: 7px 10px;
   border: 1px solid #bfdbfe;
@@ -3011,6 +3013,10 @@ textarea:focus,
   font-size: 0.82rem;
   font-weight: 800;
   overflow-wrap: anywhere;
+}
+
+.evidence-file-pill-with-action {
+  justify-content: space-between;
 }
 
 .evidence-file-card {
