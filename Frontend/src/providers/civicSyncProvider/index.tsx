@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useMemo, useReducer } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useReducer, useRef } from 'react';
 import { CivicSyncClient } from '../../api/civicsyncClient';
 import { getErrorMessage } from '../../utils/axiosInstance';
 import { setCivicSyncState, setOperationError, setOperationPending, setOperationSuccess } from './actions';
@@ -187,8 +187,11 @@ const buildFallbackDepartmentUsers = (
   }] as DepartmentUser[];
 };
 
+const PollingIntervalMs = 5000;
+
 export const CivicSyncProvider = ({ children }: { children: React.ReactNode }) => {
   const [state, dispatch] = useReducer(civicSyncReducer, initialState);
+  const isPollingRef = useRef(false);
   const client = useMemo(() => new CivicSyncClient(state.activeNode.baseUrl), [state.activeNode.baseUrl]);
 
   const refreshAll = useCallback(async (showMessage = true) => {
@@ -274,6 +277,25 @@ export const CivicSyncProvider = ({ children }: { children: React.ReactNode }) =
   useEffect(() => {
     refreshAll();
   }, [state.activeNode.baseUrl]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      if (isPollingRef.current) {
+        return;
+      }
+
+      isPollingRef.current = true;
+      refreshAll(false)
+        .catch(() => {
+          // Silent polling keeps the last visible manual action state intact.
+        })
+        .finally(() => {
+          isPollingRef.current = false;
+        });
+    }, PollingIntervalMs);
+
+    return () => window.clearInterval(intervalId);
+  }, [refreshAll]);
 
   const runAction = async (label: string, action: () => Promise<void>) => {
     dispatch(setOperationPending(label));

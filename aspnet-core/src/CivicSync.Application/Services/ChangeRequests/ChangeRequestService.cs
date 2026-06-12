@@ -88,6 +88,26 @@ public sealed class ChangeRequestService : IChangeRequestService
         return changeRequest is null ? null : MapToDto(changeRequest, _nodeOptions.DepartmentCode);
     }
 
+    public async Task<EvidenceFileContentDto?> GetEvidenceFileAsync(
+        Guid id,
+        Guid evidenceFileId,
+        CancellationToken cancellationToken = default)
+    {
+        var changeRequest = await LoadChangeRequestAsync(id, cancellationToken);
+        var evidenceFile = changeRequest?.EvidenceFiles.SingleOrDefault(item => item.Id == evidenceFileId);
+
+        return evidenceFile is null
+            ? null
+            : new EvidenceFileContentDto
+            {
+                Id = evidenceFile.Id,
+                ChangeRequestId = evidenceFile.ChangeRequestId,
+                FileName = evidenceFile.FileName,
+                ContentType = evidenceFile.ContentType,
+                Content = evidenceFile.Content
+            };
+    }
+
     public async Task<ChangeRequestDto> RequestApprovalAsync(
         Guid id,
         RequestDepartmentApprovalRequest request,

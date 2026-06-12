@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Button } from 'antd';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { CivicSyncClient } from '../../api/civicsyncClient';
 import type { DepartmentCode } from '../../api/types';
 import { Metric } from '../../components/dashboard/DashboardWidgets';
 import { nodes, statusText } from '../../providers/civicSyncProvider/context';
@@ -100,6 +101,22 @@ const DepartmentRequestReviewPage = ({ departmentCode, title }: DepartmentReques
   const latestLedgerEntry = request ? state.ledger.find((entry) => entry.changeRequestId === request.id) : undefined;
   const nextApproverName = departmentApproval?.approverFullName;
   const evidenceFiles = request?.evidenceFiles ?? [];
+  const handleDownloadEvidence = async (evidenceFileId: string, fileName: string) => {
+    if (!request) {
+      return;
+    }
+
+    const requestClient = new CivicSyncClient(state.requestNodeBaseUrls[request.id] ?? state.activeNode.baseUrl);
+    const blob = await requestClient.downloadEvidenceFile(request.id, evidenceFileId);
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl;
+    anchor.download = fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(objectUrl);
+  };
 
   useEffect(() => {
     if (state.activeNode.departmentCode !== departmentCode) {
@@ -209,6 +226,7 @@ const DepartmentRequestReviewPage = ({ departmentCode, title }: DepartmentReques
                   <span>{file.contentType}</span>
                   <strong>{file.fileName}</strong>
                   <small>{Math.ceil(file.sizeBytes / 1024)} KB - proof hash {file.contentHash.slice(0, 12)}</small>
+                  <Button type="link" onClick={() => handleDownloadEvidence(file.id, file.fileName)}>Download evidence</Button>
                 </article>
               ))}
             </div>
