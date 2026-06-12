@@ -4,8 +4,11 @@ using CivicSync.Core.Domain.Enums;
 using CivicSync.Core.Domain.Ledger;
 using CivicSync.Core.Domain.Nodes;
 using CivicSync.Core.Domain.Sync;
+using CivicSync.EntityFrameworkCore.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Volo.Abp.Data;
 using Volo.Abp.EntityFrameworkCore;
 
@@ -104,31 +107,31 @@ public sealed class CivicSyncDbContext : AbpDbContext<CivicSyncDbContext>
         {
             entity.ToTable("Citizens");
             entity.HasKey(item => item.Id);
-            entity.Property(item => item.NationalIdNumber).HasMaxLength(30).IsRequired();
-            entity.Property(item => item.DateOfBirth).HasMaxLength(60).HasDefaultValue(string.Empty).IsRequired();
-            entity.Property(item => item.PassportNumber).HasMaxLength(30).HasDefaultValue(string.Empty).IsRequired();
-            entity.Property(item => item.BiometricReference).HasMaxLength(200).HasDefaultValue(string.Empty).IsRequired();
-            entity.Property(item => item.RelationshipStatus).HasMaxLength(200).HasDefaultValue(string.Empty).IsRequired();
-            entity.Property(item => item.TaxNumber).HasMaxLength(30).HasDefaultValue(string.Empty).IsRequired();
-            entity.Property(item => item.EmploymentHistory).HasMaxLength(500).HasDefaultValue(string.Empty).IsRequired();
-            entity.Property(item => item.IncomeAndInvestmentProfile).HasMaxLength(500).HasDefaultValue(string.Empty).IsRequired();
-            entity.Property(item => item.BankingAndAssets).HasMaxLength(500).HasDefaultValue(string.Empty).IsRequired();
-            entity.Property(item => item.ResidentialAddress).HasMaxLength(300).HasDefaultValue(string.Empty).IsRequired();
-            entity.Property(item => item.RatesAccount).HasMaxLength(50).HasDefaultValue(string.Empty).IsRequired();
-            entity.Property(item => item.MunicipalServiceStatus).HasMaxLength(100).HasDefaultValue(string.Empty).IsRequired();
+            ConfigureEncryptedProperty(entity.Property(item => item.NationalIdNumber), "Citizen.NationalIdNumber", 512);
+            ConfigureEncryptedProperty(entity.Property(item => item.DateOfBirth), "Citizen.DateOfBirth", 512);
+            ConfigureEncryptedProperty(entity.Property(item => item.PassportNumber), "Citizen.PassportNumber", 512);
+            ConfigureEncryptedProperty(entity.Property(item => item.BiometricReference), "Citizen.BiometricReference", 2000);
+            ConfigureEncryptedProperty(entity.Property(item => item.RelationshipStatus), "Citizen.RelationshipStatus", 1000);
+            ConfigureEncryptedProperty(entity.Property(item => item.TaxNumber), "Citizen.TaxNumber", 512);
+            ConfigureEncryptedProperty(entity.Property(item => item.EmploymentHistory), "Citizen.EmploymentHistory", 2000);
+            ConfigureEncryptedProperty(entity.Property(item => item.IncomeAndInvestmentProfile), "Citizen.IncomeAndInvestmentProfile", 2000);
+            ConfigureEncryptedProperty(entity.Property(item => item.BankingAndAssets), "Citizen.BankingAndAssets", 2000);
+            ConfigureEncryptedProperty(entity.Property(item => item.ResidentialAddress), "Citizen.ResidentialAddress", 1000);
+            ConfigureEncryptedProperty(entity.Property(item => item.RatesAccount), "Citizen.RatesAccount", 512);
+            ConfigureEncryptedProperty(entity.Property(item => item.MunicipalServiceStatus), "Citizen.MunicipalServiceStatus", 512);
             entity.Property(item => item.Status).HasConversion<string>().HasMaxLength(50).IsRequired();
             entity.Property(item => item.RecordVersion).IsRequired();
             entity.HasIndex(item => new { item.DepartmentNodeId, item.NationalIdNumber }).IsUnique();
             entity.OwnsOne(item => item.FullName, owned =>
             {
-                owned.Property(item => item.FirstName).HasColumnName("FirstName").HasMaxLength(100).IsRequired();
-                owned.Property(item => item.LastName).HasColumnName("LastName").HasMaxLength(100).IsRequired();
+                ConfigureEncryptedProperty(owned.Property(item => item.FirstName).HasColumnName("FirstName"), "Citizen.FirstName", 512);
+                ConfigureEncryptedProperty(owned.Property(item => item.LastName).HasColumnName("LastName"), "Citizen.LastName", 512);
                 owned.Ignore(item => item.DisplayName);
             });
             entity.OwnsOne(item => item.ContactDetails, owned =>
             {
-                owned.Property(item => item.EmailAddress).HasColumnName("EmailAddress").HasMaxLength(256).IsRequired();
-                owned.Property(item => item.PhoneNumber).HasColumnName("PhoneNumber").HasMaxLength(30).IsRequired();
+                ConfigureEncryptedProperty(owned.Property(item => item.EmailAddress).HasColumnName("EmailAddress"), "Citizen.EmailAddress", 1000);
+                ConfigureEncryptedProperty(owned.Property(item => item.PhoneNumber).HasColumnName("PhoneNumber"), "Citizen.PhoneNumber", 512);
             });
         });
     }
@@ -139,7 +142,7 @@ public sealed class CivicSyncDbContext : AbpDbContext<CivicSyncDbContext>
         {
             entity.ToTable("CitizenReplicas");
             entity.HasKey(item => item.Id);
-            entity.Property(item => item.SharedDataJson).HasColumnType("nvarchar(max)").IsRequired();
+            ConfigureEncryptedProperty(entity.Property(item => item.SharedDataJson), "CitizenReplica.SharedDataJson");
             entity.Property(item => item.SyncStatus).HasConversion<string>().HasMaxLength(50).IsRequired();
             entity.HasIndex(item => new { item.DepartmentNodeId, item.CitizenId }).IsUnique();
         });
@@ -173,8 +176,8 @@ public sealed class CivicSyncDbContext : AbpDbContext<CivicSyncDbContext>
             entity.ToTable("FieldChanges");
             entity.HasKey(item => item.Id);
             entity.Property(item => item.FieldName).HasMaxLength(100).IsRequired();
-            entity.Property(item => item.OldValue).HasMaxLength(1000).IsRequired();
-            entity.Property(item => item.NewValue).HasMaxLength(1000).IsRequired();
+            ConfigureEncryptedProperty(entity.Property(item => item.OldValue), "FieldChange.OldValue", 4000);
+            ConfigureEncryptedProperty(entity.Property(item => item.NewValue), "FieldChange.NewValue", 4000);
         });
     }
 
@@ -233,8 +236,8 @@ public sealed class CivicSyncDbContext : AbpDbContext<CivicSyncDbContext>
         {
             entity.ToTable("SyncInboxEntries");
             entity.HasKey(item => item.Id);
-            entity.Property(item => item.CitizenNationalIdNumber).HasMaxLength(30).IsRequired();
-            entity.Property(item => item.FieldChangesJson).HasColumnType("nvarchar(max)").IsRequired();
+            ConfigureEncryptedProperty(entity.Property(item => item.CitizenNationalIdNumber), "SyncInboxEntry.CitizenNationalIdNumber", 512);
+            ConfigureEncryptedProperty(entity.Property(item => item.FieldChangesJson), "SyncInboxEntry.FieldChangesJson");
             entity.Property(item => item.Status).HasConversion<string>().HasMaxLength(50).IsRequired();
             entity.HasIndex(item => new { item.DepartmentNodeId, item.LedgerEntryId }).IsUnique();
         });
@@ -249,6 +252,32 @@ public sealed class CivicSyncDbContext : AbpDbContext<CivicSyncDbContext>
             entity.Property(item => item.Result).HasConversion<string>().HasMaxLength(50).IsRequired();
             entity.HasIndex(item => new { item.SyncOutboxEventId, item.TargetNodeId }).IsUnique();
         });
+    }
+
+    private static void ConfigureEncryptedProperty(
+        PropertyBuilder<string> propertyBuilder,
+        string purpose,
+        int? maxLength = null)
+    {
+        propertyBuilder
+            .HasConversion(CreateEncryptedStringConverter(purpose))
+            .HasDefaultValue(string.Empty)
+            .IsRequired();
+
+        if (maxLength.HasValue)
+        {
+            propertyBuilder.HasMaxLength(maxLength.Value);
+            return;
+        }
+
+        propertyBuilder.HasColumnType("nvarchar(max)");
+    }
+
+    private static ValueConverter<string, string> CreateEncryptedStringConverter(string purpose)
+    {
+        return new ValueConverter<string, string>(
+            value => MasterRecordEncryption.Encrypt(value, purpose),
+            value => MasterRecordEncryption.Decrypt(value, purpose));
     }
 }
 

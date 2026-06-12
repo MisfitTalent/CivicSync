@@ -90,3 +90,15 @@ npm run dev --prefix .\Frontend
 
 The checked-in shared secret remains development-only. For deployment, set `CIVICSYNC_NODE_SHARED_SECRET` and environment-specific SQL Server connection strings outside source control.
 
+## Encrypted Master Records
+
+Citizen master-record fields are encrypted at rest by EF Core value converters before they are written to SQL Server. Application services still work with normal values, while stored citizen identifiers, contact details, biometric references, tax fields, municipal fields, change payloads, and replica payloads are persisted as `enc:v1:` ciphertext.
+
+Set a shared encryption key for every department node so synced records can be decrypted consistently:
+
+```powershell
+$env:CIVICSYNC_MASTER_RECORD_KEY = "replace-with-a-strong-shared-demo-key"
+```
+
+If the variable is not set, the app uses a development-only fallback key for local demos. Existing plaintext rows remain readable for backward compatibility and are encrypted the next time they are saved through the application.
+
