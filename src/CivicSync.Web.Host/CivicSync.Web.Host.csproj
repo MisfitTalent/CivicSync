@@ -6,6 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\CivicSync.Application\CivicSync.Application.csproj" />
+    <ProjectReference Include="..\CivicSync.Application.Contracts\CivicSync.Application.Contracts.csproj" />
     <ProjectReference Include="..\CivicSync.EntityFrameworkCore\CivicSync.EntityFrameworkCore.csproj" />
     <ProjectReference Include="..\CivicSync.Web.Core\CivicSync.Web.Core.csproj" />
   </ItemGroup>
