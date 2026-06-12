@@ -36,12 +36,13 @@ export interface AuthActionContextValue {
 }
 
 export const authStorageKey = 'civicsync.currentUser';
+export const biometricCitizenLinkStorageKey = 'civicsync.biometricCitizenLinks';
 
 export const loginAccounts: LoginAccount[] = [
   {
     emailAddress: 'citizen@civicsync.local',
     password: 'Password123!',
-    linkedNationalIdNumber: '0008289830183',
+    linkedNationalIdNumber: '0008282828282',
     profile: {
       id: 'citizen-user',
       displayName: 'Citizen User',

@@ -2,11 +2,20 @@ import { useContext, useMemo, useReducer } from 'react';
 import { CivicSyncClient } from '../../api/civicsyncClient';
 import { nodes } from '../civicSyncProvider/context';
 import { signInError, signInPending, signInSuccess, signOutSuccess } from './actions';
-import { AuthActionContext, AuthStateContext, authStorageKey, initialAuthState, loginAccounts, type AppUserProfile, type AuthStateContextValue } from './context';
+import { AuthActionContext, AuthStateContext, authStorageKey, biometricCitizenLinkStorageKey, initialAuthState, loginAccounts, type AppUserProfile, type AuthStateContextValue } from './context';
 import { authReducer } from './reducer';
 
 const authClient = new CivicSyncClient(nodes[0].baseUrl);
 const faceApiDescriptorPrefix = 'face-api-recognition-v1:';
+
+const getStoredBiometricCitizenLink = (accountId: string) => {
+  try {
+    const storedLinks = JSON.parse(window.localStorage.getItem(biometricCitizenLinkStorageKey) || '{}') as Record<string, string>;
+    return storedLinks[accountId];
+  } catch {
+    return undefined;
+  }
+};
 
 const base64UrlEncode = (bytes: ArrayBuffer | Uint8Array) => {
   const byteArray = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
@@ -235,7 +244,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         const citizens = await authClient.getCitizens();
+        const linkedCitizenId = getStoredBiometricCitizenLink(account.profile.id);
         const citizen = citizens.find((item) =>
+          item.id === linkedCitizenId ||
           item.emailAddress.toLowerCase() === normalizedEmail ||
           item.nationalIdNumber === account.linkedNationalIdNumber,
         );

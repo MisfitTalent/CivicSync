@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Button, Empty } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { Info, Metric } from '../../components/dashboard/DashboardWidgets';
+import { useAuthState } from '../../providers/authProvider';
+import { biometricCitizenLinkStorageKey } from '../../providers/authProvider/context';
 import { nodes, statusText } from '../../providers/civicSyncProvider/context';
 import { useCivicSyncActions, useCivicSyncState } from '../../providers/civicSyncProvider';
 import { formatCitizenFieldValue, getCitizenFieldLabel } from '../../utils/departmentFieldPolicy';
@@ -17,7 +19,20 @@ import {
 
 const formatDate = (value: string) => new Date(value).toLocaleString();
 
+const rememberBiometricCitizenLink = (accountId: string | undefined, citizenId: string | undefined) => {
+  if (!accountId || !citizenId) {
+    return;
+  }
+
+  const storedLinks = JSON.parse(window.localStorage.getItem(biometricCitizenLinkStorageKey) || '{}') as Record<string, string>;
+  window.localStorage.setItem(biometricCitizenLinkStorageKey, JSON.stringify({
+    ...storedLinks,
+    [accountId]: citizenId,
+  }));
+};
+
 const CitizenPage = () => {
+  const authState = useAuthState();
   const state = useCivicSyncState();
   const actions = useCivicSyncActions();
   const navigate = useNavigate();
@@ -82,6 +97,7 @@ const CitizenPage = () => {
       setBiometricStatus('Loading local face model and capturing live face embedding...');
       const capture = await captureFaceDescriptor();
       await actions.enrollBiometric(capture.descriptor);
+      rememberBiometricCitizenLink(authState.currentUser?.id, selectedCitizen?.id);
       setBiometricModelStatus(describeFaceCapture(capture));
       setBiometricStatus('Face biometric enrolled for this citizen.');
     } catch (error) {
@@ -96,6 +112,7 @@ const CitizenPage = () => {
       setBiometricStatus('Loading local face model and verifying live face embedding...');
       const capture = await captureFaceDescriptor();
       await actions.verifyBiometric(capture.descriptor);
+      rememberBiometricCitizenLink(authState.currentUser?.id, selectedCitizen?.id);
       setBiometricModelStatus(describeFaceCapture(capture));
       setBiometricStatus('Face verification passed.');
     } catch (error) {
