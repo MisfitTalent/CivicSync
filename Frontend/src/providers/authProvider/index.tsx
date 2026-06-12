@@ -24,6 +24,30 @@ const getEffectiveRpId = (rpId: string) => {
   return rpId && (hostName === rpId || hostName.endsWith(`.${rpId}`)) ? rpId : undefined;
 };
 
+const getRelyingParty = (rpId: string, rpName: string): PublicKeyCredentialRpEntity => {
+  const effectiveRpId = getEffectiveRpId(rpId);
+  return effectiveRpId ? { id: effectiveRpId, name: rpName } : { name: rpName };
+};
+
+const getAssertionOptions = (options: {
+  challenge: string;
+  rpId: string;
+  allowedCredentialIds: string[];
+  timeoutMs: number;
+}): PublicKeyCredentialRequestOptions => {
+  const effectiveRpId = getEffectiveRpId(options.rpId);
+  return {
+    challenge: base64UrlDecode(options.challenge),
+    ...(effectiveRpId ? { rpId: effectiveRpId } : {}),
+    allowCredentials: options.allowedCredentialIds.map((credentialId) => ({
+      type: 'public-key',
+      id: base64UrlDecode(credentialId),
+    })),
+    userVerification: 'required',
+    timeout: options.timeoutMs,
+  };
+};
+
 const getPasskeySupportError = () => {
   if (!window.isSecureContext) {
     return 'Passkeys require HTTPS or localhost.';
@@ -91,10 +115,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const credential = await navigator.credentials.create({
           publicKey: {
             challenge: base64UrlDecode(options.challenge),
-            rp: {
-              id: getEffectiveRpId(options.rpId),
-              name: options.rpName,
-            },
+            rp: getRelyingParty(options.rpId, options.rpName),
             user: {
               id: base64UrlDecode(options.userId),
               name: options.userName,
@@ -168,16 +189,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         const options = await authClient.beginPasskeyLogin(account.emailAddress);
         const assertion = await navigator.credentials.get({
-          publicKey: {
-            challenge: base64UrlDecode(options.challenge),
-            rpId: getEffectiveRpId(options.rpId),
-            allowCredentials: options.allowedCredentialIds.map((credentialId) => ({
-              type: 'public-key',
-              id: base64UrlDecode(credentialId),
-            })),
-            userVerification: 'required',
-            timeout: options.timeoutMs,
-          },
+          publicKey: getAssertionOptions(options),
         });
 
         if (!(assertion instanceof PublicKeyCredential) ||
