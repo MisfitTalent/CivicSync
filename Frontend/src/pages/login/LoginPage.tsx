@@ -19,8 +19,10 @@ const LoginPage = () => {
   const [faceStatus, setFaceStatus] = useState(`${FACE_MODEL_NAME} ready.`);
   const [faceError, setFaceError] = useState('');
 
-  useEffect(() => () => {
-    stopFaceCamera(faceStream, videoRef.current);
+  useEffect(() => {
+    return () => {
+      faceStream?.getTracks().forEach((track) => track.stop());
+    };
   }, [faceStream]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
