@@ -35,16 +35,48 @@ public sealed class ChangeRequestServiceTests
     }
 
     [Fact]
-    public async Task SubmitAsync_CapturesExpandedCitizenFieldOldValue_AndRoutesToOwningDepartment()
+    public async Task SubmitAsync_Throws_WhenRequesterCannotChangeField()
     {
         await using var dbContext = TestDbContextFactory.Create();
         var setup = AddCoreDepartmentApprovalSetup(dbContext);
         await Task.CompletedTask;
         var service = CreateService(dbContext, DepartmentCode.HomeAffairs);
 
-        var result = await service.SubmitAsync(new SubmitChangeRequest
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SubmitAsync(new SubmitChangeRequest
         {
             CitizenId = setup.Citizen.Id,
+            Reason = "Update SARS tax number",
+            FieldChanges =
+            [
+                new SubmitFieldChangeRequest
+                {
+                    FieldName = nameof(Citizen.TaxNumber),
+                    NewValue = "3021456789"
+                }
+            ]
+        }));
+
+        Assert.Equal(
+            "Department 'HomeAffairs' is not allowed to request changes for field 'TaxNumber'.",
+            exception.Message);
+    }
+
+    [Fact]
+    public async Task SubmitAsync_CapturesExpandedCitizenFieldOldValue_AndRoutesToOwningDepartment()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var sars = new DepartmentNode(DepartmentCode.Sars, "http://localhost:5077");
+        var sarsApprover = new DepartmentUser(sars.Id, "Thabo Dlamini", "Tax Compliance Officer", "thabo.dlamini@sars.gov.za");
+        var citizen = CreateCitizen(sars.Id);
+        dbContext.DepartmentNodes.Add(sars);
+        dbContext.DepartmentUsers.Add(sarsApprover);
+        dbContext.Citizens.Add(citizen);
+        await Task.CompletedTask;
+        var service = CreateService(dbContext, DepartmentCode.Sars);
+
+        var result = await service.SubmitAsync(new SubmitChangeRequest
+        {
+            CitizenId = citizen.Id,
             Reason = "Update SARS tax number",
             FieldChanges =
             [
@@ -59,9 +91,40 @@ public sealed class ChangeRequestServiceTests
         var fieldChange = Assert.Single(result.FieldChanges);
         var approval = Assert.Single(result.Approvals);
         Assert.Equal(ChangeRequestStatus.PendingApproval, result.Status);
-        Assert.Equal(setup.Sars.Id, approval.ApprovingNodeId);
+        Assert.Equal(sars.Id, approval.ApprovingNodeId);
         Assert.Equal("9876543210", fieldChange.OldValue);
         Assert.Equal("3021456789", fieldChange.NewValue);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_RedactsRestrictedFieldChangeValuesForCurrentDepartment()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var setup = AddCoreDepartmentApprovalSetup(dbContext);
+        await Task.CompletedTask;
+        var homeAffairsService = CreateService(dbContext, DepartmentCode.HomeAffairs);
+        var sarsService = CreateService(dbContext, DepartmentCode.Sars);
+        var changeRequest = await homeAffairsService.SubmitAsync(new SubmitChangeRequest
+        {
+            CitizenId = setup.Citizen.Id,
+            Reason = "Refresh biometric reference",
+            FieldChanges =
+            [
+                new SubmitFieldChangeRequest
+                {
+                    FieldName = nameof(Citizen.BiometricReference),
+                    NewValue = "face-api-recognition-v1:new"
+                }
+            ]
+        });
+
+        var result = await sarsService.GetByIdAsync(changeRequest.Id);
+
+        Assert.NotNull(result);
+        var fieldChange = Assert.Single(result.FieldChanges);
+        Assert.Equal(nameof(Citizen.BiometricReference), fieldChange.FieldName);
+        Assert.Equal(CitizenFieldApprovalPolicy.RedactedValue, fieldChange.OldValue);
+        Assert.Equal(CitizenFieldApprovalPolicy.RedactedValue, fieldChange.NewValue);
     }
 
     [Fact]

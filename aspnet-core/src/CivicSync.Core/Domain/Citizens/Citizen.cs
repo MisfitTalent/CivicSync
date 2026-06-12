@@ -77,6 +77,12 @@ public sealed class Citizen : EntityBase
             case nameof(ContactDetails):
                 ContactDetails = ParseContactDetails(newValue);
                 break;
+            case nameof(ContactDetails.EmailAddress):
+                ContactDetails = ContactDetails with { EmailAddress = newValue };
+                break;
+            case nameof(ContactDetails.PhoneNumber):
+                ContactDetails = ContactDetails with { PhoneNumber = newValue };
+                break;
             case nameof(NationalIdNumber):
                 NationalIdNumber = newValue;
                 break;
