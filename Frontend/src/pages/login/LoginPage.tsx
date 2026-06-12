@@ -6,6 +6,8 @@ import { useCivicSyncActions } from '../../providers/civicSyncProvider';
 import { nodes } from '../../providers/civicSyncProvider/context';
 import { describeFaceCapture, encodeFaceEmbedding, FACE_MODEL_NAME, startFaceCamera, stopFaceCamera } from '../../utils/faceRecognition';
 
+type LoginAuthMethod = 'password' | 'passkey' | 'face';
+
 const LoginPage = () => {
   const navigate = useNavigate();
   const { registerPasskey, signIn, signInWithFace, signInWithPasskey } = useAuthActions();
@@ -16,6 +18,7 @@ const LoginPage = () => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [faceStream, setFaceStream] = useState<MediaStream | null>(null);
   const [isFaceCameraStarting, setIsFaceCameraStarting] = useState(false);
+  const [lastAuthMethod, setLastAuthMethod] = useState<LoginAuthMethod>('password');
   const [faceStatus, setFaceStatus] = useState(`${FACE_MODEL_NAME} ready.`);
   const [faceError, setFaceError] = useState('');
 
@@ -27,6 +30,7 @@ const LoginPage = () => {
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setLastAuthMethod('password');
     const profile = signIn(emailAddress, password);
 
     if (!profile) {
@@ -59,11 +63,13 @@ const LoginPage = () => {
   };
 
   const handleRegisterPasskey = async () => {
+    setLastAuthMethod('passkey');
     const profile = await registerPasskey(emailAddress, password);
     completePasskeyFlow(profile);
   };
 
   const handlePasskeySignIn = async () => {
+    setLastAuthMethod('passkey');
     const profile = await signInWithPasskey(emailAddress);
     completePasskeyFlow(profile);
   };
@@ -97,6 +103,7 @@ const LoginPage = () => {
   };
 
   const handleFaceSignIn = async () => {
+    setLastAuthMethod('face');
     setFaceError('');
 
     try {
@@ -136,7 +143,7 @@ const LoginPage = () => {
               <span>Password</span>
               <Input.Password value={password} onChange={(event) => setPassword(event.target.value)} required />
             </label>
-            {authState.isError && <p className="form-error" role="alert">{authState.errorMessage}</p>}
+            {authState.isError && lastAuthMethod !== 'face' && <p className="form-error" role="alert">{authState.errorMessage}</p>}
             <Button className="primary-button" htmlType="submit" disabled={authState.isPending}>Sign in</Button>
             <div className="passkey-actions">
               <Button type="default" htmlType="button" disabled={authState.isPending || !emailAddress.trim()} onClick={handlePasskeySignIn}>
@@ -177,6 +184,7 @@ const LoginPage = () => {
               </div>
               {faceStatus && <p className="biometric-status-text">{faceStatus}</p>}
               {faceError && <p className="biometric-error-text" role="alert">{faceError}</p>}
+              {authState.isError && lastAuthMethod === 'face' && <p className="biometric-error-text" role="alert">{authState.errorMessage}</p>}
             </div>
           </form>
         </Card>
