@@ -425,6 +425,35 @@ export const CivicSyncProvider = ({ children }: { children: React.ReactNode }) =
       );
       dispatch(setCivicSyncState({ selectedRequestId: targetRequest.id }));
     }),
+    downloadEvidenceFile: async (requestId: string, evidenceId: string) => {
+      dispatch(setOperationPending('Download evidence file'));
+
+      try {
+        const targetRequest = getTargetRequest(requestId);
+        if (!targetRequest) {
+          throw new Error('Select a request first.');
+        }
+
+        const evidenceFile = targetRequest.evidenceFiles.find((item) => item.id === evidenceId);
+        if (!evidenceFile) {
+          throw new Error('The selected evidence file was not found on this request.');
+        }
+
+        const blob = await getRequestClient(targetRequest).downloadEvidenceFile(requestId, evidenceId);
+        const objectUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = objectUrl;
+        link.download = evidenceFile.fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(objectUrl);
+        dispatch(setOperationSuccess('Download evidence file completed.'));
+      } catch (error) {
+        dispatch(setOperationError(getErrorMessage(error)));
+        throw error;
+      }
+    },
     commitRequest: (requestId?: string) => runAction('Commit request', async () => {
       const targetRequest = getTargetRequest(requestId);
 

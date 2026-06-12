@@ -47,6 +47,17 @@ public sealed class ChangeRequestsController : ControllerBase
         return changeRequest is null ? NotFound() : Ok(changeRequest);
     }
 
+    [HttpGet("{id:guid}/evidence/{evidenceId:guid}/download")]
+    public async Task<IActionResult> DownloadEvidenceAsync(
+        Guid id,
+        Guid evidenceId,
+        CancellationToken cancellationToken)
+    {
+        var evidenceFile = await _changeRequestService.DownloadEvidenceAsync(id, evidenceId, cancellationToken);
+
+        return File(evidenceFile.Content, evidenceFile.ContentType, evidenceFile.FileName);
+    }
+
     [HttpPost("{id:guid}/approvals")]
     public async Task<ActionResult<ChangeRequestDto>> RequestApprovalAsync(
         Guid id,

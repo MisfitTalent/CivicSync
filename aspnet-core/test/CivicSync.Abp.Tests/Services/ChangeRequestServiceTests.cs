@@ -108,6 +108,62 @@ public sealed class ChangeRequestServiceTests
     }
 
     [Fact]
+    public async Task DownloadEvidenceAsync_ReturnsStoredContent_WhenDepartmentIsAuthorized()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var setup = AddCoreDepartmentApprovalSetup(dbContext);
+        await Task.CompletedTask;
+        var service = CreateService(dbContext, DepartmentCode.HomeAffairs);
+        var changeRequest = await SubmitEvidenceBackedContactChangeAsync(service, setup.Citizen.Id);
+        var evidence = Assert.Single(changeRequest.EvidenceFiles);
+
+        var result = await service.DownloadEvidenceAsync(changeRequest.Id, evidence.Id);
+
+        Assert.Equal(evidence.Id, result.Id);
+        Assert.Equal("proof-of-address.pdf", result.FileName);
+        Assert.Equal("application/pdf", result.ContentType);
+        Assert.Equal("fake-pdf-content"u8.ToArray(), result.Content);
+    }
+
+    [Fact]
+    public async Task DownloadEvidenceAsync_Throws_WhenEvidenceBelongsToAnotherRequest()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var setup = AddCoreDepartmentApprovalSetup(dbContext);
+        await Task.CompletedTask;
+        var service = CreateService(dbContext, DepartmentCode.HomeAffairs);
+        var firstRequest = await SubmitEvidenceBackedContactChangeAsync(service, setup.Citizen.Id);
+        var secondRequest = await SubmitContactChangeAsync(service, setup.Citizen.Id);
+        var evidence = Assert.Single(firstRequest.EvidenceFiles);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.DownloadEvidenceAsync(secondRequest.Id, evidence.Id));
+
+        Assert.Equal("Evidence file was not found on the selected change request.", exception.Message);
+    }
+
+    [Fact]
+    public async Task DownloadEvidenceAsync_Throws_WhenDepartmentIsNotAuthorized()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var setup = AddCoreDepartmentApprovalSetup(dbContext);
+        var safety = new DepartmentNode(DepartmentCode.Safety, "http://localhost:5080");
+        dbContext.DepartmentNodes.Add(safety);
+        await Task.CompletedTask;
+        var homeAffairsService = CreateService(dbContext, DepartmentCode.HomeAffairs);
+        var safetyService = CreateService(dbContext, DepartmentCode.Safety);
+        var changeRequest = await SubmitEvidenceBackedContactChangeAsync(homeAffairsService, setup.Citizen.Id);
+        var evidence = Assert.Single(changeRequest.EvidenceFiles);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            safetyService.DownloadEvidenceAsync(changeRequest.Id, evidence.Id));
+
+        Assert.Equal(
+            "This department is not authorized to download evidence for the selected change request.",
+            exception.Message);
+    }
+
+    [Fact]
     public async Task SubmitAsync_Throws_WhenRequesterCannotChangeField()
     {
         await using var dbContext = TestDbContextFactory.Create();
@@ -562,6 +618,34 @@ public sealed class ChangeRequestServiceTests
                 {
                     FieldName = "ContactDetails",
                     NewValue = "new@example.test|+27820000000"
+                }
+            ]
+        });
+    }
+
+    private static Task<ChangeRequestDto> SubmitEvidenceBackedContactChangeAsync(
+        ChangeRequestService service,
+        Guid citizenId)
+    {
+        return service.SubmitAsync(new SubmitChangeRequest
+        {
+            CitizenId = citizenId,
+            Reason = "Update contact details with proof",
+            FieldChanges =
+            [
+                new SubmitFieldChangeRequest
+                {
+                    FieldName = "ContactDetails",
+                    NewValue = "new@example.test|+27820000000"
+                }
+            ],
+            EvidenceFiles =
+            [
+                new SubmitEvidenceFileRequest
+                {
+                    FileName = "proof-of-address.pdf",
+                    ContentType = "application/pdf",
+                    ContentBase64 = Convert.ToBase64String("fake-pdf-content"u8.ToArray())
                 }
             ]
         });

@@ -57,6 +57,10 @@ export class CivicSyncClient {
     return this.post<ChangeRequest>('/api/change-requests', request);
   }
 
+  async downloadEvidenceFile(changeRequestId: string, evidenceId: string) {
+    return this.httpClient.getBlob(`/api/change-requests/${changeRequestId}/evidence/${evidenceId}/download`);
+  }
+
   async requestApproval(changeRequestId: string, approvingNodeId: string, approverUserId: string) {
     return this.post<ChangeRequest>(`/api/change-requests/${changeRequestId}/approvals`, {
       approvingNodeId,

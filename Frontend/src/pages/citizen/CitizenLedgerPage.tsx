@@ -1,7 +1,7 @@
-﻿import { Empty } from 'antd';
+import { Button, Empty } from 'antd';
 import { Metric } from '../../components/dashboard/DashboardWidgets';
 import { nodes, statusText } from '../../providers/civicSyncProvider/context';
-import { useCivicSyncState } from '../../providers/civicSyncProvider';
+import { useCivicSyncActions, useCivicSyncState } from '../../providers/civicSyncProvider';
 import { formatCitizenFieldValue, getCitizenFieldLabel } from '../../utils/departmentFieldPolicy';
 
 const formatDate = (value: string) => new Date(value).toLocaleString();
@@ -26,6 +26,7 @@ const getRequestStateClass = (status: number) => {
 
 const CitizenLedgerPage = () => {
   const state = useCivicSyncState();
+  const actions = useCivicSyncActions();
   const selectedCitizen = state.citizens.find((citizen) => citizen.id === state.selectedCitizenId);
   const citizenRequests = selectedCitizen
     ? state.changeRequests.filter((request) => request.citizenId === selectedCitizen.id)
@@ -101,6 +102,19 @@ const CitizenLedgerPage = () => {
                       );
                     })}
                   </div>
+
+                  {(request.evidenceFiles?.length ?? 0) > 0 && (
+                    <div className="evidence-file-list">
+                      {request.evidenceFiles.map((file) => (
+                        <span className="evidence-file-pill evidence-file-pill-with-action" key={file.id}>
+                          {file.fileName}
+                          <Button size="small" onClick={() => actions.downloadEvidenceFile(request.id, file.id)}>
+                            Download
+                          </Button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </article>
               );
             })}
@@ -112,4 +126,3 @@ const CitizenLedgerPage = () => {
 };
 
 export default CitizenLedgerPage;
-

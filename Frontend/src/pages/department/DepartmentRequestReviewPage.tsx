@@ -209,6 +209,12 @@ const DepartmentRequestReviewPage = ({ departmentCode, title }: DepartmentReques
                   <span>{file.contentType}</span>
                   <strong>{file.fileName}</strong>
                   <small>{Math.ceil(file.sizeBytes / 1024)} KB - proof hash {file.contentHash.slice(0, 12)}</small>
+                  <Button
+                    onClick={() => actions.downloadEvidenceFile(request.id, file.id)}
+                    disabled={state.isLoading}
+                  >
+                    Download evidence
+                  </Button>
                 </article>
               ))}
             </div>
