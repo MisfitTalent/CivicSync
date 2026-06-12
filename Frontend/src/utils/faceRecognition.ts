@@ -36,7 +36,23 @@ export const getDisplayBiometricReference = (reference?: string) => {
     return 'Unavailable';
   }
 
-  return reference.split('|')[0] ?? reference;
+  const [label, descriptor] = splitBiometricReference(reference);
+  if (!descriptor?.startsWith(`${FACE_DESCRIPTOR_VERSION}:`)) {
+    return `${label} | legacy reference`;
+  }
+
+  return `${label} | ${FACE_DESCRIPTOR_VERSION}, ${getFaceEmbeddingDimensions(descriptor)}D embedding, ref ${getDescriptorFingerprint(descriptor)}`;
+};
+
+export const getBiometricEnrollmentStatus = (reference?: string) => {
+  if (!reference) {
+    return 'No biometric reference captured';
+  }
+
+  const [, descriptor] = splitBiometricReference(reference);
+  return descriptor?.startsWith(`${FACE_DESCRIPTOR_VERSION}:`)
+    ? '128D face embedding stored'
+    : 'Legacy biometric reference only';
 };
 
 export const describeFaceCapture = (capture: FaceCaptureResult) => {
@@ -223,6 +239,31 @@ const encodeDescriptor = (descriptor: number[]) => {
   });
 
   return `${FACE_DESCRIPTOR_VERSION}:${btoa(binary)}`;
+};
+
+const splitBiometricReference = (reference: string) => {
+  const [label, descriptor] = reference.split('|', 2);
+  return [label?.trim() || 'Face biometric enrolled', descriptor?.trim()] as const;
+};
+
+const getFaceEmbeddingDimensions = (descriptor: string) => {
+  try {
+    const encodedEmbedding = descriptor.slice(FACE_DESCRIPTOR_VERSION.length + 1);
+    return atob(encodedEmbedding).length / Float32Array.BYTES_PER_ELEMENT;
+  } catch {
+    return 0;
+  }
+};
+
+const getDescriptorFingerprint = (descriptor: string) => {
+  let hash = 2166136261;
+
+  for (let index = 0; index < descriptor.length; index += 1) {
+    hash ^= descriptor.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return (hash >>> 0).toString(16).toUpperCase().padStart(8, '0');
 };
 
 const averageDescriptors = (descriptors: number[][]) => {

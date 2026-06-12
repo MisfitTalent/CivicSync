@@ -9,6 +9,7 @@ import {
   describeFaceCapture,
   encodeFaceEmbedding,
   FACE_MODEL_NAME,
+  getBiometricEnrollmentStatus,
   getDisplayBiometricReference,
   startFaceCamera,
   stopFaceCamera,
@@ -168,7 +169,7 @@ const CitizenPage = () => {
               </span>
             </div>
             <div className="request-context-grid">
-              <Info label="Enrollment Status" value={selectedCitizen?.biometricReference ? 'Face reference captured' : 'No biometric reference captured'} />
+              <Info label="Enrollment Status" value={getBiometricEnrollmentStatus(selectedCitizen?.biometricReference)} />
               <Info label="Registered Reference" value={getDisplayBiometricReference(selectedCitizen?.biometricReference)} />
             </div>
                 <div className="biometric-camera-panel">
@@ -193,7 +194,7 @@ const CitizenPage = () => {
             {biometricStatus && <p className="biometric-status-text">{biometricStatus}</p>}
             {biometricError && <p className="biometric-error-text">{biometricError}</p>}
             <p className="helper-text">{biometricModelStatus}</p>
-            <p className="helper-text">The prototype stores only a compact 128D face embedding reference. It does not store the camera image.</p>
+            <p className="helper-text">CivicSync stores an encoded 128D face embedding and a short reference fingerprint. It does not store the camera image.</p>
           </section>
         </div>
 
