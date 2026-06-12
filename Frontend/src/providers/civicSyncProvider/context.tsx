@@ -79,6 +79,8 @@ export interface CivicSyncActionContextValue {
   commitRequest: (requestId?: string) => Promise<void>;
   publishOutbox: () => Promise<void>;
   applyInbox: () => Promise<void>;
+  enrollBiometric: (descriptor: string) => Promise<void>;
+  verifyBiometric: (descriptor: string) => Promise<void>;
 }
 
 export const initialCitizenForm: CitizenFormState = {

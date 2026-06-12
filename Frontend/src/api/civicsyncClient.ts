@@ -1,6 +1,9 @@
 import { createCivicSyncHttpClient } from '../utils/axiosInstance';
 import type {
   ApplyInboxResponse,
+  BiometricEnrollmentRequest,
+  BiometricVerificationRequest,
+  BiometricVerificationResult,
   ChangeRequest,
   Citizen,
   CommitChangeResponse,
@@ -32,6 +35,14 @@ export class CivicSyncClient {
 
   async createCitizen(request: CreateCitizenRequest) {
     return this.post<Citizen>('/api/citizens', request);
+  }
+
+  async enrollBiometric(citizenId: string, request: BiometricEnrollmentRequest) {
+    return this.post<Citizen>(`/api/citizens/${citizenId}/biometrics/enroll`, request);
+  }
+
+  async verifyBiometric(citizenId: string, request: BiometricVerificationRequest) {
+    return this.post<BiometricVerificationResult>(`/api/citizens/${citizenId}/biometrics/verify`, request);
   }
 
   async getDepartmentUsers() {

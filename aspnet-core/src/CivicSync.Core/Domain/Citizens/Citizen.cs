@@ -6,6 +6,8 @@ namespace CivicSync.Core.Domain.Citizens;
 
 public sealed class Citizen : EntityBase
 {
+    private const int MaxBiometricDescriptorLength = 1200;
+
     private Citizen()
     {
     }
@@ -37,6 +39,33 @@ public sealed class Citizen : EntityBase
     public string MunicipalServiceStatus { get; set; } = string.Empty;
     public CitizenStatus Status { get; set; }
     public long RecordVersion { get; set; }
+
+    public void EnrollBiometric(string method, string deviceLabel, string descriptor)
+    {
+        if (string.IsNullOrWhiteSpace(method))
+        {
+            throw new InvalidOperationException("A biometric method is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(descriptor))
+        {
+            throw new InvalidOperationException("A biometric face descriptor is required.");
+        }
+
+        var normalizedDescriptor = descriptor.Trim();
+        if (normalizedDescriptor.Length > MaxBiometricDescriptorLength)
+        {
+            throw new InvalidOperationException("The biometric face descriptor is too large.");
+        }
+
+        var resolvedDeviceLabel = string.IsNullOrWhiteSpace(deviceLabel)
+            ? "Registered browser camera"
+            : deviceLabel.Trim();
+
+        BiometricReference = $"{method.Trim()} enrolled on {resolvedDeviceLabel}|{normalizedDescriptor}";
+        RecordVersion++;
+        MarkUpdated();
+    }
 
     public void ApplySharedFieldChange(string fieldName, string newValue)
     {
