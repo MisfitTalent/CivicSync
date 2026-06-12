@@ -12,7 +12,6 @@ using CivicSync.EntityFrameworkCore.Infrastructure.Persistence.Seed;
 using CivicSync.Web.Core.Infrastructure.Security;
 using CivicSync.Web.Core.Infrastructure.Swagger;
 using CivicSync.Web.Core;
-using CivicSync.Web.Host.Infrastructure.Sync;
 using Microsoft.OpenApi;
 using Volo.Abp.AspNetCore.Mvc;
 using Volo.Abp.Autofac;
@@ -63,7 +62,6 @@ public sealed class CivicSyncWebHostModule : AbpModule
         services.AddSingleton<INodeSyncSignatureService, NodeSyncSignatureService>();
         services.AddHttpClient<IAuditService, AuditService>();
         services.AddHttpClient<ISyncService, SyncService>();
-        services.AddHostedService<AutomaticSyncHostedService>();
 
         services.AddOpenApi();
         services.AddEndpointsApiExplorer();

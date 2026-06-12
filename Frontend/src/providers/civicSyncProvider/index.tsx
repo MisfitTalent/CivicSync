@@ -39,6 +39,13 @@ const loadOptionalDepartmentUsers = async (client: CivicSyncClient) => {
   }
 };
 
+const runSilentSyncMaintenance = async (client: CivicSyncClient) => {
+  await Promise.allSettled([
+    client.publishOutbox(),
+    client.applyInbox(),
+  ]);
+};
+
 interface NodeChangeRequestResult {
   node: NodeOption;
   requests: ChangeRequest[];
@@ -285,7 +292,8 @@ export const CivicSyncProvider = ({ children }: { children: React.ReactNode }) =
       }
 
       isPollingRef.current = true;
-      refreshAll(false)
+      runSilentSyncMaintenance(client)
+        .then(() => refreshAll(false))
         .catch(() => {
           // Silent polling keeps the last visible manual action state intact.
         })

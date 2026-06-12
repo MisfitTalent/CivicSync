@@ -416,18 +416,23 @@ public sealed class SyncService : ISyncService
             new PersonName(request.CitizenFirstName.Trim(), request.CitizenLastName.Trim()),
             new ContactDetails(request.CitizenEmailAddress.Trim(), request.CitizenPhoneNumber.Trim()))
         {
-            DateOfBirth = request.CitizenDateOfBirth.Trim(),
-            PassportNumber = request.CitizenPassportNumber.Trim(),
-            BiometricReference = request.CitizenBiometricReference.Trim(),
-            RelationshipStatus = request.CitizenRelationshipStatus.Trim(),
-            TaxNumber = request.CitizenTaxNumber.Trim(),
-            EmploymentHistory = request.CitizenEmploymentHistory.Trim(),
-            IncomeAndInvestmentProfile = request.CitizenIncomeAndInvestmentProfile.Trim(),
-            BankingAndAssets = request.CitizenBankingAndAssets.Trim(),
-            ResidentialAddress = request.CitizenResidentialAddress.Trim(),
-            RatesAccount = request.CitizenRatesAccount.Trim(),
-            MunicipalServiceStatus = request.CitizenMunicipalServiceStatus.Trim()
+            DateOfBirth = NormalizeOptionalSyncValue(request.CitizenDateOfBirth),
+            PassportNumber = NormalizeOptionalSyncValue(request.CitizenPassportNumber),
+            BiometricReference = NormalizeOptionalSyncValue(request.CitizenBiometricReference),
+            RelationshipStatus = NormalizeOptionalSyncValue(request.CitizenRelationshipStatus),
+            TaxNumber = NormalizeOptionalSyncValue(request.CitizenTaxNumber),
+            EmploymentHistory = NormalizeOptionalSyncValue(request.CitizenEmploymentHistory),
+            IncomeAndInvestmentProfile = NormalizeOptionalSyncValue(request.CitizenIncomeAndInvestmentProfile),
+            BankingAndAssets = NormalizeOptionalSyncValue(request.CitizenBankingAndAssets),
+            ResidentialAddress = NormalizeOptionalSyncValue(request.CitizenResidentialAddress),
+            RatesAccount = NormalizeOptionalSyncValue(request.CitizenRatesAccount),
+            MunicipalServiceStatus = NormalizeOptionalSyncValue(request.CitizenMunicipalServiceStatus)
         };
+    }
+
+    private static string NormalizeOptionalSyncValue(string? value)
+    {
+        return value?.Trim() ?? string.Empty;
     }
 
     private async Task<DepartmentNode> GetLocalNodeAsync(CancellationToken cancellationToken)
