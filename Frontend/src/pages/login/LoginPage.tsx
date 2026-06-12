@@ -1,7 +1,8 @@
-import { Button, Card, Input } from 'antd';
+import { Button, Card, Input, Select } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthActions, useAuthState } from '../../providers/authProvider';
+import type { RegistrationAccountCategory } from '../../providers/authProvider/context';
 import { useCivicSyncActions } from '../../providers/civicSyncProvider';
 import { nodes } from '../../providers/civicSyncProvider/context';
 import { describeFaceCapture, encodeFaceEmbedding, FACE_MODEL_NAME, startFaceCamera, stopFaceCamera } from '../../utils/faceRecognition';
@@ -15,6 +16,7 @@ const LoginPage = () => {
   const authState = useAuthState();
   const { setActiveNode } = useCivicSyncActions();
   const [loginMode, setLoginMode] = useState<LoginMode>('signIn');
+  const [accountCategory, setAccountCategory] = useState<RegistrationAccountCategory>('Citizen');
   const [displayName, setDisplayName] = useState('');
   const [nationalIdNumber, setNationalIdNumber] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -42,7 +44,7 @@ const LoginPage = () => {
 
   const handlePasswordSubmit = async () => {
     const profile = loginMode === 'register'
-      ? await registerAccount(displayName, emailAddress, password, nationalIdNumber, phoneNumber, registrationFaceDescriptor)
+      ? await registerAccount(accountCategory, displayName, emailAddress, password, nationalIdNumber, phoneNumber, registrationFaceDescriptor)
       : signIn(emailAddress, password);
 
     if (!profile) {
@@ -171,11 +173,35 @@ const LoginPage = () => {
           <form className="form-stack" onSubmit={handleSubmit}>
             {loginMode === 'register' && (
               <label>
+                <span>Register as</span>
+                <Select<RegistrationAccountCategory>
+                  value={accountCategory}
+                  onChange={(value) => {
+                    setAccountCategory(value);
+                    setRegistrationFaceDescriptor(undefined);
+                    setFaceError('');
+                    setFaceStatus(`${FACE_MODEL_NAME} ready.`);
+                    if (value !== 'Citizen') {
+                      stopFaceCamera(faceStream, videoRef.current);
+                      setFaceStream(null);
+                    }
+                  }}
+                  options={[
+                    { value: 'Citizen', label: 'Citizen' },
+                    { value: 'HomeAffairsOfficer', label: 'Home Affairs officer' },
+                    { value: 'SarsOfficer', label: 'SARS officer' },
+                    { value: 'MunicipalityOfficer', label: 'Municipality officer' },
+                  ]}
+                />
+              </label>
+            )}
+            {loginMode === 'register' && (
+              <label>
                 <span>Full name</span>
                 <Input value={displayName} onChange={(event) => setDisplayName(event.target.value)} required />
               </label>
             )}
-            {loginMode === 'register' && (
+            {loginMode === 'register' && accountCategory === 'Citizen' && (
               <label>
                 <span>National ID number</span>
                 <Input value={nationalIdNumber} onChange={(event) => setNationalIdNumber(event.target.value)} required />
@@ -185,7 +211,7 @@ const LoginPage = () => {
               <span>Email address</span>
               <Input type="email" value={emailAddress} onChange={(event) => setEmailAddress(event.target.value)} required />
             </label>
-            {loginMode === 'register' && (
+            {loginMode === 'register' && accountCategory === 'Citizen' && (
               <label>
                 <span>Phone number</span>
                 <Input value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value)} required />
@@ -196,7 +222,10 @@ const LoginPage = () => {
               <Input.Password value={password} onChange={(event) => setPassword(event.target.value)} required />
             </label>
             {authState.isError && lastAuthMethod !== 'face' && <p className="form-error" role="alert">{authState.errorMessage}</p>}
-            <Button className="primary-button" htmlType="submit" disabled={authState.isPending}>
+            {loginMode === 'register' && accountCategory !== 'Citizen' && (
+              <p className="helper-text">Department accounts are issued by an admin. Use the seeded department login for this demo.</p>
+            )}
+            <Button className="primary-button" htmlType="submit" disabled={authState.isPending || (loginMode === 'register' && accountCategory !== 'Citizen')}>
               {loginMode === 'register' ? 'Create account' : 'Sign in'}
             </Button>
             <Button
@@ -227,6 +256,7 @@ const LoginPage = () => {
               </>
             )}
 
+            {(loginMode === 'signIn' || accountCategory === 'Citizen') && (
             <div className="face-login-panel">
               <div className="biometric-camera-panel login-face-camera">
                 <video
@@ -252,7 +282,7 @@ const LoginPage = () => {
                     Face login
                   </Button>
                 )}
-                {loginMode === 'register' && (
+                {loginMode === 'register' && accountCategory === 'Citizen' && (
                   <Button className="primary-button" htmlType="button" disabled={authState.isPending || isFaceCameraStarting || !faceStream} onClick={handleEnrollRegistrationFace}>
                     Enroll face
                   </Button>
@@ -261,11 +291,12 @@ const LoginPage = () => {
                   Stop camera
                 </Button>
               </div>
-              {loginMode === 'register' && registrationFaceDescriptor && <p className="biometric-status-text">Face enrollment is ready for this new account.</p>}
+              {loginMode === 'register' && accountCategory === 'Citizen' && registrationFaceDescriptor && <p className="biometric-status-text">Face enrollment is ready for this new account.</p>}
               {faceStatus && <p className="biometric-status-text">{faceStatus}</p>}
               {faceError && <p className="biometric-error-text" role="alert">{faceError}</p>}
               {authState.isError && lastAuthMethod === 'face' && <p className="biometric-error-text" role="alert">{authState.errorMessage}</p>}
             </div>
+            )}
           </form>
         </Card>
       </section>

@@ -2,7 +2,7 @@ import { useContext, useMemo, useReducer } from 'react';
 import { CivicSyncClient } from '../../api/civicsyncClient';
 import { nodes } from '../civicSyncProvider/context';
 import { signInError, signInPending, signInSuccess, signOutSuccess } from './actions';
-import { AuthActionContext, AuthStateContext, authStorageKey, biometricCitizenLinkStorageKey, initialAuthState, loginAccounts, registeredAccountsStorageKey, type AppUserProfile, type AuthStateContextValue, type LoginAccount } from './context';
+import { AuthActionContext, AuthStateContext, authStorageKey, biometricCitizenLinkStorageKey, initialAuthState, loginAccounts, registeredAccountsStorageKey, type AppUserProfile, type AuthStateContextValue, type LoginAccount, type RegistrationAccountCategory } from './context';
 import { authReducer } from './reducer';
 
 const authClient = new CivicSyncClient(nodes[0].baseUrl);
@@ -136,6 +136,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return account.profile;
     },
     registerAccount: async (
+      accountCategory: RegistrationAccountCategory,
       displayName: string,
       emailAddress: string,
       password: string,
@@ -149,6 +150,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const resolvedDisplayName = displayName.trim();
       const resolvedNationalIdNumber = nationalIdNumber.trim();
       const resolvedPhoneNumber = phoneNumber.trim();
+
+      if (accountCategory !== 'Citizen') {
+        dispatch(signInError('Department accounts cannot be self-registered. Use the seeded department account or ask an admin to create one.'));
+        return null;
+      }
 
       if (!resolvedDisplayName) {
         dispatch(signInError('Enter your full name before registering an account.'));

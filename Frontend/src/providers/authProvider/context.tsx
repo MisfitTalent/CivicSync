@@ -2,6 +2,7 @@
 import type { DepartmentCode } from '../../api/types';
 
 export type UserRole = 'Citizen' | 'HomeAffairsOfficer' | 'SarsOfficer' | 'MunicipalityOfficer' | 'Admin';
+export type RegistrationAccountCategory = 'Citizen' | 'HomeAffairsOfficer' | 'SarsOfficer' | 'MunicipalityOfficer';
 
 export interface AppUserProfile {
   id: string;
@@ -30,6 +31,7 @@ export interface AuthStateContextValue {
 export interface AuthActionContextValue {
   signIn: (emailAddress: string, password: string) => AppUserProfile | null;
   registerAccount: (
+    accountCategory: RegistrationAccountCategory,
     displayName: string,
     emailAddress: string,
     password: string,
