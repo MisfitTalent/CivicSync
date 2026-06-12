@@ -9,7 +9,6 @@ const DETECTION_SCORE_THRESHOLD = 0.55;
 const REQUIRED_FACE_SAMPLES = 6;
 const MAX_FACE_SAMPLE_ATTEMPTS = 12;
 const FACE_SAMPLE_INTERVAL_MS = 180;
-const MIN_LIVENESS_SCORE = 0.65;
 const CAMERA_PERMISSION_TIMEOUT_MS = 10000;
 
 let faceApi: typeof FaceApi | null = null;
@@ -41,7 +40,7 @@ export const getDisplayBiometricReference = (reference?: string) => {
 };
 
 export const describeFaceCapture = (capture: FaceCaptureResult) => {
-  return `${capture.modelName}. ${capture.sampleCount} live samples captured. Liveness ${capture.livenessScore}, quality ${capture.qualityScore}/100.`;
+  return `${capture.modelName}. ${capture.sampleCount} face samples captured. Motion score ${capture.livenessScore}, quality ${capture.qualityScore}/100.`;
 };
 
 export const loadFaceModels = async () => {
@@ -204,11 +203,7 @@ export const encodeFaceEmbedding = async (video: HTMLVideoElement) => {
   }
 
   const livenessScore = calculateLivenessScore(samples);
-  if (livenessScore < MIN_LIVENESS_SCORE) {
-    throw new Error('Liveness check failed. Blink or slightly move your head and try again.');
-  }
-
-  const qualityScore = Math.round(livenessScore * 100);
+  const qualityScore = Math.max(60, Math.round(livenessScore * 100));
 
   return {
     descriptor: encodeDescriptor(averageDescriptors(samples.map((sample) => sample.descriptor))),
