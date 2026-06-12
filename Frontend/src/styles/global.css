@@ -3193,6 +3193,19 @@ textarea:focus,
   min-width: 160px;
 }
 
+.biometric-password-confirm {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.biometric-password-confirm span {
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
 
 .biometric-camera-panel {
   position: relative;

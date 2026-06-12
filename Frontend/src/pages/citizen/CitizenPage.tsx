@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { Button, Empty } from 'antd';
+import { Button, Empty, Input } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { Info, Metric } from '../../components/dashboard/DashboardWidgets';
-import { useAuthState } from '../../providers/authProvider';
+import { useAuthActions, useAuthState } from '../../providers/authProvider';
 import { biometricCitizenLinkStorageKey } from '../../providers/authProvider/context';
 import { nodes, statusText } from '../../providers/civicSyncProvider/context';
 import { useCivicSyncActions, useCivicSyncState } from '../../providers/civicSyncProvider';
@@ -33,6 +33,7 @@ const rememberBiometricCitizenLink = (accountId: string | undefined, citizenId: 
 
 const CitizenPage = () => {
   const authState = useAuthState();
+  const authActions = useAuthActions();
   const state = useCivicSyncState();
   const actions = useCivicSyncActions();
   const navigate = useNavigate();
@@ -47,6 +48,7 @@ const CitizenPage = () => {
   const [biometricStatus, setBiometricStatus] = useState('');
   const [biometricError, setBiometricError] = useState('');
   const [biometricModelStatus, setBiometricModelStatus] = useState(`${FACE_MODEL_NAME} ready.`);
+  const [enrollmentPassword, setEnrollmentPassword] = useState('');
 
   useEffect(() => () => {
     biometricStream?.getTracks().forEach((track) => track.stop());
@@ -94,10 +96,15 @@ const CitizenPage = () => {
   const handleEnrollBiometric = async () => {
     try {
       setBiometricError('');
+      if (!authActions.verifyCurrentPassword(authState.currentUser?.id, enrollmentPassword)) {
+        throw new Error('Enter your current account password before enrolling a face.');
+      }
+
       setBiometricStatus('Loading local face model and capturing live face embedding...');
       const capture = await captureFaceDescriptor();
       await actions.enrollBiometric(capture.descriptor);
       rememberBiometricCitizenLink(authState.currentUser?.id, selectedCitizen?.id);
+      setEnrollmentPassword('');
       setBiometricModelStatus(describeFaceCapture(capture));
       setBiometricStatus('Face biometric enrolled for this citizen.');
     } catch (error) {
@@ -189,6 +196,10 @@ const CitizenPage = () => {
               <Info label="Enrollment Status" value={getBiometricEnrollmentStatus(selectedCitizen?.biometricReference)} />
               <Info label="Registered Reference" value={getDisplayBiometricReference(selectedCitizen?.biometricReference)} />
             </div>
+            <label className="biometric-password-confirm">
+              <span>Confirm password to enroll face</span>
+              <Input.Password value={enrollmentPassword} onChange={(event) => setEnrollmentPassword(event.target.value)} />
+            </label>
                 <div className="biometric-camera-panel">
                   <video
                     ref={videoRef}
@@ -201,10 +212,10 @@ const CitizenPage = () => {
                   {!biometricStream && (
                     <div className="biometric-placeholder">Camera not started. Start the camera and allow browser permission.</div>
                   )}
-                </div>
+            </div>
             <div className="button-row biometric-action-row">
               <Button disabled={!selectedCitizen || state.isPending || Boolean(biometricStream)} onClick={startCamera}>Start camera</Button>
-              <Button disabled={!selectedCitizen || state.isPending || !biometricStream} onClick={handleEnrollBiometric}>Enroll face</Button>
+              <Button disabled={!selectedCitizen || state.isPending || !biometricStream || !enrollmentPassword} onClick={handleEnrollBiometric}>Enroll face</Button>
               <Button className="primary-button" disabled={!selectedCitizen || state.isPending || !selectedCitizen?.biometricReference || !biometricStream} onClick={handleVerifyBiometric}>Verify face</Button>
               <Button disabled={!biometricStream} onClick={stopCamera}>Stop camera</Button>
             </div>

@@ -29,10 +29,18 @@ export interface AuthStateContextValue {
 
 export interface AuthActionContextValue {
   signIn: (emailAddress: string, password: string) => AppUserProfile | null;
-  registerAccount: (displayName: string, emailAddress: string, password: string) => AppUserProfile | null;
+  registerAccount: (
+    displayName: string,
+    emailAddress: string,
+    password: string,
+    nationalIdNumber: string,
+    phoneNumber: string,
+    faceDescriptor?: string,
+  ) => Promise<AppUserProfile | null>;
   registerPasskey: (emailAddress: string, password: string) => Promise<AppUserProfile | null>;
   signInWithPasskey: (emailAddress: string) => Promise<AppUserProfile | null>;
   signInWithFace: (emailAddress: string, descriptor: string) => Promise<AppUserProfile | null>;
+  verifyCurrentPassword: (accountId: string | undefined, password: string) => boolean;
   signOut: () => void;
 }
 

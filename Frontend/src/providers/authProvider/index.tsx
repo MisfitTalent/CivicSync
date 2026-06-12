@@ -25,6 +25,14 @@ const saveRegisteredAccount = (account: LoginAccount) => {
   window.localStorage.setItem(registeredAccountsStorageKey, JSON.stringify([...registeredAccounts, account]));
 };
 
+const rememberBiometricCitizenLink = (accountId: string, citizenId: string) => {
+  const storedLinks = JSON.parse(window.localStorage.getItem(biometricCitizenLinkStorageKey) || '{}') as Record<string, string>;
+  window.localStorage.setItem(biometricCitizenLinkStorageKey, JSON.stringify({
+    ...storedLinks,
+    [accountId]: citizenId,
+  }));
+};
+
 const getStoredBiometricCitizenLink = (accountId: string) => {
   try {
     const storedLinks = JSON.parse(window.localStorage.getItem(biometricCitizenLinkStorageKey) || '{}') as Record<string, string>;
@@ -97,6 +105,14 @@ const loadInitialAuthState = (): AuthStateContextValue => ({
   currentUser: loadStoredUser(),
 });
 
+const splitDisplayName = (displayName: string) => {
+  const nameParts = displayName.trim().split(/\s+/);
+  const firstName = nameParts.shift() || displayName.trim();
+  const lastName = nameParts.join(' ') || 'Citizen';
+
+  return { firstName, lastName };
+};
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [authState, dispatch] = useReducer(authReducer, initialAuthState, loadInitialAuthState);
 
@@ -119,11 +135,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       dispatch(signInSuccess(account.profile));
       return account.profile;
     },
-    registerAccount: (displayName: string, emailAddress: string, password: string) => {
+    registerAccount: async (
+      displayName: string,
+      emailAddress: string,
+      password: string,
+      nationalIdNumber: string,
+      phoneNumber: string,
+      faceDescriptor?: string,
+    ) => {
       dispatch(signInPending());
 
       const normalizedEmail = normalizeEmail(emailAddress);
       const resolvedDisplayName = displayName.trim();
+      const resolvedNationalIdNumber = nationalIdNumber.trim();
+      const resolvedPhoneNumber = phoneNumber.trim();
 
       if (!resolvedDisplayName) {
         dispatch(signInError('Enter your full name before registering an account.'));
@@ -140,27 +165,61 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return null;
       }
 
+      if (!resolvedNationalIdNumber) {
+        dispatch(signInError('Enter a national ID number before registering an account.'));
+        return null;
+      }
+
+      if (!resolvedPhoneNumber) {
+        dispatch(signInError('Enter a phone number before registering an account.'));
+        return null;
+      }
+
       const accountExists = getLoginAccounts().some((item) => item.emailAddress.toLowerCase() === normalizedEmail);
       if (accountExists) {
         dispatch(signInError('An account already exists for this email address.'));
         return null;
       }
 
-      const account: LoginAccount = {
-        emailAddress: normalizedEmail,
-        password,
-        profile: {
-          id: `citizen-${crypto.randomUUID()}`,
-          displayName: resolvedDisplayName,
-          role: 'Citizen',
-          workspacePath: '/citizen',
-        },
-      };
+      try {
+        const { firstName, lastName } = splitDisplayName(resolvedDisplayName);
+        const citizen = await authClient.createCitizen({
+          nationalIdNumber: resolvedNationalIdNumber,
+          firstName,
+          lastName,
+          emailAddress: normalizedEmail,
+          phoneNumber: resolvedPhoneNumber,
+        });
 
-      saveRegisteredAccount(account);
-      window.localStorage.setItem(authStorageKey, JSON.stringify(account.profile));
-      dispatch(signInSuccess(account.profile));
-      return account.profile;
+        const account: LoginAccount = {
+          emailAddress: normalizedEmail,
+          password,
+          linkedNationalIdNumber: citizen.nationalIdNumber,
+          profile: {
+            id: `citizen-${crypto.randomUUID()}`,
+            displayName: resolvedDisplayName,
+            role: 'Citizen',
+            workspacePath: '/citizen',
+          },
+        };
+
+        if (faceDescriptor) {
+          await authClient.enrollBiometric(citizen.id, {
+            method: 'Face scan',
+            deviceLabel: 'Browser camera',
+            descriptor: faceDescriptor,
+          });
+          rememberBiometricCitizenLink(account.profile.id, citizen.id);
+        }
+
+        saveRegisteredAccount(account);
+        window.localStorage.setItem(authStorageKey, JSON.stringify(account.profile));
+        dispatch(signInSuccess(account.profile));
+        return account.profile;
+      } catch (error) {
+        dispatch(signInError(error instanceof Error ? error.message : 'Account registration failed.'));
+        return null;
+      }
     },
     registerPasskey: async (emailAddress: string, password: string) => {
       dispatch(signInPending());
@@ -346,6 +405,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     signOut: () => {
       window.localStorage.removeItem(authStorageKey);
       dispatch(signOutSuccess());
+    },
+    verifyCurrentPassword: (accountId: string | undefined, password: string) => {
+      if (!accountId || !password) {
+        return false;
+      }
+
+      return getLoginAccounts().some((item) =>
+        item.profile.id === accountId &&
+        item.password === password,
+      );
     },
   }), []);
 
