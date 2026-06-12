@@ -14,6 +14,8 @@ const LoginPage = () => {
   const [emailAddress, setEmailAddress] = useState('');
   const [password, setPassword] = useState('');
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const previewCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const previewFrameRef = useRef(0);
   const [faceStream, setFaceStream] = useState<MediaStream | null>(null);
   const [isFaceCameraStarting, setIsFaceCameraStarting] = useState(false);
   const [faceStatus, setFaceStatus] = useState(`${FACE_MODEL_NAME} ready.`);
@@ -21,6 +23,55 @@ const LoginPage = () => {
 
   useEffect(() => () => {
     stopFaceCamera(faceStream, videoRef.current);
+  }, [faceStream]);
+
+  useEffect(() => {
+    window.cancelAnimationFrame(previewFrameRef.current);
+
+    if (!faceStream || !videoRef.current || !previewCanvasRef.current) {
+      return undefined;
+    }
+
+    const video = videoRef.current;
+    const canvas = previewCanvasRef.current;
+    const context = canvas.getContext('2d');
+
+    if (!context) {
+      return undefined;
+    }
+
+    const renderPreview = () => {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+
+      if (width > 0 && height > 0 && (canvas.width !== width || canvas.height !== height)) {
+        canvas.width = width;
+        canvas.height = height;
+      }
+
+      if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0 && canvas.width > 0 && canvas.height > 0) {
+        const sourceRatio = video.videoWidth / video.videoHeight;
+        const targetRatio = canvas.width / canvas.height;
+        const sourceHeight = sourceRatio > targetRatio ? video.videoHeight : video.videoWidth / targetRatio;
+        const sourceWidth = sourceRatio > targetRatio ? video.videoHeight * targetRatio : video.videoWidth;
+        const sourceX = (video.videoWidth - sourceWidth) / 2;
+        const sourceY = (video.videoHeight - sourceHeight) / 2;
+
+        context.save();
+        context.scale(-1, 1);
+        context.drawImage(video, sourceX, sourceY, sourceWidth, sourceHeight, -canvas.width, 0, canvas.width, canvas.height);
+        context.restore();
+      }
+
+      previewFrameRef.current = window.requestAnimationFrame(renderPreview);
+    };
+
+    renderPreview();
+
+    return () => {
+      window.cancelAnimationFrame(previewFrameRef.current);
+      context.clearRect(0, 0, canvas.width, canvas.height);
+    };
   }, [faceStream]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -77,6 +128,10 @@ const LoginPage = () => {
       }
 
       const stream = await startFaceCamera(videoRef.current);
+      if (videoRef.current.srcObject !== stream) {
+        videoRef.current.srcObject = stream;
+      }
+
       setFaceStream(stream);
       setFaceStatus('Camera ready. Keep your enrolled face centered, blink or slightly move, then choose Face login.');
     } catch (error) {
@@ -155,6 +210,11 @@ const LoginPage = () => {
                   autoPlay
                   muted
                   playsInline
+                />
+                <canvas
+                  ref={previewCanvasRef}
+                  className={`biometric-preview-canvas ${faceStream ? 'biometric-preview-canvas-active' : ''}`}
+                  aria-hidden="true"
                 />
                 {!faceStream && (
                   <div className="biometric-placeholder">
