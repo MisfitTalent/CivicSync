@@ -6,6 +6,7 @@ import { AuthActionContext, AuthStateContext, authStorageKey, initialAuthState, 
 import { authReducer } from './reducer';
 
 const authClient = new CivicSyncClient(nodes[0].baseUrl);
+const faceApiDescriptorPrefix = 'face-api-recognition-v1:';
 
 const base64UrlEncode = (bytes: ArrayBuffer | Uint8Array) => {
   const byteArray = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
@@ -241,8 +242,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           return null;
         }
 
-        if (!citizen.biometricReference) {
-          dispatch(signInError('This citizen record does not have an enrolled face biometric.'));
+        if (!citizen.biometricReference?.includes(faceApiDescriptorPrefix)) {
+          dispatch(signInError('This citizen record does not have an enrolled face biometric. Sign in normally, open the Citizen Portal, and use Enroll face first.'));
           return null;
         }
 
