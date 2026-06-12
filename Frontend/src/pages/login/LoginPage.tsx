@@ -15,6 +15,7 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [faceStream, setFaceStream] = useState<MediaStream | null>(null);
+  const [isFaceCameraStarting, setIsFaceCameraStarting] = useState(false);
   const [faceStatus, setFaceStatus] = useState(`${FACE_MODEL_NAME} ready.`);
   const [faceError, setFaceError] = useState('');
 
@@ -67,6 +68,7 @@ const LoginPage = () => {
 
   const handleStartFaceCamera = async () => {
     setFaceError('');
+    setIsFaceCameraStarting(true);
     setFaceStatus('Starting camera...');
 
     try {
@@ -81,6 +83,8 @@ const LoginPage = () => {
       setFaceStream(null);
       setFaceStatus('');
       setFaceError(error instanceof Error ? error.message : 'Camera permission was denied or the camera is unavailable.');
+    } finally {
+      setIsFaceCameraStarting(false);
     }
   };
 
@@ -152,16 +156,20 @@ const LoginPage = () => {
                   muted
                   playsInline
                 />
-                {!faceStream && <div className="biometric-placeholder">Start camera to use face login</div>}
+                {!faceStream && (
+                  <div className="biometric-placeholder">
+                    {isFaceCameraStarting ? 'Waiting for browser camera permission' : 'Start camera to use face login'}
+                  </div>
+                )}
               </div>
               <div className="biometric-action-row">
-                <Button type="default" htmlType="button" disabled={authState.isPending || Boolean(faceStream)} onClick={handleStartFaceCamera}>
+                <Button type="default" htmlType="button" disabled={authState.isPending || isFaceCameraStarting || Boolean(faceStream)} onClick={handleStartFaceCamera}>
                   Start camera
                 </Button>
-                <Button className="primary-button" htmlType="button" disabled={authState.isPending || !emailAddress.trim() || !faceStream} onClick={handleFaceSignIn}>
+                <Button className="primary-button" htmlType="button" disabled={authState.isPending || isFaceCameraStarting || !emailAddress.trim() || !faceStream} onClick={handleFaceSignIn}>
                   Face login
                 </Button>
-                <Button type="default" htmlType="button" disabled={!faceStream} onClick={handleStopFaceCamera}>
+                <Button type="default" htmlType="button" disabled={isFaceCameraStarting || !faceStream} onClick={handleStopFaceCamera}>
                   Stop camera
                 </Button>
               </div>

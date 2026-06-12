@@ -10,6 +10,7 @@ const REQUIRED_FACE_SAMPLES = 6;
 const MAX_FACE_SAMPLE_ATTEMPTS = 12;
 const FACE_SAMPLE_INTERVAL_MS = 180;
 const MIN_LIVENESS_SCORE = 0.65;
+const CAMERA_PERMISSION_TIMEOUT_MS = 10000;
 
 let faceApi: typeof FaceApi | null = null;
 let faceModelLoadPromise: Promise<void> | null = null;
@@ -68,64 +69,24 @@ export const startFaceCamera = async (video: HTMLVideoElement) => {
     throw new Error('This browser does not support camera capture.');
   }
 
-  const stream = await navigator.mediaDevices.getUserMedia({
-    video: {
-      facingMode: 'user',
-      width: { ideal: 640 },
-      height: { ideal: 480 },
-      frameRate: { ideal: 24, max: 30 },
-    },
-    audio: false,
-  });
+  let stream: MediaStream | null = null;
 
-  video.muted = true;
-  video.playsInline = true;
-  video.autoplay = true;
-  video.srcObject = stream;
-  await video.play().catch(() => undefined);
+  try {
+    stream = await getCameraStream();
 
-  await new Promise<void>((resolve, reject) => {
-    let settled = false;
-    let timeoutId = 0;
+    video.muted = true;
+    video.playsInline = true;
+    video.autoplay = true;
+    video.srcObject = stream;
+    await video.play().catch(() => undefined);
+    await waitForCameraPreview(video);
+    await video.play();
 
-    const cleanup = () => {
-      window.clearTimeout(timeoutId);
-      video.removeEventListener('loadedmetadata', complete);
-      video.removeEventListener('canplay', complete);
-    };
-
-    const complete = () => {
-      if (settled || video.readyState < 2 || video.videoWidth === 0) {
-        return;
-      }
-
-      settled = true;
-      cleanup();
-      resolve();
-    };
-
-    if (video.readyState >= 2 && video.videoWidth > 0) {
-      complete();
-      return;
-    }
-
-    timeoutId = window.setTimeout(() => {
-      if (settled) {
-        return;
-      }
-
-      settled = true;
-      cleanup();
-      reject(new Error('Camera preview timed out. Close other camera apps and retry.'));
-    }, 7000);
-
-    video.addEventListener('loadedmetadata', complete);
-    video.addEventListener('canplay', complete);
-  });
-
-  await video.play();
-
-  return stream;
+    return stream;
+  } catch (error) {
+    stopFaceCamera(stream, video);
+    throw normalizeCameraError(error);
+  }
 };
 
 export const stopFaceCamera = (stream: MediaStream | null, video?: HTMLVideoElement | null) => {
@@ -135,6 +96,85 @@ export const stopFaceCamera = (stream: MediaStream | null, video?: HTMLVideoElem
     video.srcObject = null;
   }
 };
+
+const getCameraStream = () => {
+  const cameraRequest = navigator.mediaDevices.getUserMedia({
+    video: {
+      facingMode: 'user',
+      width: { ideal: 640 },
+      height: { ideal: 480 },
+      frameRate: { ideal: 24, max: 30 },
+    },
+    audio: false,
+  });
+
+  const permissionTimeout = new Promise<MediaStream>((_, reject) => {
+    window.setTimeout(() => {
+      reject(new Error('Camera permission is still waiting. Allow camera access in the browser, then press Start camera again.'));
+    }, CAMERA_PERMISSION_TIMEOUT_MS);
+  });
+
+  return Promise.race([cameraRequest, permissionTimeout]);
+};
+
+const normalizeCameraError = (error: unknown) => {
+  if (error instanceof DOMException) {
+    if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+      return new Error('Camera access is blocked. Allow camera access for this site in the browser, then press Start camera again.');
+    }
+
+    if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+      return new Error('No camera was found. Connect or enable a webcam, then press Start camera again.');
+    }
+
+    if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+      return new Error('The camera is already in use or unavailable. Close other camera apps, then press Start camera again.');
+    }
+  }
+
+  return error instanceof Error ? error : new Error('Camera permission was denied or the camera is unavailable.');
+};
+
+const waitForCameraPreview = (video: HTMLVideoElement) => new Promise<void>((resolve, reject) => {
+  let settled = false;
+  let timeoutId = 0;
+
+  const cleanup = () => {
+    window.clearTimeout(timeoutId);
+    video.removeEventListener('loadedmetadata', complete);
+    video.removeEventListener('canplay', complete);
+    video.removeEventListener('playing', complete);
+  };
+
+  const complete = () => {
+    if (settled || video.readyState < 2 || video.videoWidth === 0) {
+      return;
+    }
+
+    settled = true;
+    cleanup();
+    resolve();
+  };
+
+  if (video.readyState >= 2 && video.videoWidth > 0) {
+    complete();
+    return;
+  }
+
+  timeoutId = window.setTimeout(() => {
+    if (settled) {
+      return;
+    }
+
+    settled = true;
+    cleanup();
+    reject(new Error('Camera preview timed out. Close other camera apps and retry.'));
+  }, 7000);
+
+  video.addEventListener('loadedmetadata', complete);
+  video.addEventListener('canplay', complete);
+  video.addEventListener('playing', complete);
+});
 
 export const encodeFaceEmbedding = async (video: HTMLVideoElement) => {
   if (video.videoWidth === 0 || video.videoHeight === 0) {
