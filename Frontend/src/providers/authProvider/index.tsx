@@ -219,6 +219,52 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return null;
       }
     },
+    signInWithFace: async (emailAddress: string, descriptor: string) => {
+      dispatch(signInPending());
+
+      try {
+        const normalizedEmail = emailAddress.trim().toLowerCase();
+        const account = loginAccounts.find((item) =>
+          item.emailAddress.toLowerCase() === normalizedEmail,
+        );
+
+        if (!account) {
+          dispatch(signInError('Enter a known account email address before using face login.'));
+          return null;
+        }
+
+        const citizens = await authClient.getCitizens();
+        const citizen = citizens.find((item) => item.emailAddress.toLowerCase() === normalizedEmail);
+
+        if (!citizen) {
+          dispatch(signInError('No citizen record is linked to this email address.'));
+          return null;
+        }
+
+        if (!citizen.biometricReference) {
+          dispatch(signInError('This citizen record does not have an enrolled face biometric.'));
+          return null;
+        }
+
+        const result = await authClient.verifyBiometric(citizen.id, {
+          method: 'Face scan',
+          deviceLabel: 'Browser camera',
+          descriptor,
+        });
+
+        if (!result.isVerified) {
+          dispatch(signInError(result.message || 'Face login was rejected by the server.'));
+          return null;
+        }
+
+        window.localStorage.setItem(authStorageKey, JSON.stringify(account.profile));
+        dispatch(signInSuccess(account.profile));
+        return account.profile;
+      } catch (error) {
+        dispatch(signInError(error instanceof Error ? error.message : 'Face login failed.'));
+        return null;
+      }
+    },
     signOut: () => {
       window.localStorage.removeItem(authStorageKey);
       dispatch(signOutSuccess());

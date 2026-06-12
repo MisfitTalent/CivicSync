@@ -1,17 +1,26 @@
 import { Button, Card, Input } from 'antd';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthActions, useAuthState } from '../../providers/authProvider';
 import { useCivicSyncActions } from '../../providers/civicSyncProvider';
 import { nodes } from '../../providers/civicSyncProvider/context';
+import { describeFaceCapture, encodeFaceEmbedding, FACE_MODEL_NAME, startFaceCamera, stopFaceCamera } from '../../utils/faceRecognition';
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { registerPasskey, signIn, signInWithPasskey } = useAuthActions();
+  const { registerPasskey, signIn, signInWithFace, signInWithPasskey } = useAuthActions();
   const authState = useAuthState();
   const { setActiveNode } = useCivicSyncActions();
   const [emailAddress, setEmailAddress] = useState('');
   const [password, setPassword] = useState('');
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [faceStream, setFaceStream] = useState<MediaStream | null>(null);
+  const [faceStatus, setFaceStatus] = useState(`${FACE_MODEL_NAME} ready.`);
+  const [faceError, setFaceError] = useState('');
+
+  useEffect(() => () => {
+    stopFaceCamera(faceStream, videoRef.current);
+  }, [faceStream]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -56,6 +65,50 @@ const LoginPage = () => {
     completePasskeyFlow(profile);
   };
 
+  const handleStartFaceCamera = async () => {
+    setFaceError('');
+    setFaceStatus('Starting camera...');
+
+    try {
+      if (!videoRef.current) {
+        throw new Error('Camera preview is not ready.');
+      }
+
+      const stream = await startFaceCamera(videoRef.current);
+      setFaceStream(stream);
+      setFaceStatus('Camera ready. Keep your enrolled face centered, blink or slightly move, then choose Face login.');
+    } catch (error) {
+      setFaceStream(null);
+      setFaceStatus('');
+      setFaceError(error instanceof Error ? error.message : 'Camera permission was denied or the camera is unavailable.');
+    }
+  };
+
+  const handleStopFaceCamera = () => {
+    stopFaceCamera(faceStream, videoRef.current);
+    setFaceStream(null);
+    setFaceStatus(`${FACE_MODEL_NAME} ready.`);
+  };
+
+  const handleFaceSignIn = async () => {
+    setFaceError('');
+
+    try {
+      if (!videoRef.current || !faceStream) {
+        throw new Error('Start the camera before using face login.');
+      }
+
+      setFaceStatus('Capturing live face and verifying with CivicSync...');
+      const capture = await encodeFaceEmbedding(videoRef.current);
+      setFaceStatus(describeFaceCapture(capture));
+      const profile = await signInWithFace(emailAddress, capture.descriptor);
+      completePasskeyFlow(profile);
+    } catch (error) {
+      setFaceStatus('');
+      setFaceError(error instanceof Error ? error.message : 'Face login failed.');
+    }
+  };
+
   return (
     <main className="login-shell">
       <section className="login-panel">
@@ -88,6 +141,26 @@ const LoginPage = () => {
               </Button>
             </div>
             <p className="helper-text">Passkeys use your device authenticator, such as Windows Hello, Face ID, or fingerprint, without sending biometric data to CivicSync.</p>
+
+            <div className="face-login-panel">
+              <div className="biometric-camera-panel login-face-camera">
+                <video ref={videoRef} className={`biometric-video ${faceStream ? '' : 'biometric-video-idle'}`} aria-label="Face login camera preview" />
+                {!faceStream && <div className="biometric-placeholder">Start camera to use face login</div>}
+              </div>
+              <div className="biometric-action-row">
+                <Button type="default" htmlType="button" disabled={authState.isPending || Boolean(faceStream)} onClick={handleStartFaceCamera}>
+                  Start camera
+                </Button>
+                <Button className="primary-button" htmlType="button" disabled={authState.isPending || !emailAddress.trim() || !faceStream} onClick={handleFaceSignIn}>
+                  Face login
+                </Button>
+                <Button type="default" htmlType="button" disabled={!faceStream} onClick={handleStopFaceCamera}>
+                  Stop camera
+                </Button>
+              </div>
+              {faceStatus && <p className="biometric-status-text">{faceStatus}</p>}
+              {faceError && <p className="biometric-error-text" role="alert">{faceError}</p>}
+            </div>
           </form>
         </Card>
       </section>

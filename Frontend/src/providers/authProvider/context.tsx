@@ -30,6 +30,7 @@ export interface AuthActionContextValue {
   signIn: (emailAddress: string, password: string) => AppUserProfile | null;
   registerPasskey: (emailAddress: string, password: string) => Promise<AppUserProfile | null>;
   signInWithPasskey: (emailAddress: string) => Promise<AppUserProfile | null>;
+  signInWithFace: (emailAddress: string, descriptor: string) => Promise<AppUserProfile | null>;
   signOut: () => void;
 }
 
