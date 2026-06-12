@@ -26,4 +26,5 @@ public sealed class CitizenDto
     public CitizenStatus Status { get; set; }
     public long RecordVersion { get; set; }
     public DateTime CreatedAtUtc { get; set; }
+    public IReadOnlyCollection<string> RedactedFields { get; set; } = [];
 }

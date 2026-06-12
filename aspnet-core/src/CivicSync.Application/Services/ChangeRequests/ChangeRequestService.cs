@@ -52,6 +52,8 @@ public sealed class ChangeRequestService : IChangeRequestService
 
         foreach (var fieldChange in request.FieldChanges)
         {
+            ValidateRequesterCanChangeField(departmentNode.DepartmentCode, fieldChange.FieldName);
+
             var oldValue = GetCitizenFieldValue(citizen, fieldChange.FieldName);
             changeRequest.AddFieldChange(fieldChange.FieldName, oldValue, fieldChange.NewValue);
         }
@@ -71,14 +73,14 @@ public sealed class ChangeRequestService : IChangeRequestService
         var changeRequests = await GetChangeRequestsWithDetailsAsync();
         return await changeRequests
             .OrderByDescending(item => item.CreatedAtUtc)
-            .Select(item => MapToDto(item))
+            .Select(item => MapToDto(item, _nodeOptions.DepartmentCode))
             .ToListAsync(cancellationToken);
     }
 
     public async Task<ChangeRequestDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var changeRequest = await LoadChangeRequestAsync(id, cancellationToken);
-        return changeRequest is null ? null : MapToDto(changeRequest);
+        return changeRequest is null ? null : MapToDto(changeRequest, _nodeOptions.DepartmentCode);
     }
 
     public async Task<ChangeRequestDto> RequestApprovalAsync(
@@ -115,7 +117,7 @@ public sealed class ChangeRequestService : IChangeRequestService
             await _departmentApprovalRepository.InsertAsync(approval, autoSave: true, cancellationToken);
         }
 
-        return MapToDto(changeRequest);
+        return MapToDto(changeRequest, _nodeOptions.DepartmentCode);
     }
 
     public async Task<ChangeRequestDto> RecordDecisionAsync(
@@ -143,7 +145,7 @@ public sealed class ChangeRequestService : IChangeRequestService
         changeRequest.RecordDecision(approvingNode.Id, request.Decision, request.Comment);
         await _changeRequestRepository.UpdateAsync(changeRequest, autoSave: true, cancellationToken);
 
-        return MapToDto(changeRequest);
+        return MapToDto(changeRequest, _nodeOptions.DepartmentCode);
     }
 
     private async Task RequestRequiredApprovalsAsync(
@@ -196,6 +198,15 @@ public sealed class ChangeRequestService : IChangeRequestService
         if (!approver.IsActive)
         {
             throw new InvalidOperationException("Approver user is inactive.");
+        }
+    }
+
+    private static void ValidateRequesterCanChangeField(DepartmentCode departmentCode, string fieldName)
+    {
+        if (!CitizenFieldApprovalPolicy.CanDepartmentRequestFieldChange(departmentCode, fieldName))
+        {
+            throw new InvalidOperationException(
+                $"Department '{departmentCode}' is not allowed to request changes for field '{fieldName}'.");
         }
     }
 
@@ -263,6 +274,8 @@ public sealed class ChangeRequestService : IChangeRequestService
             nameof(citizen.NationalIdNumber) => citizen.NationalIdNumber,
             nameof(citizen.FullName) => citizen.FullName.DisplayName,
             nameof(citizen.ContactDetails) => $"{citizen.ContactDetails.EmailAddress}|{citizen.ContactDetails.PhoneNumber}",
+            nameof(citizen.ContactDetails.EmailAddress) => citizen.ContactDetails.EmailAddress,
+            nameof(citizen.ContactDetails.PhoneNumber) => citizen.ContactDetails.PhoneNumber,
             nameof(citizen.DateOfBirth) => citizen.DateOfBirth,
             nameof(citizen.PassportNumber) => citizen.PassportNumber,
             nameof(citizen.BiometricReference) => citizen.BiometricReference,
@@ -278,8 +291,13 @@ public sealed class ChangeRequestService : IChangeRequestService
         };
     }
 
-    private static ChangeRequestDto MapToDto(ChangeRequest changeRequest)
+    private static ChangeRequestDto MapToDto(ChangeRequest changeRequest, DepartmentCode departmentCode)
     {
+        static string VisibleFieldValue(DepartmentCode departmentCode, FieldChange fieldChange, string value)
+        {
+            return CitizenFieldApprovalPolicy.RedactIfRestricted(departmentCode, fieldChange.FieldName, value);
+        }
+
         return new ChangeRequestDto
         {
             Id = changeRequest.Id,
@@ -295,8 +313,8 @@ public sealed class ChangeRequestService : IChangeRequestService
                 {
                     Id = item.Id,
                     FieldName = item.FieldName,
-                    OldValue = item.OldValue,
-                    NewValue = item.NewValue
+                    OldValue = VisibleFieldValue(departmentCode, item, item.OldValue),
+                    NewValue = VisibleFieldValue(departmentCode, item, item.NewValue)
                 })
                 .ToList(),
             Approvals = changeRequest.Approvals

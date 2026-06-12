@@ -1,6 +1,8 @@
 ﻿using CivicSync.Application.Contracts.Citizens;
 using CivicSync.Core.Configuration;
+using CivicSync.Core.Domain.ChangeRequests;
 using CivicSync.Core.Domain.Citizens;
+using CivicSync.Core.Domain.Enums;
 using CivicSync.Core.Domain.Nodes;
 using CivicSync.Core.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
@@ -65,7 +67,7 @@ public sealed class CitizenService : ICitizenService
 
         await _citizenRepository.InsertAsync(citizen, autoSave: true, cancellationToken);
 
-        return MapToDto(citizen);
+        return MapToDto(citizen, _nodeOptions.DepartmentCode);
     }
 
     public async Task<CitizenDto> EnrollBiometricAsync(
@@ -82,7 +84,7 @@ public sealed class CitizenService : ICitizenService
         citizen.EnrollBiometric(request.Method, request.DeviceLabel, request.Descriptor);
         await _citizenRepository.UpdateAsync(citizen, autoSave: true, cancellationToken);
 
-        return MapToDto(citizen);
+        return MapToDto(citizen, _nodeOptions.DepartmentCode);
     }
 
     public async Task<BiometricVerificationResult> VerifyBiometricAsync(
@@ -125,7 +127,7 @@ public sealed class CitizenService : ICitizenService
         return await citizens
             .Where(item => item.DepartmentNodeId == departmentNode.Id)
             .OrderBy(item => item.NationalIdNumber)
-            .Select(item => MapToDto(item))
+            .Select(item => MapToDto(item, _nodeOptions.DepartmentCode))
             .ToListAsync(cancellationToken);
     }
 
@@ -134,7 +136,7 @@ public sealed class CitizenService : ICitizenService
         var citizens = await _citizenRepository.GetQueryableAsync();
         var citizen = await citizens.SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
 
-        return citizen is null ? null : MapToDto(citizen);
+        return citizen is null ? null : MapToDto(citizen, _nodeOptions.DepartmentCode);
     }
 
     private async Task<DepartmentNode> GetLocalDepartmentNodeAsync(CancellationToken cancellationToken)
@@ -282,32 +284,46 @@ public sealed class CitizenService : ICitizenService
         return Convert.FromBase64String(normalizedDescriptor);
     }
 
-    private static CitizenDto MapToDto(Citizen citizen)
+    private static CitizenDto MapToDto(Citizen citizen, DepartmentCode departmentCode)
     {
+        var redactedFields = new List<string>();
+
+        string Visible(string fieldName, string value)
+        {
+            if (CitizenFieldApprovalPolicy.CanDepartmentAccessField(departmentCode, fieldName))
+            {
+                return value;
+            }
+
+            redactedFields.Add(fieldName);
+            return CitizenFieldApprovalPolicy.RedactedValue;
+        }
+
         return new CitizenDto
         {
             Id = citizen.Id,
             DepartmentNodeId = citizen.DepartmentNodeId,
-            NationalIdNumber = citizen.NationalIdNumber,
-            FirstName = citizen.FullName.FirstName,
-            LastName = citizen.FullName.LastName,
-            DisplayName = citizen.FullName.DisplayName,
-            EmailAddress = citizen.ContactDetails.EmailAddress,
-            PhoneNumber = citizen.ContactDetails.PhoneNumber,
-            DateOfBirth = citizen.DateOfBirth,
-            PassportNumber = citizen.PassportNumber,
-            BiometricReference = citizen.BiometricReference,
-            RelationshipStatus = citizen.RelationshipStatus,
-            TaxNumber = citizen.TaxNumber,
-            EmploymentHistory = citizen.EmploymentHistory,
-            IncomeAndInvestmentProfile = citizen.IncomeAndInvestmentProfile,
-            BankingAndAssets = citizen.BankingAndAssets,
-            ResidentialAddress = citizen.ResidentialAddress,
-            RatesAccount = citizen.RatesAccount,
-            MunicipalServiceStatus = citizen.MunicipalServiceStatus,
+            NationalIdNumber = Visible(nameof(citizen.NationalIdNumber), citizen.NationalIdNumber),
+            FirstName = Visible(nameof(citizen.FullName), citizen.FullName.FirstName),
+            LastName = Visible(nameof(citizen.FullName), citizen.FullName.LastName),
+            DisplayName = Visible(nameof(citizen.FullName), citizen.FullName.DisplayName),
+            EmailAddress = Visible(nameof(citizen.ContactDetails), citizen.ContactDetails.EmailAddress),
+            PhoneNumber = Visible(nameof(citizen.ContactDetails), citizen.ContactDetails.PhoneNumber),
+            DateOfBirth = Visible(nameof(citizen.DateOfBirth), citizen.DateOfBirth),
+            PassportNumber = Visible(nameof(citizen.PassportNumber), citizen.PassportNumber),
+            BiometricReference = Visible(nameof(citizen.BiometricReference), citizen.BiometricReference),
+            RelationshipStatus = Visible(nameof(citizen.RelationshipStatus), citizen.RelationshipStatus),
+            TaxNumber = Visible(nameof(citizen.TaxNumber), citizen.TaxNumber),
+            EmploymentHistory = Visible(nameof(citizen.EmploymentHistory), citizen.EmploymentHistory),
+            IncomeAndInvestmentProfile = Visible(nameof(citizen.IncomeAndInvestmentProfile), citizen.IncomeAndInvestmentProfile),
+            BankingAndAssets = Visible(nameof(citizen.BankingAndAssets), citizen.BankingAndAssets),
+            ResidentialAddress = Visible(nameof(citizen.ResidentialAddress), citizen.ResidentialAddress),
+            RatesAccount = Visible(nameof(citizen.RatesAccount), citizen.RatesAccount),
+            MunicipalServiceStatus = Visible(nameof(citizen.MunicipalServiceStatus), citizen.MunicipalServiceStatus),
             Status = citizen.Status,
             RecordVersion = citizen.RecordVersion,
-            CreatedAtUtc = citizen.CreatedAtUtc
+            CreatedAtUtc = citizen.CreatedAtUtc,
+            RedactedFields = redactedFields.Distinct().ToList()
         };
     }
 }

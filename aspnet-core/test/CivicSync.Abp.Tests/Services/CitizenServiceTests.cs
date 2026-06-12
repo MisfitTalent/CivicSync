@@ -1,6 +1,7 @@
 using CivicSync.Core.Configuration;
 using CivicSync.Application.Services.Citizens;
 using CivicSync.Application.Contracts.Citizens;
+using CivicSync.Core.Domain.ChangeRequests;
 using CivicSync.Core.Domain.Citizens;
 using CivicSync.Core.Domain.Enums;
 using CivicSync.Core.Domain.Nodes;
@@ -50,13 +51,15 @@ public sealed class CitizenServiceTests
         Assert.Equal("A12345678", result.PassportNumber);
         Assert.Equal("Fingerprint and facial scan enrolled", result.BiometricReference);
         Assert.Equal("Civil registry relationships verified", result.RelationshipStatus);
-        Assert.Equal("9876543210", result.TaxNumber);
-        Assert.Equal("IRP5 employer payroll history available from SARS third-party submissions", result.EmploymentHistory);
-        Assert.Equal("Salary, interest, investment returns, pension and investment contributions on file", result.IncomeAndInvestmentProfile);
-        Assert.Equal("Bank interest certificates, investment portfolio data, and property deed reference on file", result.BankingAndAssets);
-        Assert.Equal("14 Ubuntu Street, Soweto, 1804", result.ResidentialAddress);
-        Assert.Equal("MUN-2024-88821", result.RatesAccount);
-        Assert.Equal("Active municipal services", result.MunicipalServiceStatus);
+        Assert.Equal(CitizenFieldApprovalPolicy.RedactedValue, result.TaxNumber);
+        Assert.Equal(CitizenFieldApprovalPolicy.RedactedValue, result.EmploymentHistory);
+        Assert.Equal(CitizenFieldApprovalPolicy.RedactedValue, result.IncomeAndInvestmentProfile);
+        Assert.Equal(CitizenFieldApprovalPolicy.RedactedValue, result.BankingAndAssets);
+        Assert.Equal(CitizenFieldApprovalPolicy.RedactedValue, result.ResidentialAddress);
+        Assert.Equal(CitizenFieldApprovalPolicy.RedactedValue, result.RatesAccount);
+        Assert.Equal(CitizenFieldApprovalPolicy.RedactedValue, result.MunicipalServiceStatus);
+        Assert.Contains(nameof(Citizen.TaxNumber), result.RedactedFields);
+        Assert.DoesNotContain(nameof(Citizen.BiometricReference), result.RedactedFields);
     }
 
     [Fact]
@@ -140,6 +143,46 @@ public sealed class CitizenServiceTests
 
         Assert.Equal(homeAffairs.Id, citizen.DepartmentNodeId);
         Assert.Equal("9001015009087", citizen.NationalIdNumber);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_RedactsFieldsOutsideCurrentDepartmentAccess()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var sars = new DepartmentNode(DepartmentCode.Sars, "http://localhost:5077");
+        var citizen = new Citizen(
+            sars.Id,
+            "9001015009087",
+            new PersonName("Tax", "Citizen"),
+            new ContactDetails("tax@example.test", "+27820000000"))
+        {
+            DateOfBirth = "01 January 1990",
+            PassportNumber = "A12345678",
+            BiometricReference = "face-api-recognition-v1:test",
+            RelationshipStatus = "Civil registry relationships verified",
+            TaxNumber = "9876543210",
+            EmploymentHistory = "IRP5 employer payroll history",
+            IncomeAndInvestmentProfile = "Salary and investments",
+            BankingAndAssets = "Bank interest certificates",
+            ResidentialAddress = "14 Ubuntu Street, Soweto, 1804",
+            RatesAccount = "MUN-2024-88821",
+            MunicipalServiceStatus = "Active municipal services"
+        };
+        dbContext.DepartmentNodes.Add(sars);
+        dbContext.Citizens.Add(citizen);
+        await Task.CompletedTask;
+        var service = CreateService(dbContext, DepartmentCode.Sars);
+
+        var result = await service.GetByIdAsync(citizen.Id);
+
+        Assert.NotNull(result);
+        Assert.Equal("9876543210", result.TaxNumber);
+        Assert.Equal("14 Ubuntu Street, Soweto, 1804", result.ResidentialAddress);
+        Assert.Equal(CitizenFieldApprovalPolicy.RedactedValue, result.DateOfBirth);
+        Assert.Equal(CitizenFieldApprovalPolicy.RedactedValue, result.BiometricReference);
+        Assert.Equal(CitizenFieldApprovalPolicy.RedactedValue, result.RatesAccount);
+        Assert.Contains(nameof(Citizen.BiometricReference), result.RedactedFields);
+        Assert.DoesNotContain(nameof(Citizen.TaxNumber), result.RedactedFields);
     }
 
     private static CitizenService CreateService(CivicSyncDbContext dbContext, DepartmentCode departmentCode)

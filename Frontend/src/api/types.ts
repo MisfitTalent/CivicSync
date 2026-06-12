@@ -40,6 +40,7 @@ export interface Citizen {
   status: number;
   recordVersion: number;
   createdAtUtc: string;
+  redactedFields: string[];
 }
 
 export interface BiometricEnrollmentRequest {
