@@ -26,6 +26,7 @@ const LoginPage = () => {
   const [lastAuthMethod, setLastAuthMethod] = useState<LoginAuthMethod>('password');
   const [faceStatus, setFaceStatus] = useState(`${FACE_MODEL_NAME} ready.`);
   const [faceError, setFaceError] = useState('');
+  const [registrationFaceDescriptor, setRegistrationFaceDescriptor] = useState<string>();
 
   useEffect(() => {
     return () => {
@@ -40,24 +41,8 @@ const LoginPage = () => {
   };
 
   const handlePasswordSubmit = async () => {
-    let faceDescriptor: string | undefined;
-
-    try {
-      if (loginMode === 'register' && faceStream && videoRef.current) {
-        setFaceError('');
-        setFaceStatus('Capturing face enrollment before creating account...');
-        const capture = await encodeFaceEmbedding(videoRef.current);
-        faceDescriptor = capture.descriptor;
-        setFaceStatus(describeFaceCapture(capture));
-      }
-    } catch (error) {
-      setFaceStatus('');
-      setFaceError(error instanceof Error ? error.message : 'Face enrollment capture failed.');
-      return;
-    }
-
     const profile = loginMode === 'register'
-      ? await registerAccount(displayName, emailAddress, password, nationalIdNumber, phoneNumber, faceDescriptor)
+      ? await registerAccount(displayName, emailAddress, password, nationalIdNumber, phoneNumber, registrationFaceDescriptor)
       : signIn(emailAddress, password);
 
     if (!profile) {
@@ -113,7 +98,9 @@ const LoginPage = () => {
 
       const stream = await startFaceCamera(videoRef.current);
       setFaceStream(stream);
-      setFaceStatus('Camera ready. Keep your enrolled face centered, blink or slightly move, then choose Face login.');
+      setFaceStatus(loginMode === 'register'
+        ? 'Camera ready. Keep your face centered, blink or slightly move, then choose Enroll face.'
+        : 'Camera ready. Keep your enrolled face centered, blink or slightly move, then choose Face login.');
     } catch (error) {
       setFaceStream(null);
       setFaceStatus('');
@@ -127,6 +114,26 @@ const LoginPage = () => {
     stopFaceCamera(faceStream, videoRef.current);
     setFaceStream(null);
     setFaceStatus(`${FACE_MODEL_NAME} ready.`);
+  };
+
+  const handleEnrollRegistrationFace = async () => {
+    setLastAuthMethod('face');
+    setFaceError('');
+
+    try {
+      if (!videoRef.current || !faceStream) {
+        throw new Error('Start the camera before enrolling your face.');
+      }
+
+      setFaceStatus('Capturing face enrollment...');
+      const capture = await encodeFaceEmbedding(videoRef.current);
+      setRegistrationFaceDescriptor(capture.descriptor);
+      setFaceStatus(`${describeFaceCapture(capture)} Face enrolled for this registration.`);
+    } catch (error) {
+      setRegistrationFaceDescriptor(undefined);
+      setFaceStatus('');
+      setFaceError(error instanceof Error ? error.message : 'Face enrollment capture failed.');
+    }
   };
 
   const handleFaceSignIn = async () => {
@@ -199,6 +206,9 @@ const LoginPage = () => {
               onClick={() => {
                 setLastAuthMethod('password');
                 setLoginMode((currentMode) => currentMode === 'register' ? 'signIn' : 'register');
+                setRegistrationFaceDescriptor(undefined);
+                setFaceError('');
+                setFaceStatus(`${FACE_MODEL_NAME} ready.`);
               }}
             >
               {loginMode === 'register' ? 'Back to sign in' : 'Register new account'}
@@ -242,10 +252,16 @@ const LoginPage = () => {
                     Face login
                   </Button>
                 )}
+                {loginMode === 'register' && (
+                  <Button className="primary-button" htmlType="button" disabled={authState.isPending || isFaceCameraStarting || !faceStream} onClick={handleEnrollRegistrationFace}>
+                    Enroll face
+                  </Button>
+                )}
                 <Button type="default" htmlType="button" disabled={isFaceCameraStarting || !faceStream} onClick={handleStopFaceCamera}>
                   Stop camera
                 </Button>
               </div>
+              {loginMode === 'register' && registrationFaceDescriptor && <p className="biometric-status-text">Face enrollment is ready for this new account.</p>}
               {faceStatus && <p className="biometric-status-text">{faceStatus}</p>}
               {faceError && <p className="biometric-error-text" role="alert">{faceError}</p>}
               {authState.isError && lastAuthMethod === 'face' && <p className="biometric-error-text" role="alert">{authState.errorMessage}</p>}
