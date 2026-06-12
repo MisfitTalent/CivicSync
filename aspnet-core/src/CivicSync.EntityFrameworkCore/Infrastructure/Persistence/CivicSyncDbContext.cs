@@ -1,3 +1,4 @@
+using CivicSync.Core.Domain.Auth;
 using CivicSync.Core.Domain.ChangeRequests;
 using CivicSync.Core.Domain.Citizens;
 using CivicSync.Core.Domain.Enums;
@@ -20,6 +21,8 @@ public sealed class CivicSyncDbContext : AbpDbContext<CivicSyncDbContext>
     }
 
     public DbSet<DepartmentNode> DepartmentNodes => Set<DepartmentNode>();
+    public DbSet<PasskeyCredential> PasskeyCredentials => Set<PasskeyCredential>();
+    public DbSet<PasskeyChallenge> PasskeyChallenges => Set<PasskeyChallenge>();
     public DbSet<KnownPeerNode> KnownPeerNodes => Set<KnownPeerNode>();
     public DbSet<DepartmentUser> DepartmentUsers => Set<DepartmentUser>();
     public DbSet<Citizen> Citizens => Set<Citizen>();
@@ -38,6 +41,8 @@ public sealed class CivicSyncDbContext : AbpDbContext<CivicSyncDbContext>
         base.OnModelCreating(modelBuilder);
 
         ConfigureDepartmentNode(modelBuilder);
+        ConfigurePasskeyCredential(modelBuilder);
+        ConfigurePasskeyChallenge(modelBuilder);
         ConfigureKnownPeerNode(modelBuilder);
         ConfigureDepartmentUser(modelBuilder);
         ConfigureCitizen(modelBuilder);
@@ -67,6 +72,39 @@ public sealed class CivicSyncDbContext : AbpDbContext<CivicSyncDbContext>
                 .HasForeignKey(item => item.DepartmentNodeId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.Navigation(item => item.KnownPeers).UsePropertyAccessMode(PropertyAccessMode.Field);
+        });
+    }
+
+    private static void ConfigurePasskeyCredential(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<PasskeyCredential>(entity =>
+        {
+            entity.ToTable("PasskeyCredentials");
+            entity.HasKey(item => item.Id);
+            entity.Property(item => item.EmailAddress).HasMaxLength(256).IsRequired();
+            entity.Property(item => item.CredentialId).HasMaxLength(500).IsRequired();
+            entity.Property(item => item.PublicKey).HasColumnType("nvarchar(max)").IsRequired();
+            entity.Property(item => item.PublicKeyAlgorithm).IsRequired();
+            entity.Property(item => item.DisplayName).HasMaxLength(200).IsRequired();
+            entity.Property(item => item.SignCount).IsRequired();
+            entity.Property(item => item.LastUsedAtUtc);
+            entity.HasIndex(item => item.CredentialId).IsUnique();
+            entity.HasIndex(item => item.EmailAddress);
+        });
+    }
+
+    private static void ConfigurePasskeyChallenge(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<PasskeyChallenge>(entity =>
+        {
+            entity.ToTable("PasskeyChallenges");
+            entity.HasKey(item => item.Id);
+            entity.Property(item => item.EmailAddress).HasMaxLength(256).IsRequired();
+            entity.Property(item => item.Challenge).HasMaxLength(200).IsRequired();
+            entity.Property(item => item.Purpose).HasMaxLength(40).IsRequired();
+            entity.Property(item => item.ExpiresAtUtc).IsRequired();
+            entity.Property(item => item.UsedAtUtc);
+            entity.HasIndex(item => new { item.EmailAddress, item.Purpose, item.Challenge });
         });
     }
 

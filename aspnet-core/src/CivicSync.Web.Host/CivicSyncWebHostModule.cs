@@ -1,5 +1,6 @@
 using CivicSync.Core.Configuration;
 using CivicSync.Application;
+using CivicSync.Application.Services.Auth;
 using CivicSync.Application.Services.Audit;
 using CivicSync.Application.Services.ChangeRequests;
 using CivicSync.Application.Services.Citizens;
@@ -51,6 +52,7 @@ public sealed class CivicSyncWebHostModule : AbpModule
         services.Configure<ApiKeyOptions>(configuration.GetSection(ApiKeyOptions.SectionName));
 
         services.AddScoped<NodeDataSeeder>();
+        services.AddScoped<IPasskeyAuthService, PasskeyAuthService>();
         services.AddScoped<ICitizenService, CitizenService>();
         services.AddScoped<IChangeRequestService, ChangeRequestService>();
         services.AddScoped<IDepartmentNodeService, DepartmentNodeService>();
