@@ -144,7 +144,14 @@ const LoginPage = () => {
 
             <div className="face-login-panel">
               <div className="biometric-camera-panel login-face-camera">
-                <video ref={videoRef} className={`biometric-video ${faceStream ? '' : 'biometric-video-idle'}`} aria-label="Face login camera preview" />
+                <video
+                  ref={videoRef}
+                  className={`biometric-video ${faceStream ? '' : 'biometric-video-idle'}`}
+                  aria-label="Face login camera preview"
+                  autoPlay
+                  muted
+                  playsInline
+                />
                 {!faceStream && <div className="biometric-placeholder">Start camera to use face login</div>}
               </div>
               <div className="biometric-action-row">

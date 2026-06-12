@@ -82,6 +82,7 @@ export const startFaceCamera = async (video: HTMLVideoElement) => {
   video.playsInline = true;
   video.autoplay = true;
   video.srcObject = stream;
+  await video.play().catch(() => undefined);
 
   await new Promise<void>((resolve, reject) => {
     let settled = false;
