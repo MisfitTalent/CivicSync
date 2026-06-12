@@ -1690,8 +1690,10 @@ input:focus {
   top: 16px;
   right: 16px;
   color: var(--lime-deep);
-  content: "Ã¢Å“â€œ";
+  content: "Selected";
+  font-size: 0.72rem;
   font-weight: 900;
+  text-transform: uppercase;
 }
 
 .wizard-field-card:disabled {
