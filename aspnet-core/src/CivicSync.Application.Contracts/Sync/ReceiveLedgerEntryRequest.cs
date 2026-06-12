@@ -54,7 +54,7 @@ public sealed class ReceiveLedgerEntryRequest
     [MaxLength(30)]
     public string CitizenPassportNumber { get; set; } = string.Empty;
 
-    [MaxLength(200)]
+    [MaxLength(2000)]
     public string CitizenBiometricReference { get; set; } = string.Empty;
 
     [MaxLength(200)]

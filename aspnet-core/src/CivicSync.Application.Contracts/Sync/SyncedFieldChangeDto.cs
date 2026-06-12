@@ -9,6 +9,6 @@ public sealed class SyncedFieldChangeDto
     public string FieldName { get; set; } = string.Empty;
 
     [Required]
-    [MaxLength(1000)]
+    [MaxLength(4000)]
     public string NewValue { get; set; } = string.Empty;
 }

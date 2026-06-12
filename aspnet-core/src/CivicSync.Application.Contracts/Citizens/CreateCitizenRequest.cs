@@ -32,7 +32,7 @@ public sealed class CreateCitizenRequest
     [MaxLength(30)]
     public string PassportNumber { get; set; } = string.Empty;
 
-    [MaxLength(200)]
+    [MaxLength(2000)]
     public string BiometricReference { get; set; } = string.Empty;
 
     [MaxLength(200)]
