@@ -6,6 +6,7 @@ obj/
 dist/
 node_modules/
 *.tsbuildinfo
+.vite/
 
 # Visual Studio / Rider
 .vs/
@@ -47,3 +48,8 @@ appsettings.*.Local.json
 # OS files
 .DS_Store
 Thumbs.db
+/_legacy-node-api/
+/Frontend/node_modules/
+/Frontend/dist/
+/Frontend/.vite/
+/Frontend/*.tsbuildinfo

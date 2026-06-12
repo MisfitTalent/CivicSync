@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/CivicSync.Application.Contracts/CivicSync.Application.Contracts.csproj" />
     <Project Path="src/CivicSync.Application/CivicSync.Application.csproj" />
     <Project Path="src/CivicSync.Core/CivicSync.Core.csproj" />
     <Project Path="src/CivicSync.EntityFrameworkCore/CivicSync.EntityFrameworkCore.csproj" />
