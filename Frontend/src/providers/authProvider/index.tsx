@@ -235,10 +235,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         const citizens = await authClient.getCitizens();
-        const citizen = citizens.find((item) => item.emailAddress.toLowerCase() === normalizedEmail);
+        const citizen = citizens.find((item) =>
+          item.emailAddress.toLowerCase() === normalizedEmail ||
+          item.nationalIdNumber === account.linkedNationalIdNumber,
+        );
 
         if (!citizen) {
-          dispatch(signInError('No citizen record is linked to this email address.'));
+          dispatch(signInError('No citizen record is linked to this account. Confirm the demo citizen exists on Home Affairs.'));
           return null;
         }
 

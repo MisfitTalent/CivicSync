@@ -14,6 +14,7 @@ export interface AppUserProfile {
 export interface LoginAccount {
   emailAddress: string;
   password: string;
+  linkedNationalIdNumber?: string;
   profile: AppUserProfile;
 }
 
@@ -40,6 +41,7 @@ export const loginAccounts: LoginAccount[] = [
   {
     emailAddress: 'citizen@civicsync.local',
     password: 'Password123!',
+    linkedNationalIdNumber: '0008289830183',
     profile: {
       id: 'citizen-user',
       displayName: 'Citizen User',
