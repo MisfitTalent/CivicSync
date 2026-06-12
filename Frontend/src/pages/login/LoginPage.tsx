@@ -7,12 +7,15 @@ import { nodes } from '../../providers/civicSyncProvider/context';
 import { describeFaceCapture, encodeFaceEmbedding, FACE_MODEL_NAME, startFaceCamera, stopFaceCamera } from '../../utils/faceRecognition';
 
 type LoginAuthMethod = 'password' | 'passkey' | 'face';
+type LoginMode = 'signIn' | 'register';
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { registerPasskey, signIn, signInWithFace, signInWithPasskey } = useAuthActions();
+  const { registerAccount, registerPasskey, signIn, signInWithFace, signInWithPasskey } = useAuthActions();
   const authState = useAuthState();
   const { setActiveNode } = useCivicSyncActions();
+  const [loginMode, setLoginMode] = useState<LoginMode>('signIn');
+  const [displayName, setDisplayName] = useState('');
   const [emailAddress, setEmailAddress] = useState('');
   const [password, setPassword] = useState('');
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -31,7 +34,9 @@ const LoginPage = () => {
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLastAuthMethod('password');
-    const profile = signIn(emailAddress, password);
+    const profile = loginMode === 'register'
+      ? registerAccount(displayName, emailAddress, password)
+      : signIn(emailAddress, password);
 
     if (!profile) {
       return;
@@ -135,6 +140,12 @@ const LoginPage = () => {
         <Card className="login-card">
           <h2>Account Login</h2>
           <form className="form-stack" onSubmit={handleSubmit}>
+            {loginMode === 'register' && (
+              <label>
+                <span>Full name</span>
+                <Input value={displayName} onChange={(event) => setDisplayName(event.target.value)} required />
+              </label>
+            )}
             <label>
               <span>Email address</span>
               <Input type="email" value={emailAddress} onChange={(event) => setEmailAddress(event.target.value)} required />
@@ -144,48 +155,67 @@ const LoginPage = () => {
               <Input.Password value={password} onChange={(event) => setPassword(event.target.value)} required />
             </label>
             {authState.isError && lastAuthMethod !== 'face' && <p className="form-error" role="alert">{authState.errorMessage}</p>}
-            <Button className="primary-button" htmlType="submit" disabled={authState.isPending}>Sign in</Button>
-            <div className="passkey-actions">
-              <Button type="default" htmlType="button" disabled={authState.isPending || !emailAddress.trim()} onClick={handlePasskeySignIn}>
-                Use device passkey
-              </Button>
-              <Button type="default" htmlType="button" disabled={authState.isPending || !emailAddress.trim() || !password} onClick={handleRegisterPasskey}>
-                Register passkey
-              </Button>
-            </div>
-            <p className="helper-text">Passkeys use your device authenticator, such as Windows Hello, Face ID, or fingerprint, without sending biometric data to CivicSync.</p>
+            <Button className="primary-button" htmlType="submit" disabled={authState.isPending}>
+              {loginMode === 'register' ? 'Create account' : 'Sign in'}
+            </Button>
+            <Button
+              type="default"
+              htmlType="button"
+              disabled={authState.isPending}
+              onClick={() => {
+                setLastAuthMethod('password');
+                setLoginMode((currentMode) => currentMode === 'register' ? 'signIn' : 'register');
+              }}
+            >
+              {loginMode === 'register' ? 'Back to sign in' : 'Register new account'}
+            </Button>
+            {loginMode === 'signIn' && (
+              <>
+                <div className="passkey-actions">
+                  <Button type="default" htmlType="button" disabled={authState.isPending || !emailAddress.trim()} onClick={handlePasskeySignIn}>
+                    Use device passkey
+                  </Button>
+                  <Button type="default" htmlType="button" disabled={authState.isPending || !emailAddress.trim() || !password} onClick={handleRegisterPasskey}>
+                    Register passkey
+                  </Button>
+                </div>
+                <p className="helper-text">Passkeys use your device authenticator, such as Windows Hello, Face ID, or fingerprint, without sending biometric data to CivicSync.</p>
+              </>
+            )}
 
-            <div className="face-login-panel">
-              <div className="biometric-camera-panel login-face-camera">
-                <video
-                  ref={videoRef}
-                  className={`biometric-video ${faceStream ? '' : 'biometric-video-idle'}`}
-                  aria-label="Face login camera preview"
-                  autoPlay
-                  muted
-                  playsInline
-                />
-                {!faceStream && (
-                  <div className="biometric-placeholder">
-                    {isFaceCameraStarting ? 'Waiting for browser camera permission' : 'Start camera to use face login'}
-                  </div>
-                )}
+            {loginMode === 'signIn' && (
+              <div className="face-login-panel">
+                <div className="biometric-camera-panel login-face-camera">
+                  <video
+                    ref={videoRef}
+                    className={`biometric-video ${faceStream ? '' : 'biometric-video-idle'}`}
+                    aria-label="Face login camera preview"
+                    autoPlay
+                    muted
+                    playsInline
+                  />
+                  {!faceStream && (
+                    <div className="biometric-placeholder">
+                      {isFaceCameraStarting ? 'Waiting for browser camera permission' : 'Start camera to use face login'}
+                    </div>
+                  )}
+                </div>
+                <div className="biometric-action-row">
+                  <Button type="default" htmlType="button" disabled={authState.isPending || isFaceCameraStarting || Boolean(faceStream)} onClick={handleStartFaceCamera}>
+                    Start camera
+                  </Button>
+                  <Button className="primary-button" htmlType="button" disabled={authState.isPending || isFaceCameraStarting || !emailAddress.trim() || !faceStream} onClick={handleFaceSignIn}>
+                    Face login
+                  </Button>
+                  <Button type="default" htmlType="button" disabled={isFaceCameraStarting || !faceStream} onClick={handleStopFaceCamera}>
+                    Stop camera
+                  </Button>
+                </div>
+                {faceStatus && <p className="biometric-status-text">{faceStatus}</p>}
+                {faceError && <p className="biometric-error-text" role="alert">{faceError}</p>}
+                {authState.isError && lastAuthMethod === 'face' && <p className="biometric-error-text" role="alert">{authState.errorMessage}</p>}
               </div>
-              <div className="biometric-action-row">
-                <Button type="default" htmlType="button" disabled={authState.isPending || isFaceCameraStarting || Boolean(faceStream)} onClick={handleStartFaceCamera}>
-                  Start camera
-                </Button>
-                <Button className="primary-button" htmlType="button" disabled={authState.isPending || isFaceCameraStarting || !emailAddress.trim() || !faceStream} onClick={handleFaceSignIn}>
-                  Face login
-                </Button>
-                <Button type="default" htmlType="button" disabled={isFaceCameraStarting || !faceStream} onClick={handleStopFaceCamera}>
-                  Stop camera
-                </Button>
-              </div>
-              {faceStatus && <p className="biometric-status-text">{faceStatus}</p>}
-              {faceError && <p className="biometric-error-text" role="alert">{faceError}</p>}
-              {authState.isError && lastAuthMethod === 'face' && <p className="biometric-error-text" role="alert">{authState.errorMessage}</p>}
-            </div>
+            )}
           </form>
         </Card>
       </section>

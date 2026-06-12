@@ -2,11 +2,28 @@ import { useContext, useMemo, useReducer } from 'react';
 import { CivicSyncClient } from '../../api/civicsyncClient';
 import { nodes } from '../civicSyncProvider/context';
 import { signInError, signInPending, signInSuccess, signOutSuccess } from './actions';
-import { AuthActionContext, AuthStateContext, authStorageKey, biometricCitizenLinkStorageKey, initialAuthState, loginAccounts, type AppUserProfile, type AuthStateContextValue } from './context';
+import { AuthActionContext, AuthStateContext, authStorageKey, biometricCitizenLinkStorageKey, initialAuthState, loginAccounts, registeredAccountsStorageKey, type AppUserProfile, type AuthStateContextValue, type LoginAccount } from './context';
 import { authReducer } from './reducer';
 
 const authClient = new CivicSyncClient(nodes[0].baseUrl);
 const faceApiDescriptorPrefix = 'face-api-recognition-v1:';
+
+const normalizeEmail = (emailAddress: string) => emailAddress.trim().toLowerCase();
+
+const getStoredRegisteredAccounts = (): LoginAccount[] => {
+  try {
+    return JSON.parse(window.localStorage.getItem(registeredAccountsStorageKey) || '[]') as LoginAccount[];
+  } catch {
+    return [];
+  }
+};
+
+const getLoginAccounts = () => [...loginAccounts, ...getStoredRegisteredAccounts()];
+
+const saveRegisteredAccount = (account: LoginAccount) => {
+  const registeredAccounts = getStoredRegisteredAccounts();
+  window.localStorage.setItem(registeredAccountsStorageKey, JSON.stringify([...registeredAccounts, account]));
+};
 
 const getStoredBiometricCitizenLink = (accountId: string) => {
   try {
@@ -86,9 +103,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const actions = useMemo(() => ({
     signIn: (emailAddress: string, password: string) => {
       dispatch(signInPending());
+      const normalizedEmail = normalizeEmail(emailAddress);
 
-      const account = loginAccounts.find((item) =>
-        item.emailAddress.toLowerCase() === emailAddress.trim().toLowerCase() &&
+      const account = getLoginAccounts().find((item) =>
+        item.emailAddress.toLowerCase() === normalizedEmail &&
         item.password === password,
       );
 
@@ -97,6 +115,49 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return null;
       }
 
+      window.localStorage.setItem(authStorageKey, JSON.stringify(account.profile));
+      dispatch(signInSuccess(account.profile));
+      return account.profile;
+    },
+    registerAccount: (displayName: string, emailAddress: string, password: string) => {
+      dispatch(signInPending());
+
+      const normalizedEmail = normalizeEmail(emailAddress);
+      const resolvedDisplayName = displayName.trim();
+
+      if (!resolvedDisplayName) {
+        dispatch(signInError('Enter your full name before registering an account.'));
+        return null;
+      }
+
+      if (!normalizedEmail) {
+        dispatch(signInError('Enter an email address before registering an account.'));
+        return null;
+      }
+
+      if (password.length < 8) {
+        dispatch(signInError('Use a password with at least 8 characters.'));
+        return null;
+      }
+
+      const accountExists = getLoginAccounts().some((item) => item.emailAddress.toLowerCase() === normalizedEmail);
+      if (accountExists) {
+        dispatch(signInError('An account already exists for this email address.'));
+        return null;
+      }
+
+      const account: LoginAccount = {
+        emailAddress: normalizedEmail,
+        password,
+        profile: {
+          id: `citizen-${crypto.randomUUID()}`,
+          displayName: resolvedDisplayName,
+          role: 'Citizen',
+          workspacePath: '/citizen',
+        },
+      };
+
+      saveRegisteredAccount(account);
       window.localStorage.setItem(authStorageKey, JSON.stringify(account.profile));
       dispatch(signInSuccess(account.profile));
       return account.profile;
@@ -111,8 +172,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           return null;
         }
 
-        const account = loginAccounts.find((item) =>
-          item.emailAddress.toLowerCase() === emailAddress.trim().toLowerCase() &&
+        const normalizedEmail = normalizeEmail(emailAddress);
+        const account = getLoginAccounts().find((item) =>
+          item.emailAddress.toLowerCase() === normalizedEmail &&
           item.password === password,
         );
 
@@ -188,8 +250,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           return null;
         }
 
-        const account = loginAccounts.find((item) =>
-          item.emailAddress.toLowerCase() === emailAddress.trim().toLowerCase(),
+        const normalizedEmail = normalizeEmail(emailAddress);
+        const account = getLoginAccounts().find((item) =>
+          item.emailAddress.toLowerCase() === normalizedEmail,
         );
 
         if (!account) {
@@ -233,8 +296,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       dispatch(signInPending());
 
       try {
-        const normalizedEmail = emailAddress.trim().toLowerCase();
-        const account = loginAccounts.find((item) =>
+        const normalizedEmail = normalizeEmail(emailAddress);
+        const account = getLoginAccounts().find((item) =>
           item.emailAddress.toLowerCase() === normalizedEmail,
         );
 
