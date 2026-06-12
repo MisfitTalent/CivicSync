@@ -6,11 +6,15 @@ import type {
   BiometricVerificationResult,
   ChangeRequest,
   Citizen,
+  CompletePasskeyLoginRequest,
+  CompletePasskeyRegistrationRequest,
   CommitChangeResponse,
   CreateCitizenRequest,
   DepartmentUser,
   LedgerEntry,
   NodeInfo,
+  PasskeyAuthenticationResult,
+  PasskeyChallengeResponse,
   PublishOutboxResponse,
   SubmitChangeRequest,
   SyncInboxEntry,
@@ -27,6 +31,27 @@ export class CivicSyncClient {
 
   async getNodeInfo() {
     return this.get<NodeInfo>('/api/node');
+  }
+
+  async beginPasskeyRegistration(emailAddress: string, displayName: string) {
+    return this.post<PasskeyChallengeResponse>('/api/auth/passkeys/registration/options', {
+      emailAddress,
+      displayName,
+    });
+  }
+
+  async completePasskeyRegistration(request: CompletePasskeyRegistrationRequest) {
+    return this.post<PasskeyAuthenticationResult>('/api/auth/passkeys/registration/verify', request);
+  }
+
+  async beginPasskeyLogin(emailAddress: string) {
+    return this.post<PasskeyChallengeResponse>('/api/auth/passkeys/login/options', {
+      emailAddress,
+    });
+  }
+
+  async completePasskeyLogin(request: CompletePasskeyLoginRequest) {
+    return this.post<PasskeyAuthenticationResult>('/api/auth/passkeys/login/verify', request);
   }
 
   async getCitizens() {

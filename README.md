@@ -22,6 +22,8 @@ This folder contains the ASP.NET/ABP backend implementation for the CivicSync Le
 
 CivicSync uses browser WebAuthn/passkeys for real device biometric sign-in in the frontend demo. The browser asks the operating system authenticator, such as Windows Hello, Face ID, or fingerprint, to unlock a passkey. CivicSync never receives raw face or fingerprint images.
 
+The backend issues one-time passkey challenges, stores registered public keys, and verifies login assertions by checking the returned challenge, browser origin, authenticator user-verification flags, and WebAuthn signature. A copied credential ID or forged browser response is rejected unless it can produce a valid signature from the registered authenticator key.
+
 The existing face-camera enrollment remains a prototype citizen verification workflow. For real login, use the passkey buttons on the sign-in page.
 
 ## Local Development

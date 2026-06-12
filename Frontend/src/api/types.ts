@@ -213,3 +213,36 @@ export interface ApplyInboxResponse {
   appliedInboxEntries: number;
   failedInboxEntries: number;
 }
+
+export interface PasskeyChallengeResponse {
+  challenge: string;
+  rpId: string;
+  rpName: string;
+  userId: string;
+  userName: string;
+  displayName: string;
+  timeoutMs: number;
+  allowedCredentialIds: string[];
+}
+
+export interface PasskeyAuthenticationResult {
+  isAuthenticated: boolean;
+  emailAddress: string;
+  message: string;
+}
+
+export interface CompletePasskeyRegistrationRequest {
+  emailAddress: string;
+  credentialId: string;
+  clientDataJson: string;
+  publicKey: string;
+  publicKeyAlgorithm: number;
+}
+
+export interface CompletePasskeyLoginRequest {
+  emailAddress: string;
+  credentialId: string;
+  clientDataJson: string;
+  authenticatorData: string;
+  signature: string;
+}

@@ -1,12 +1,11 @@
 import { useContext, useMemo, useReducer } from 'react';
+import { CivicSyncClient } from '../../api/civicsyncClient';
+import { nodes } from '../civicSyncProvider/context';
 import { signInError, signInPending, signInSuccess, signOutSuccess } from './actions';
-import { AuthActionContext, AuthStateContext, authStorageKey, initialAuthState, loginAccounts, passkeyStorageKey, type AppUserProfile, type AuthStateContextValue } from './context';
+import { AuthActionContext, AuthStateContext, authStorageKey, initialAuthState, loginAccounts, type AppUserProfile, type AuthStateContextValue } from './context';
 import { authReducer } from './reducer';
 
-interface StoredPasskey {
-  emailAddress: string;
-  credentialId: string;
-}
+const authClient = new CivicSyncClient(nodes[0].baseUrl);
 
 const base64UrlEncode = (bytes: ArrayBuffer | Uint8Array) => {
   const byteArray = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
@@ -20,23 +19,9 @@ const base64UrlDecode = (value: string) => {
   return Uint8Array.from(atob(padded), (character) => character.charCodeAt(0));
 };
 
-const randomChallenge = () => {
-  const bytes = new Uint8Array(32);
-  crypto.getRandomValues(bytes);
-  return bytes;
-};
-
-const loadStoredPasskeys = (): StoredPasskey[] => {
-  const storedValue = window.localStorage.getItem(passkeyStorageKey);
-  return storedValue ? JSON.parse(storedValue) as StoredPasskey[] : [];
-};
-
-const saveStoredPasskey = (passkey: StoredPasskey) => {
-  const passkeys = loadStoredPasskeys().filter(
-    (item) => item.emailAddress.toLowerCase() !== passkey.emailAddress.toLowerCase(),
-  );
-  passkeys.push(passkey);
-  window.localStorage.setItem(passkeyStorageKey, JSON.stringify(passkeys));
+const getEffectiveRpId = (rpId: string) => {
+  const hostName = window.location.hostname;
+  return rpId && (hostName === rpId || hostName.endsWith(`.${rpId}`)) ? rpId : undefined;
 };
 
 const getPasskeySupportError = () => {
@@ -102,17 +87,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           return null;
         }
 
-        const userId = new TextEncoder().encode(account.profile.id);
+        const options = await authClient.beginPasskeyRegistration(account.emailAddress, account.profile.displayName);
         const credential = await navigator.credentials.create({
           publicKey: {
-            challenge: randomChallenge(),
+            challenge: base64UrlDecode(options.challenge),
             rp: {
-              name: 'CivicSync Ledger',
+              id: getEffectiveRpId(options.rpId),
+              name: options.rpName,
             },
             user: {
-              id: userId,
-              name: account.emailAddress,
-              displayName: account.profile.displayName,
+              id: base64UrlDecode(options.userId),
+              name: options.userName,
+              displayName: options.displayName,
             },
             pubKeyCredParams: [
               { type: 'public-key', alg: -7 },
@@ -123,20 +109,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               residentKey: 'preferred',
               userVerification: 'required',
             },
-            timeout: 60000,
+            timeout: options.timeoutMs,
             attestation: 'none',
           },
         });
 
-        if (!(credential instanceof PublicKeyCredential)) {
+        if (!(credential instanceof PublicKeyCredential) ||
+            !(credential.response instanceof AuthenticatorAttestationResponse)) {
           dispatch(signInError('Passkey registration was cancelled.'));
           return null;
         }
 
-        saveStoredPasskey({
+        const publicKey = credential.response.getPublicKey();
+        if (!publicKey) {
+          dispatch(signInError('This browser did not expose the passkey public key for server verification.'));
+          return null;
+        }
+
+        const result = await authClient.completePasskeyRegistration({
           emailAddress: account.emailAddress,
           credentialId: base64UrlEncode(credential.rawId),
+          clientDataJson: base64UrlEncode(credential.response.clientDataJSON),
+          publicKey: base64UrlEncode(publicKey),
+          publicKeyAlgorithm: credential.response.getPublicKeyAlgorithm(),
         });
+
+        if (!result.isAuthenticated) {
+          dispatch(signInError(result.message || 'Passkey registration was rejected by the server.'));
+          return null;
+        }
 
         window.localStorage.setItem(authStorageKey, JSON.stringify(account.profile));
         dispatch(signInSuccess(account.profile));
@@ -165,31 +166,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           return null;
         }
 
-        const passkey = loadStoredPasskeys().find(
-          (item) => item.emailAddress.toLowerCase() === account.emailAddress.toLowerCase(),
-        );
-
-        if (!passkey) {
-          dispatch(signInError('No passkey is registered for this account on this device.'));
-          return null;
-        }
-
+        const options = await authClient.beginPasskeyLogin(account.emailAddress);
         const assertion = await navigator.credentials.get({
           publicKey: {
-            challenge: randomChallenge(),
-            allowCredentials: [
-              {
-                type: 'public-key',
-                id: base64UrlDecode(passkey.credentialId),
-              },
-            ],
+            challenge: base64UrlDecode(options.challenge),
+            rpId: getEffectiveRpId(options.rpId),
+            allowCredentials: options.allowedCredentialIds.map((credentialId) => ({
+              type: 'public-key',
+              id: base64UrlDecode(credentialId),
+            })),
             userVerification: 'required',
-            timeout: 60000,
+            timeout: options.timeoutMs,
           },
         });
 
-        if (!(assertion instanceof PublicKeyCredential)) {
+        if (!(assertion instanceof PublicKeyCredential) ||
+            !(assertion.response instanceof AuthenticatorAssertionResponse)) {
           dispatch(signInError('Passkey sign-in was cancelled.'));
+          return null;
+        }
+
+        const result = await authClient.completePasskeyLogin({
+          emailAddress: account.emailAddress,
+          credentialId: base64UrlEncode(assertion.rawId),
+          clientDataJson: base64UrlEncode(assertion.response.clientDataJSON),
+          authenticatorData: base64UrlEncode(assertion.response.authenticatorData),
+          signature: base64UrlEncode(assertion.response.signature),
+        });
+
+        if (!result.isAuthenticated) {
+          dispatch(signInError(result.message || 'Passkey login was rejected by the server.'));
           return null;
         }
 

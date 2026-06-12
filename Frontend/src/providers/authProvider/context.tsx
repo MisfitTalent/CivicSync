@@ -34,7 +34,6 @@ export interface AuthActionContextValue {
 }
 
 export const authStorageKey = 'civicsync.currentUser';
-export const passkeyStorageKey = 'civicsync.passkeys';
 
 export const loginAccounts: LoginAccount[] = [
   {
