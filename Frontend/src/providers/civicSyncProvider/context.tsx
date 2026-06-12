@@ -33,10 +33,14 @@ export interface ChangeFormState {
   newPhoneNumber: string;
 }
 
-export interface SubmitFieldChangeInput {
+export interface SubmitFieldChangeValueInput {
   fieldName: string;
   newValue: string;
+}
+
+export interface SubmitFieldChangeInput extends SubmitFieldChangeValueInput {
   reason: string;
+  fieldChanges?: SubmitFieldChangeValueInput[];
   evidenceFiles?: Array<{
     fileName: string;
     contentType: string;

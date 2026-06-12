@@ -318,7 +318,7 @@ export const CivicSyncProvider = ({ children }: { children: React.ReactNode }) =
 
   const selectedCitizen = state.citizens.find((citizen) => citizen.id === state.selectedCitizenId);
   const selectedRequest = state.changeRequests.find((request) => request.id === state.selectedRequestId);
-  const buildSharedFieldChange = (request: SubmitFieldChangeInput) => {
+  const buildSharedFieldChange = (request: Pick<SubmitFieldChangeInput, 'fieldName' | 'newValue' | 'reason'>) => {
     if (!selectedCitizen) {
       throw new Error('Select a citizen first.');
     }
@@ -397,11 +397,15 @@ export const CivicSyncProvider = ({ children }: { children: React.ReactNode }) =
           throw new Error('Select a citizen first.');
         }
 
-        const fieldChange = buildSharedFieldChange(request);
+        const requestedFieldChanges = request.fieldChanges?.length
+          ? request.fieldChanges.map((fieldChange) => ({ ...fieldChange, reason: request.reason }))
+          : [request];
+        const fieldChanges = requestedFieldChanges.map(buildSharedFieldChange);
+
         const created = await client.submitChangeRequest({
           citizenId: selectedCitizen.id,
           reason: request.reason.trim(),
-          fieldChanges: [fieldChange],
+          fieldChanges,
           evidenceFiles: request.evidenceFiles ?? [],
         });
 
