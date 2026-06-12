@@ -90,6 +90,15 @@ export interface DepartmentApproval {
   decidedAtUtc?: string;
 }
 
+export interface EvidenceFile {
+  id: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  contentHash: string;
+  uploadedAtUtc: string;
+}
+
 export interface ChangeRequest {
   id: string;
   requestedAtNodeId: string;
@@ -99,6 +108,7 @@ export interface ChangeRequest {
   expectedCitizenVersion: number;
   committedCitizenVersion?: number;
   fieldChanges: FieldChange[];
+  evidenceFiles: EvidenceFile[];
   approvals: DepartmentApproval[];
   createdAtUtc: string;
 }
@@ -171,6 +181,11 @@ export interface SubmitChangeRequest {
   fieldChanges: Array<{
     fieldName: string;
     newValue: string;
+  }>;
+  evidenceFiles?: Array<{
+    fileName: string;
+    contentType: string;
+    contentBase64: string;
   }>;
 }
 

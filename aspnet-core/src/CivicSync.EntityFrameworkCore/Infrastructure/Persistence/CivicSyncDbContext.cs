@@ -26,6 +26,7 @@ public sealed class CivicSyncDbContext : AbpDbContext<CivicSyncDbContext>
     public DbSet<CitizenReplica> CitizenReplicas => Set<CitizenReplica>();
     public DbSet<ChangeRequest> ChangeRequests => Set<ChangeRequest>();
     public DbSet<FieldChange> FieldChanges => Set<FieldChange>();
+    public DbSet<ChangeRequestEvidence> ChangeRequestEvidenceFiles => Set<ChangeRequestEvidence>();
     public DbSet<DepartmentApproval> DepartmentApprovals => Set<DepartmentApproval>();
     public DbSet<LedgerEntry> LedgerEntries => Set<LedgerEntry>();
     public DbSet<SyncOutboxEvent> SyncOutboxEvents => Set<SyncOutboxEvent>();
@@ -43,6 +44,7 @@ public sealed class CivicSyncDbContext : AbpDbContext<CivicSyncDbContext>
         ConfigureCitizenReplica(modelBuilder);
         ConfigureChangeRequest(modelBuilder);
         ConfigureFieldChange(modelBuilder);
+        ConfigureChangeRequestEvidence(modelBuilder);
         ConfigureDepartmentApproval(modelBuilder);
         ConfigureLedgerEntry(modelBuilder);
         ConfigureSyncOutboxEvent(modelBuilder);
@@ -159,10 +161,29 @@ public sealed class CivicSyncDbContext : AbpDbContext<CivicSyncDbContext>
                 .WithOne()
                 .HasForeignKey(item => item.ChangeRequestId)
                 .OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(item => item.EvidenceFiles)
+                .WithOne()
+                .HasForeignKey(item => item.ChangeRequestId)
+                .OnDelete(DeleteBehavior.Cascade);
             entity.HasMany(item => item.Approvals)
                 .WithOne()
                 .HasForeignKey(item => item.ChangeRequestId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+    }
+
+    private static void ConfigureChangeRequestEvidence(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<ChangeRequestEvidence>(entity =>
+        {
+            entity.ToTable("ChangeRequestEvidenceFiles");
+            entity.HasKey(item => item.Id);
+            entity.Property(item => item.FileName).HasMaxLength(255).IsRequired();
+            entity.Property(item => item.ContentType).HasMaxLength(100).IsRequired();
+            entity.Property(item => item.SizeBytes).IsRequired();
+            entity.Property(item => item.ContentHash).HasMaxLength(128).IsRequired();
+            entity.Property(item => item.Content).HasColumnType("varbinary(max)").IsRequired();
+            entity.HasIndex(item => item.ChangeRequestId);
         });
     }
 

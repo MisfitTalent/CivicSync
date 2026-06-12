@@ -98,6 +98,7 @@ const DepartmentRequestsPage = ({ departmentCode, title }: DepartmentRequestsPag
                     <strong>{requestCitizen?.displayName ?? 'Unknown citizen'}</strong>
                   </div>
                   <small>{request.reason || 'No reason supplied'}</small>
+                  <small>{(request.evidenceFiles?.length ?? 0) > 0 ? `${request.evidenceFiles.length} evidence file${request.evidenceFiles.length === 1 ? '' : 's'} attached` : 'No evidence attached'}</small>
                   <div className="request-field-list">
                     {request.fieldChanges.length === 0 && <span className="empty-text">No field changes recorded.</span>}
                     {request.fieldChanges.map((change) => (

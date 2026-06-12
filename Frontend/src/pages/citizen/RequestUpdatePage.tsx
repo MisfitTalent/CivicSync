@@ -7,6 +7,17 @@ import { buildCitizenFieldPolicies, departmentDisplayName } from '../../utils/de
 
 type RequestStep = 1 | 2 | 3 | 4;
 
+const readFileAsBase64 = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result ?? '');
+      resolve(result.includes(',') ? result.split(',')[1] : result);
+    };
+    reader.onerror = () => reject(reader.error ?? new Error('Could not read evidence file.'));
+    reader.readAsDataURL(file);
+  });
+
 const RequestUpdatePage = () => {
   const state = useCivicSyncState();
   const actions = useCivicSyncActions();
@@ -16,7 +27,7 @@ const RequestUpdatePage = () => {
   const [selectedFieldKey, setSelectedFieldKey] = useState('FullName');
   const [newValue, setNewValue] = useState('');
   const [reason, setReason] = useState('');
-  const [documentName, setDocumentName] = useState('');
+  const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
   const [submittedRequestId, setSubmittedRequestId] = useState('');
 
   const fieldOptions = useMemo(() => buildCitizenFieldPolicies(selectedCitizen), [selectedCitizen]);
@@ -34,10 +45,17 @@ const RequestUpdatePage = () => {
     }
 
     try {
+      const encodedEvidenceFiles = await Promise.all(evidenceFiles.map(async (file) => ({
+        fileName: file.name,
+        contentType: file.type || 'application/octet-stream',
+        contentBase64: await readFileAsBase64(file),
+      })));
+
       const requestId = await actions.submitFieldChangeRequest({
         fieldName: selectedField.key,
         newValue,
         reason,
+        evidenceFiles: encodedEvidenceFiles,
       });
 
       setSubmittedRequestId(requestId);
@@ -137,13 +155,25 @@ const RequestUpdatePage = () => {
       {step === 3 && (
         <section className="panel wizard-card">
           <h2>Supporting documents</h2>
-          <p>Upload proof to support your change request. Document storage is UI-only for this prototype.</p>
+          <p>Upload proof to support your change request. Stored evidence will appear in the citizen portal and every department review dossier.</p>
           <label className="document-dropzone">
             <span>Drop your document here or browse files</span>
             <small>PDF, JPG, PNG - max 10MB</small>
-            <input type="file" onChange={(event) => setDocumentName(event.target.files?.[0]?.name ?? '')} />
+            <input
+              type="file"
+              multiple
+              onChange={(event) => setEvidenceFiles(Array.from(event.target.files ?? []))}
+            />
           </label>
-          {documentName && <p className="helper-text">Selected document: {documentName}</p>}
+          {evidenceFiles.length > 0 && (
+            <div className="evidence-file-list">
+              {evidenceFiles.map((file) => (
+                <span className="evidence-file-pill" key={`${file.name}-${file.size}`}>
+                  {file.name} ({Math.ceil(file.size / 1024)} KB)
+                </span>
+              ))}
+            </div>
+          )}
           <div className="popia-warning">Your document is treated as encrypted proof. Only departments authorized to approve this field should access it.</div>
           <div className="wizard-actions split"><Button onClick={() => setStep(2)}>Back</Button><Button className="primary-button" disabled={state.isLoading} onClick={submitRequest}>Submit Request</Button></div>
         </section>
@@ -158,6 +188,7 @@ const RequestUpdatePage = () => {
             <span><small>Request Status</small><strong>{(submittedRequestId || state.selectedRequestId) ? 'Submitted for review' : 'Pending refresh'}</strong></span>
             <span><small>Field</small><strong>{selectedField.label}</strong></span>
             <span><small>New Value</small><strong>{newValue}</strong></span>
+            <span><small>Evidence</small><strong>{evidenceFiles.length > 0 ? `${evidenceFiles.length} file${evidenceFiles.length === 1 ? '' : 's'} stored` : 'No file attached'}</strong></span>
             <span><small>Expected</small><strong>After department approval</strong></span>
           </div>
           <div className="approval-list compact">

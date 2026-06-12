@@ -12,6 +12,7 @@ public sealed class ChangeRequestDto
     public long? CommittedCitizenVersion { get; set; }
     public ChangeRequestStatus Status { get; set; }
     public IReadOnlyCollection<FieldChangeDto> FieldChanges { get; set; } = [];
+    public IReadOnlyCollection<EvidenceFileDto> EvidenceFiles { get; set; } = [];
     public IReadOnlyCollection<DepartmentApprovalDto> Approvals { get; set; } = [];
     public DateTime CreatedAtUtc { get; set; }
 }

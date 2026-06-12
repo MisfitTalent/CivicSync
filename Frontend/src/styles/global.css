@@ -2990,6 +2990,57 @@ textarea:focus,
   line-height: 1.45;
 }
 
+.evidence-file-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.evidence-file-list-stacked {
+  display: grid;
+}
+
+.evidence-file-pill {
+  display: inline-flex;
+  max-width: 100%;
+  padding: 7px 10px;
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius-sm);
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 0.82rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.evidence-file-card {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius-sm);
+  background: #eff6ff;
+}
+
+.evidence-file-card span {
+  color: #1d4ed8;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.evidence-file-card strong {
+  min-width: 0;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.evidence-file-card small {
+  color: #475569;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 1280px) {
   .department-dashboard-grid,
   .request-detail-grid-balanced {

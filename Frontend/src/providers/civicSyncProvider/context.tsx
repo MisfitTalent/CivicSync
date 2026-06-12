@@ -37,6 +37,11 @@ export interface SubmitFieldChangeInput {
   fieldName: string;
   newValue: string;
   reason: string;
+  evidenceFiles?: Array<{
+    fileName: string;
+    contentType: string;
+    contentBase64: string;
+  }>;
 }
 
 export interface CivicSyncStateContextValue {
