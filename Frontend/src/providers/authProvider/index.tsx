@@ -1,5 +1,6 @@
 import { useContext, useMemo, useReducer } from 'react';
 import { CivicSyncClient } from '../../api/civicsyncClient';
+import type { DepartmentCode } from '../../api/types';
 import { nodes } from '../civicSyncProvider/context';
 import { signInError, signInPending, signInSuccess, signOutSuccess } from './actions';
 import { AuthActionContext, AuthStateContext, authStorageKey, biometricCitizenLinkStorageKey, initialAuthState, loginAccounts, registeredAccountsStorageKey, type AppUserProfile, type AuthStateContextValue, type LoginAccount, type RegistrationAccountCategory } from './context';
@@ -111,6 +112,24 @@ const splitDisplayName = (displayName: string) => {
   const lastName = nameParts.join(' ') || 'Citizen';
 
   return { firstName, lastName };
+};
+
+const departmentProfileByCode: Partial<Record<DepartmentCode, Pick<AppUserProfile, 'role' | 'departmentCode' | 'workspacePath'>>> = {
+  1: {
+    role: 'HomeAffairsOfficer',
+    departmentCode: 1,
+    workspacePath: '/home-affairs',
+  },
+  2: {
+    role: 'SarsOfficer',
+    departmentCode: 2,
+    workspacePath: '/sars',
+  },
+  3: {
+    role: 'MunicipalityOfficer',
+    departmentCode: 3,
+    workspacePath: '/municipality',
+  },
 };
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -304,6 +323,63 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         dispatch(signInError(error instanceof Error ? error.message : 'Passkey registration failed.'));
         return null;
       }
+    },
+    createDepartmentLoginAccount: (
+      departmentCode: DepartmentCode,
+      departmentUserId: string,
+      displayName: string,
+      emailAddress: string,
+      password: string,
+    ) => {
+      const currentUser = loadStoredUser();
+      const normalizedEmail = normalizeEmail(emailAddress);
+      const resolvedDisplayName = displayName.trim();
+      const departmentProfile = departmentProfileByCode[departmentCode];
+
+      if (currentUser?.role !== 'Admin') {
+        dispatch(signInError('Only an admin can create department login accounts.'));
+        return null;
+      }
+
+      if (!departmentProfile) {
+        dispatch(signInError('Only Home Affairs, SARS, and Municipality officer logins are supported in this demo.'));
+        return null;
+      }
+
+      if (!departmentUserId) {
+        dispatch(signInError('Create the backend department user before provisioning login access.'));
+        return null;
+      }
+
+      if (!resolvedDisplayName || !normalizedEmail) {
+        dispatch(signInError('Department login requires a name and email address.'));
+        return null;
+      }
+
+      if (password.length < 8) {
+        dispatch(signInError('Use a temporary password with at least 8 characters.'));
+        return null;
+      }
+
+      const accountExists = getLoginAccounts().some((item) => item.emailAddress.toLowerCase() === normalizedEmail);
+      if (accountExists) {
+        dispatch(signInError('A login account already exists for this email address.'));
+        return null;
+      }
+
+      const account: LoginAccount = {
+        emailAddress: normalizedEmail,
+        password,
+        profile: {
+          id: departmentUserId,
+          displayName: resolvedDisplayName,
+          ...departmentProfile,
+        },
+      };
+
+      saveRegisteredAccount(account);
+      dispatch(signInSuccess(currentUser));
+      return account.profile;
     },
     signInWithPasskey: async (emailAddress: string) => {
       dispatch(signInPending());

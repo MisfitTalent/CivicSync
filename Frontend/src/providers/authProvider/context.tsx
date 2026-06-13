@@ -40,6 +40,13 @@ export interface AuthActionContextValue {
     faceDescriptor?: string,
   ) => Promise<AppUserProfile | null>;
   registerPasskey: (emailAddress: string, password: string) => Promise<AppUserProfile | null>;
+  createDepartmentLoginAccount: (
+    departmentCode: DepartmentCode,
+    departmentUserId: string,
+    displayName: string,
+    emailAddress: string,
+    password: string,
+  ) => AppUserProfile | null;
   signInWithPasskey: (emailAddress: string) => Promise<AppUserProfile | null>;
   signInWithFace: (emailAddress: string, descriptor: string) => Promise<AppUserProfile | null>;
   verifyCurrentPassword: (accountId: string | undefined, password: string) => boolean;

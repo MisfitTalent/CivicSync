@@ -10,4 +10,8 @@ public interface IDepartmentUserService
     Task<DepartmentUserDto> GetByIdAsync(
         Guid id,
         CancellationToken cancellationToken = default);
+
+    Task<DepartmentUserDto> CreateForCurrentNodeAsync(
+        CreateDepartmentUserRequest request,
+        CancellationToken cancellationToken = default);
 }

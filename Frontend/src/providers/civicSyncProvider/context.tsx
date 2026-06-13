@@ -1,5 +1,5 @@
 import { createContext } from 'react';
-import type { ChangeRequest, Citizen, DepartmentUser, LedgerEntry, NodeInfo, NodeOption, SyncInboxEntry, SyncOutboxEvent, SyncReceipt } from '../../api/types';
+import type { ChangeRequest, Citizen, CreateDepartmentUserRequest, DepartmentUser, LedgerEntry, NodeInfo, NodeOption, SyncInboxEntry, SyncOutboxEvent, SyncReceipt } from '../../api/types';
 
 export const nodes: NodeOption[] = [
   { name: 'Home Affairs', departmentCode: 1, baseUrl: 'http://localhost:5076' },
@@ -81,6 +81,7 @@ export interface CivicSyncActionContextValue {
   updateChangeForm: (values: Partial<ChangeFormState>) => void;
   refreshAll: () => Promise<void>;
   createCitizen: () => Promise<void>;
+  createDepartmentUser: (request: CreateDepartmentUserRequest) => Promise<DepartmentUser>;
   submitChangeRequest: () => Promise<void>;
   submitFieldChangeRequest: (request: SubmitFieldChangeInput) => Promise<string>;
   requestApproval: (requestId?: string) => Promise<void>;

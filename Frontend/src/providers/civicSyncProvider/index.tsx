@@ -13,7 +13,7 @@ import {
   nodes,
   type SubmitFieldChangeInput,
 } from './context';
-import type { ChangeRequest, Citizen, DepartmentUser, LedgerEntry, NodeInfo, NodeOption, SyncInboxEntry, SyncOutboxEvent, SyncReceipt } from '../../api/types';
+import type { ChangeRequest, Citizen, CreateDepartmentUserRequest, DepartmentUser, LedgerEntry, NodeInfo, NodeOption, SyncInboxEntry, SyncOutboxEvent, SyncReceipt } from '../../api/types';
 import { civicSyncReducer } from './reducer';
 import { findDepartmentApproval } from '../../utils/departmentApprovals';
 
@@ -363,6 +363,19 @@ export const CivicSyncProvider = ({ children }: { children: React.ReactNode }) =
       const created = await client.createCitizen(state.citizenForm);
       dispatch(setCivicSyncState({ selectedCitizenId: created.id, citizenForm: initialCitizenForm }));
     }),
+    createDepartmentUser: async (request: CreateDepartmentUserRequest) => {
+      dispatch(setOperationPending('Create department user'));
+
+      try {
+        const created = await client.createDepartmentUser(request);
+        await refreshAll(false);
+        dispatch(setOperationSuccess('Department user created.'));
+        return created;
+      } catch (error) {
+        dispatch(setOperationError(getErrorMessage(error)));
+        throw error;
+      }
+    },
     submitChangeRequest: () => runAction('Submit change request', async () => {
       if (!selectedCitizen) {
         throw new Error('Select a citizen first.');

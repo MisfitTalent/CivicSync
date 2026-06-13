@@ -31,4 +31,13 @@ public sealed class DepartmentUsersController : ControllerBase
         var user = await _departmentUserService.GetByIdAsync(id, cancellationToken);
         return Ok(user);
     }
+
+    [HttpPost]
+    public async Task<ActionResult<DepartmentUserDto>> CreateForCurrentNodeAsync(
+        CreateDepartmentUserRequest request,
+        CancellationToken cancellationToken)
+    {
+        var user = await _departmentUserService.CreateForCurrentNodeAsync(request, cancellationToken);
+        return CreatedAtAction(nameof(GetByIdAsync), new { id = user.Id }, user);
+    }
 }
