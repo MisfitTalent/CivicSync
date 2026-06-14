@@ -2,7 +2,7 @@ import { Button, Card, Input, Select } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthActions, useAuthState } from '../../providers/authProvider';
-import type { RegistrationAccountCategory } from '../../providers/authProvider/context';
+import type { AppUserProfile, RegistrationAccountCategory } from '../../providers/authProvider/context';
 import { useCivicSyncActions } from '../../providers/civicSyncProvider';
 import { nodes } from '../../providers/civicSyncProvider/context';
 import { describeFaceCapture, encodeFaceEmbedding, FACE_MODEL_NAME, startFaceCamera, stopFaceCamera } from '../../utils/faceRecognition';
@@ -45,7 +45,7 @@ const LoginPage = () => {
   const handlePasswordSubmit = async () => {
     const profile = loginMode === 'register'
       ? await registerAccount(accountCategory, displayName, emailAddress, password, nationalIdNumber, phoneNumber, registrationFaceDescriptor)
-      : signIn(emailAddress, password);
+      : await signIn(emailAddress, password);
 
     if (!profile) {
       return;
@@ -61,7 +61,7 @@ const LoginPage = () => {
     navigate(profile.workspacePath, { replace: true });
   };
 
-  const completePasskeyFlow = (profile: ReturnType<typeof signIn>) => {
+  const completePasskeyFlow = (profile: AppUserProfile | null) => {
     if (!profile) {
       return;
     }
