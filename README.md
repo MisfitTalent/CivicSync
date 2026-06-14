@@ -1,6 +1,8 @@
-# CivicSync
+# CivicSync Ledger
 
-Decentralized ledger where individuals need not to fear for security of their information, with the synced database across all government departments. CivicSync keeps a ledger that is up to date, secure, easier to update, and useful for both departments and citizens.
+CivicSync Ledger is a decentralized public-sector citizen record platform for the South African government context. It models separate department nodes such as Home Affairs, SARS, and Municipality as independently hosted services that keep local records, approve citizen updates, write auditable ledger entries, and synchronize accepted changes across peers.
+
+The project is a graduate MVP, not an enterprise production system. It is built to demonstrate sound full-stack architecture, department-scoped data access, biometric login, ledger-backed change approval, and multi-node synchronization.
 
 ## ABP Backend
 
@@ -9,13 +11,16 @@ This folder contains the ASP.NET/ABP backend implementation for the CivicSync Le
 ## Current Backend Scope
 
 - ABP layered solution structure
-- SQL Server persistence with EF Core migrations
+- SQL Server persistence with EF Core migrations for the official/local profile
+- PostgreSQL deployment profile for free Render hosting
 - Department nodes and peer configuration
 - Citizen records
 - Change requests and department approvals
 - Approver user catalog
 - Ledger entries with hash-chain proof fields
 - Sync inbox/outbox flow for peer delivery
+- Background synchronization workers
+- Admin operations for department users and node sync controls
 - xUnit backend tests
 
 ## Frontend Scope
@@ -23,14 +28,21 @@ This folder contains the ASP.NET/ABP backend implementation for the CivicSync Le
 - Next.js frontend with TypeScript
 - Client-side portal routes for citizen, department, and admin workspaces
 - Configurable node API URLs through `NEXT_PUBLIC_CIVICSYNC_*` environment variables
+- Citizen registration, password login, passkey login, and face login
+- Face enrollment during registration and from the citizen portal
+- Citizen update wizard with multi-field request support
+- Live polling for records, requests, ledger, inbox, outbox, and receipts
 
 ## Biometric Authentication
 
-CivicSync uses browser WebAuthn/passkeys for real device biometric sign-in in the frontend demo. The browser asks the operating system authenticator, such as Windows Hello, Face ID, or fingerprint, to unlock a passkey. CivicSync never receives raw face or fingerprint images.
+CivicSync supports two biometric login paths in the demo:
 
-The backend issues one-time passkey challenges, stores registered public keys, and verifies login assertions by checking the returned challenge, browser origin, authenticator user-verification flags, and WebAuthn signature. A copied credential ID or forged browser response is rejected unless it can produce a valid signature from the registered authenticator key.
+- Face login uses the browser camera with FaceAPI TinyFaceDetector, 68-point landmarks, and a 128D face recognition descriptor. The backend stores the compact descriptor reference and verifies later camera captures against the enrolled citizen record.
+- Passkey login uses browser WebAuthn. The browser asks the operating system authenticator, such as Windows Hello, Face ID, or fingerprint, to unlock a passkey. CivicSync stores registered public keys and verifies login assertions by checking the challenge, origin, user-verification flags, and WebAuthn signature.
 
-The existing face-camera enrollment remains a prototype citizen verification workflow. For real login, use the passkey buttons on the sign-in page.
+CivicSync does not store raw face images. Face login remains an MVP biometric implementation suitable for demonstration, while WebAuthn/passkeys model the stronger production-grade device-authenticator path.
+
+When a citizen email address is changed through an approved request, the frontend reconciles the login account with the Home Affairs citizen record so the new email becomes the login email while keeping the same citizen data and biometric link.
 
 ## Local Development
 
@@ -65,6 +77,7 @@ The checked-in shared secret is development-only. Replace it with environment va
 ```powershell
 dotnet build .\aspnet-core\CivicSync.Abp.slnx
 dotnet test .\aspnet-core\CivicSync.Abp.slnx --no-restore
+npm run build --prefix .\Frontend
 ```
 
 ## Database Migration
@@ -125,9 +138,11 @@ The checked-in shared secret remains development-only. For deployment, set `CIVI
 
 Each node runs automatic background synchronization by default. The local demo publishes pending outbox events and applies pending inbox entries every 15 seconds, while the frontend polls node data every 5 seconds so record, request, ledger, inbox, and outbox views update without pressing Refresh.
 
-## SQL Server Deployment
+## Deployment Profiles
 
-Hosted deployments use SQL Server or Azure SQL Database instead of local Docker SQL Server. Keep the same one-database-per-node model:
+### SQL Server Profile
+
+SQL Server is the official project-pack database profile. Hosted SQL Server or Azure SQL Database can be used instead of local Docker SQL Server. Keep the same one-database-per-node model:
 
 - `CivicSync_HomeAffairs`
 - `CivicSync_Sars`
@@ -141,15 +156,26 @@ ConnectionStrings__CivicSyncNode=Server=<server>;Database=<database>;User Id=<us
 
 Full setup details are in [`docs/sql-server-deployment.md`](docs/sql-server-deployment.md).
 
-## PostgreSQL Deployment Profile
+### PostgreSQL Render Profile
 
-The SQL Server profile is the official submission profile. A PostgreSQL profile is also available for public hosting where SQL Server is not available. Enable it with:
+The deployed Render demo uses PostgreSQL because free hosted SQL Server was not available. Enable the PostgreSQL provider with:
 
 ```text
 Database__Provider=PostgreSql
 ```
 
-The Render/free-tier PostgreSQL shape uses one hosted database with three schemas: `homeaffairs`, `sars`, and `municipality`.
+The Render/free-tier PostgreSQL shape uses one hosted database with three schemas: `homeaffairs`, `sars`, and `municipality`. This preserves the three-node separation at schema level for the public hosted demo.
 
 Full setup details are in [`docs/postgresql-deployment.md`](docs/postgresql-deployment.md).
 
+## Project Trade-Offs
+
+- The deployed demo uses PostgreSQL for hosting cost reasons, while SQL Server remains supported for the required project-stack profile.
+- The multi-node model runs as three API services with separate node configuration and storage boundaries.
+- Face authentication stores descriptors rather than raw images and is intended as an MVP biometric workflow.
+- POPIA-style field visibility is represented through department-scoped views and redacted fields, not a complete legal policy engine.
+- The sync flow is automatic and demo-friendly, but a production system would need stronger retry, monitoring, key management, and operational controls.
+
+## AI Usage Disclosure
+
+AI assistance was used for scaffolding, implementation support, debugging, frontend iteration, deployment troubleshooting, and documentation. Final implementation decisions, project scope, architecture, trade-offs, and demo behavior remain explainable from the source code and this README.
