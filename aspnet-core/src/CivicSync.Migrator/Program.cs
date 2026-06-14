@@ -47,6 +47,8 @@ try
             {
                 await dbContext.Database.ExecuteSqlRawAsync(dbContext.Database.GenerateCreateScript());
             }
+
+            await EnsurePostgreSqlSchemaCompatibilityAsync(dbContext, postgresSchema);
         }
         else
         {
@@ -108,4 +110,14 @@ static async Task<bool> SchemaHasCoreTablesAsync(CivicSyncDbContext dbContext, s
             await connection.CloseAsync();
         }
     }
+}
+
+static async Task EnsurePostgreSqlSchemaCompatibilityAsync(CivicSyncDbContext dbContext, string schema)
+{
+    var alterBiometricReferenceSql = $@"
+        ALTER TABLE ""{schema}"".""Citizens""
+        ALTER COLUMN ""BiometricReference"" TYPE character varying(1500);
+        ";
+
+    await dbContext.Database.ExecuteSqlRawAsync(alterBiometricReferenceSql);
 }

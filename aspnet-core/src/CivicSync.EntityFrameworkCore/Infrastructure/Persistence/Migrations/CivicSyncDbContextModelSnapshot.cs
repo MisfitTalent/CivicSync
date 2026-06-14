@@ -299,8 +299,8 @@ namespace CivicSync.EntityFrameworkCore.Infrastructure.Persistence.Migrations
                     b.Property<string>("BiometricReference")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
+                        .HasMaxLength(1500)
+                        .HasColumnType("nvarchar(1500)")
                         .HasDefaultValue("");
 
                     b.Property<DateTime>("CreatedAtUtc")
