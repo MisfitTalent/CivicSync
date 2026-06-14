@@ -29,7 +29,7 @@ export interface AuthStateContextValue {
 }
 
 export interface AuthActionContextValue {
-  signIn: (emailAddress: string, password: string) => AppUserProfile | null;
+  signIn: (emailAddress: string, password: string) => Promise<AppUserProfile | null>;
   registerAccount: (
     accountCategory: RegistrationAccountCategory,
     displayName: string,
@@ -61,7 +61,7 @@ export const loginAccounts: LoginAccount[] = [
   {
     emailAddress: 'citizen@civicsync.local',
     password: 'Password123!',
-    linkedNationalIdNumber: '0008282828282',
+    linkedNationalIdNumber: '0008289830183',
     profile: {
       id: 'citizen-user',
       displayName: 'Citizen User',
