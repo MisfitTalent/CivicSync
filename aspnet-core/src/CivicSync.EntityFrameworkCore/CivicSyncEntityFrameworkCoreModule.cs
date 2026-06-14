@@ -1,8 +1,10 @@
 using CivicSync.Core;
+using CivicSync.Core.Configuration;
 using CivicSync.EntityFrameworkCore.Infrastructure.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using Volo.Abp.EntityFrameworkCore;
 using Volo.Abp.EntityFrameworkCore.DependencyInjection;
+using Volo.Abp.EntityFrameworkCore.PostgreSql;
 using Volo.Abp.EntityFrameworkCore.SqlServer;
 using Volo.Abp.Modularity;
 
@@ -10,6 +12,7 @@ namespace CivicSync.EntityFrameworkCore.Infrastructure.Persistence;
 
 [DependsOn(
     typeof(CivicSyncCoreModule),
+    typeof(AbpEntityFrameworkCorePostgreSqlModule),
     typeof(AbpEntityFrameworkCoreSqlServerModule))]
 public sealed class CivicSyncEntityFrameworkCoreModule : AbpModule
 {
@@ -20,8 +23,18 @@ public sealed class CivicSyncEntityFrameworkCoreModule : AbpModule
             options.AddDefaultRepositories(includeAllEntities: true);
         });
 
+        var configuration = context.Services.GetConfiguration();
+        var databaseProvider = configuration[$"{DatabaseOptions.SectionName}:Provider"]
+            ?? DatabaseOptions.SqlServerProvider;
+
         Configure<AbpDbContextOptions>(options =>
         {
+            if (string.Equals(databaseProvider, DatabaseOptions.PostgreSqlProvider, StringComparison.OrdinalIgnoreCase))
+            {
+                options.UseNpgsql();
+                return;
+            }
+
             options.UseSqlServer();
         });
     }

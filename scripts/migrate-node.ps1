@@ -3,9 +3,7 @@ param(
     [ValidateSet("HomeAffairs", "Sars", "Municipality")]
     [string]$Node,
 
-    [string]$SqlServer = "localhost",
-
-    [switch]$UseSqlLogin,
+    [string]$SqlServer = "localhost,1433",
 
     [string]$SqlUser = "sa",
 
@@ -46,16 +44,11 @@ $nodeConfigs = @{
 
 $config = $nodeConfigs[$Node]
 
-if ($UseSqlLogin) {
-    if ([string]::IsNullOrWhiteSpace($SqlPassword)) {
-        throw "SQL password missing. Set CIVICSYNC_SQL_PASSWORD or pass -SqlPassword when using -UseSqlLogin."
-    }
+if ([string]::IsNullOrWhiteSpace($SqlPassword)) {
+    throw "SQL Server password missing. Set CIVICSYNC_SQL_PASSWORD or pass -SqlPassword."
+}
 
-    $connectionString = "Server=$SqlServer;Database=$($config.Database);User Id=$SqlUser;Password=$SqlPassword;TrustServerCertificate=True"
-}
-else {
-    $connectionString = "Server=$SqlServer;Database=$($config.Database);Trusted_Connection=True;TrustServerCertificate=True"
-}
+$connectionString = "Server=$SqlServer;Database=$($config.Database);User Id=$SqlUser;Password=$SqlPassword;TrustServerCertificate=True"
 
 $env:ConnectionStrings__CivicSyncNode = $connectionString
 $env:Node__DepartmentCode = $config.DepartmentCode

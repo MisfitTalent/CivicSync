@@ -1,18 +1,18 @@
-﻿import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import AppLayout from '../layouts/appLayout';
-import AdminPage from '../pages/admin/AdminPage';
-import AdminLedgerPage from '../pages/admin/AdminLedgerPage';
-import AdminSyncAuditPage from '../pages/admin/AdminSyncAuditPage';
-import CitizenPage from '../pages/citizen/CitizenPage';
-import CitizenLedgerPage from '../pages/citizen/CitizenLedgerPage';
-import RequestUpdatePage from '../pages/citizen/RequestUpdatePage';
-import DepartmentPage from '../pages/department/DepartmentPage';
-import DepartmentInboxPage from '../pages/department/DepartmentInboxPage';
-import DepartmentLedgerPage from '../pages/department/DepartmentLedgerPage';
-import DepartmentRequestReviewPage from '../pages/department/DepartmentRequestReviewPage';
-import DepartmentRequestsPage from '../pages/department/DepartmentRequestsPage';
-import DepartmentSyncPage from '../pages/department/DepartmentSyncPage';
-import LoginPage from '../pages/login/LoginPage';
+import AdminPage from '../views/admin/AdminPage';
+import AdminLedgerPage from '../views/admin/AdminLedgerPage';
+import AdminSyncAuditPage from '../views/admin/AdminSyncAuditPage';
+import CitizenPage from '../views/citizen/CitizenPage';
+import CitizenLedgerPage from '../views/citizen/CitizenLedgerPage';
+import RequestUpdatePage from '../views/citizen/RequestUpdatePage';
+import DepartmentPage from '../views/department/DepartmentPage';
+import DepartmentInboxPage from '../views/department/DepartmentInboxPage';
+import DepartmentLedgerPage from '../views/department/DepartmentLedgerPage';
+import DepartmentRequestReviewPage from '../views/department/DepartmentRequestReviewPage';
+import DepartmentRequestsPage from '../views/department/DepartmentRequestsPage';
+import DepartmentSyncPage from '../views/department/DepartmentSyncPage';
+import LoginPage from '../views/login/LoginPage';
 import ProtectedRoute from './ProtectedRoute';
 
 const AppRoutes = () => (

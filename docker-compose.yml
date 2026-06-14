@@ -1,0 +1,38 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: civicsync-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${CIVICSYNC_SQL_PASSWORD:-Your_strong_password123}
+    ports:
+      - "1433:1433"
+    volumes:
+      - civicsync-sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD}\" -Q \"SELECT 1\" || /opt/mssql-tools/bin/sqlcmd -C -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD}\" -Q \"SELECT 1\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  postgres:
+    image: postgres:16
+    container_name: civicsync-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${CIVICSYNC_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: civicsync_homeaffairs
+    ports:
+      - "5432:5432"
+    volumes:
+      - civicsync-postgres-data:/var/lib/postgresql/data
+      - ./scripts/postgres/init-civicsync-databases.sql:/docker-entrypoint-initdb.d/001-init-civicsync-databases.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  civicsync-sqlserver-data:
+  civicsync-postgres-data:
