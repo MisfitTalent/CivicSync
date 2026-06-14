@@ -11,6 +11,13 @@ const faceApiDescriptorPrefix = 'face-api-recognition-v1:';
 
 const normalizeEmail = (emailAddress: string) => emailAddress.trim().toLowerCase();
 
+type CitizenLoginRecord = {
+  id: string;
+  nationalIdNumber: string;
+  emailAddress: string;
+  displayName: string;
+};
+
 const getStoredRegisteredAccounts = (): LoginAccount[] => {
   try {
     return JSON.parse(window.localStorage.getItem(registeredAccountsStorageKey) || '[]') as LoginAccount[];
@@ -19,11 +26,96 @@ const getStoredRegisteredAccounts = (): LoginAccount[] => {
   }
 };
 
-const getLoginAccounts = () => [...loginAccounts, ...getStoredRegisteredAccounts()];
+const getLoginAccounts = () => {
+  const accountsByProfileId = new Map<string, LoginAccount>();
+  loginAccounts.forEach((account) => accountsByProfileId.set(account.profile.id, account));
+  getStoredRegisteredAccounts().forEach((account) => accountsByProfileId.set(account.profile.id, account));
+
+  return Array.from(accountsByProfileId.values());
+};
 
 const saveRegisteredAccount = (account: LoginAccount) => {
   const registeredAccounts = getStoredRegisteredAccounts();
   window.localStorage.setItem(registeredAccountsStorageKey, JSON.stringify([...registeredAccounts, account]));
+};
+
+const upsertRegisteredAccount = (account: LoginAccount) => {
+  const registeredAccounts = getStoredRegisteredAccounts();
+  const nextAccounts = registeredAccounts.filter((item) =>
+    item.profile.id !== account.profile.id &&
+    item.emailAddress.toLowerCase() !== account.emailAddress.toLowerCase());
+
+  window.localStorage.setItem(registeredAccountsStorageKey, JSON.stringify([...nextAccounts, account]));
+};
+
+const storeSignedInProfile = (profile: AppUserProfile) => {
+  window.localStorage.setItem(authStorageKey, JSON.stringify(profile));
+};
+
+const findCitizenAccountByRecord = (citizen: CitizenLoginRecord, password?: string) => {
+  return getLoginAccounts().find((account) =>
+    account.profile.role === 'Citizen' &&
+    (!password || account.password === password) &&
+    (
+      account.linkedNationalIdNumber === citizen.nationalIdNumber ||
+      getStoredBiometricCitizenLink(account.profile.id) === citizen.id ||
+      account.emailAddress.toLowerCase() === citizen.emailAddress.toLowerCase()
+    ));
+};
+
+const reconcileCitizenAccount = (account: LoginAccount, citizen: CitizenLoginRecord) => {
+  if (account.profile.role !== 'Citizen') {
+    return account;
+  }
+
+  const reconciledAccount: LoginAccount = {
+    ...account,
+    emailAddress: normalizeEmail(citizen.emailAddress),
+    linkedNationalIdNumber: citizen.nationalIdNumber,
+    profile: {
+      ...account.profile,
+      displayName: citizen.displayName || account.profile.displayName,
+    },
+  };
+
+  upsertRegisteredAccount(reconciledAccount);
+  rememberBiometricCitizenLink(reconciledAccount.profile.id, citizen.id);
+
+  return reconciledAccount;
+};
+
+const resolveCitizenAccountByEmail = async (emailAddress: string, password?: string) => {
+  const normalizedEmail = normalizeEmail(emailAddress);
+  const account = getLoginAccounts().find((item) =>
+    item.emailAddress.toLowerCase() === normalizedEmail &&
+    (!password || item.password === password),
+  );
+
+  try {
+    const citizens = await authClient.getCitizens();
+    const matchingCitizen = citizens.find((citizen) => citizen.emailAddress.toLowerCase() === normalizedEmail);
+    const resolvedAccount = account || (matchingCitizen ? findCitizenAccountByRecord(matchingCitizen, password) : undefined);
+
+    if (resolvedAccount?.profile.role !== 'Citizen') {
+      return { account: resolvedAccount, citizen: undefined };
+    }
+
+    const linkedCitizen = citizens.find((citizen) =>
+      citizen.id === getStoredBiometricCitizenLink(resolvedAccount.profile.id) ||
+      citizen.nationalIdNumber === resolvedAccount.linkedNationalIdNumber ||
+      citizen.emailAddress.toLowerCase() === normalizedEmail);
+
+    if (!linkedCitizen) {
+      return { account: resolvedAccount, citizen: undefined };
+    }
+
+    return {
+      account: reconcileCitizenAccount(resolvedAccount, linkedCitizen),
+      citizen: linkedCitizen,
+    };
+  } catch {
+    return { account, citizen: undefined };
+  }
 };
 
 const rememberBiometricCitizenLink = (accountId: string, citizenId: string) => {
@@ -136,21 +228,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [authState, dispatch] = useReducer(authReducer, initialAuthState, loadInitialAuthState);
 
   const actions = useMemo(() => ({
-    signIn: (emailAddress: string, password: string) => {
+    signIn: async (emailAddress: string, password: string) => {
       dispatch(signInPending());
-      const normalizedEmail = normalizeEmail(emailAddress);
-
-      const account = getLoginAccounts().find((item) =>
-        item.emailAddress.toLowerCase() === normalizedEmail &&
-        item.password === password,
-      );
+      const { account } = await resolveCitizenAccountByEmail(emailAddress, password);
 
       if (!account) {
         dispatch(signInError('Invalid email address or password.'));
         return null;
       }
 
-      window.localStorage.setItem(authStorageKey, JSON.stringify(account.profile));
+      storeSignedInProfile(account.profile);
       dispatch(signInSuccess(account.profile));
       return account.profile;
     },
@@ -238,7 +325,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         saveRegisteredAccount(account);
-        window.localStorage.setItem(authStorageKey, JSON.stringify(account.profile));
+        storeSignedInProfile(account.profile);
         dispatch(signInSuccess(account.profile));
         return account.profile;
       } catch (error) {
@@ -256,11 +343,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           return null;
         }
 
-        const normalizedEmail = normalizeEmail(emailAddress);
-        const account = getLoginAccounts().find((item) =>
-          item.emailAddress.toLowerCase() === normalizedEmail &&
-          item.password === password,
-        );
+        let { account } = await resolveCitizenAccountByEmail(emailAddress, password);
 
         if (!account) {
           dispatch(signInError('Enter the account email and password before registering a passkey.'));
@@ -316,7 +399,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           return null;
         }
 
-        window.localStorage.setItem(authStorageKey, JSON.stringify(account.profile));
+        storeSignedInProfile(account.profile);
         dispatch(signInSuccess(account.profile));
         return account.profile;
       } catch (error) {
@@ -392,9 +475,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         const normalizedEmail = normalizeEmail(emailAddress);
-        const account = getLoginAccounts().find((item) =>
-          item.emailAddress.toLowerCase() === normalizedEmail,
-        );
+        const { account } = await resolveCitizenAccountByEmail(normalizedEmail);
 
         if (!account) {
           dispatch(signInError('Enter a known account email address before using a passkey.'));
@@ -425,7 +506,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           return null;
         }
 
-        window.localStorage.setItem(authStorageKey, JSON.stringify(account.profile));
+        storeSignedInProfile(account.profile);
         dispatch(signInSuccess(account.profile));
         return account.profile;
       } catch (error) {
@@ -438,9 +519,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       try {
         const normalizedEmail = normalizeEmail(emailAddress);
-        const account = getLoginAccounts().find((item) =>
-          item.emailAddress.toLowerCase() === normalizedEmail,
-        );
+        const { account, citizen: resolvedCitizen } = await resolveCitizenAccountByEmail(normalizedEmail);
 
         if (!account) {
           dispatch(signInError('Enter a known account email address before using face login.'));
@@ -450,6 +529,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const citizens = await authClient.getCitizens();
         const linkedCitizenId = getStoredBiometricCitizenLink(account.profile.id);
         const citizen = citizens.find((item) =>
+          item.id === resolvedCitizen?.id ||
           item.id === linkedCitizenId ||
           item.emailAddress.toLowerCase() === normalizedEmail ||
           item.nationalIdNumber === account.linkedNationalIdNumber,
@@ -476,7 +556,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           return null;
         }
 
-        window.localStorage.setItem(authStorageKey, JSON.stringify(account.profile));
+        storeSignedInProfile(account.profile);
         dispatch(signInSuccess(account.profile));
         return account.profile;
       } catch (error) {

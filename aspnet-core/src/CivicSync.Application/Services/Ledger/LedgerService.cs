@@ -106,7 +106,8 @@ public sealed class LedgerService : ILedgerService
             throw new InvalidOperationException("Citizen was not found.");
         }
 
-        if (citizen.RecordVersion != changeRequest.ExpectedCitizenVersion)
+        if (citizen.RecordVersion != changeRequest.ExpectedCitizenVersion &&
+            HasConflictingFieldValue(citizen, changeRequest.FieldChanges))
         {
             changeRequest.MarkConflict();
             await _changeRequestRepository.UpdateAsync(changeRequest, autoSave: true, cancellationToken);
@@ -181,6 +182,36 @@ public sealed class LedgerService : ILedgerService
         }
 
         return Math.Min(maxItems, AbsoluteMaximumBatchSize);
+    }
+
+    private static bool HasConflictingFieldValue(Citizen citizen, IReadOnlyCollection<FieldChange> fieldChanges)
+    {
+        return fieldChanges.Any(fieldChange =>
+            !string.Equals(
+                GetCurrentFieldValue(citizen, fieldChange.FieldName),
+                fieldChange.OldValue,
+                StringComparison.Ordinal));
+    }
+
+    private static string GetCurrentFieldValue(Citizen citizen, string fieldName)
+    {
+        return fieldName.Trim() switch
+        {
+            nameof(Citizen.FullName) => citizen.FullName.DisplayName,
+            nameof(Citizen.ContactDetails) => $"{citizen.ContactDetails.EmailAddress}|{citizen.ContactDetails.PhoneNumber}",
+            nameof(Citizen.DateOfBirth) => citizen.DateOfBirth,
+            nameof(Citizen.PassportNumber) => citizen.PassportNumber,
+            nameof(Citizen.BiometricReference) => citizen.BiometricReference,
+            nameof(Citizen.RelationshipStatus) => citizen.RelationshipStatus,
+            nameof(Citizen.TaxNumber) => citizen.TaxNumber,
+            nameof(Citizen.EmploymentHistory) => citizen.EmploymentHistory,
+            nameof(Citizen.IncomeAndInvestmentProfile) => citizen.IncomeAndInvestmentProfile,
+            nameof(Citizen.BankingAndAssets) => citizen.BankingAndAssets,
+            nameof(Citizen.ResidentialAddress) => citizen.ResidentialAddress,
+            nameof(Citizen.RatesAccount) => citizen.RatesAccount,
+            nameof(Citizen.MunicipalServiceStatus) => citizen.MunicipalServiceStatus,
+            _ => string.Empty
+        };
     }
 
     private static bool IsCitizenVersionConflict(InvalidOperationException exception)

@@ -7,6 +7,7 @@ using CivicSync.Web.Host.Infrastructure.Persistence.Seed;
 using CivicSync.Web.Core.Infrastructure.Security;
 using Microsoft.Extensions.Options;
 using Volo.Abp;
+using Volo.Abp.Uow;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -81,10 +82,13 @@ static async Task RunAutomaticSyncCycleAsync(
     try
     {
         using var scope = services.CreateScope();
+        var unitOfWorkManager = scope.ServiceProvider.GetRequiredService<IUnitOfWorkManager>();
         var syncService = scope.ServiceProvider.GetRequiredService<ISyncService>();
 
+        using var unitOfWork = unitOfWorkManager.Begin(requiresNew: true, isTransactional: true);
         await syncService.PublishPendingOutboxEventsAsync(cancellationToken);
         await syncService.ApplyPendingInboxEntriesAsync(cancellationToken);
+        await unitOfWork.CompleteAsync(cancellationToken);
     }
     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
     {

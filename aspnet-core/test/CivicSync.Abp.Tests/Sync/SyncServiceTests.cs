@@ -20,34 +20,71 @@ namespace CivicSync.Web.Host.Tests.Sync;
 public sealed class SyncServiceTests
 {
     [Fact]
-    public async Task PublishPendingOutboxEventsAsync_SkipsFailedOutbox_WhenRetryLimitIsReached()
+    public async Task PublishPendingOutboxEventsAsync_RetriesFailedOutbox_WhenRetryLimitIsReached()
     {
         await using var dbContext = CreateDbContext();
         var localNode = new DepartmentNode(DepartmentCode.HomeAffairs, "http://localhost:5076");
-        var outboxEvent = new SyncOutboxEvent(localNode.Id, Guid.NewGuid())
+        localNode.RegisterPeer(DepartmentCode.Sars, "http://localhost:5077");
+        var citizen = new Citizen(
+            localNode.Id,
+            "9001015009087",
+            new PersonName("Retry", "Citizen"),
+            new ContactDetails("old@example.test", "+27000000000"));
+        var changeRequest = new ChangeRequest(localNode.Id, citizen.Id, "Retry sync after config repair", citizen.RecordVersion);
+        changeRequest.AddFieldChange("ContactDetails", "old@example.test|+27000000000", "new@example.test|+27820000000");
+        var ledgerEntry = new LedgerEntry(
+            localNode.Id,
+            changeRequest.Id,
+            1,
+            LedgerEventType.ChangeCommitted,
+            new RecordProof("payload-proof"),
+            new RecordProof("GENESIS"),
+            new RecordProof("current-proof"));
+        var outboxEvent = new SyncOutboxEvent(localNode.Id, ledgerEntry.Id)
         {
             Status = SyncStatus.Failed,
             RetryCount = 3
         };
 
         dbContext.DepartmentNodes.Add(localNode);
+        dbContext.Citizens.Add(citizen);
+        dbContext.ChangeRequests.Add(changeRequest);
+        dbContext.LedgerEntries.Add(ledgerEntry);
         dbContext.SyncOutboxEvents.Add(outboxEvent);
         await Task.CompletedTask;
+        var handler = new StubHttpMessageHandler(
+            HttpStatusCode.OK,
+            new SynchronizedLedgerEntryResponse
+            {
+                LedgerEntryId = ledgerEntry.Id,
+                Result = SyncResult.Applied,
+                Message = "Applied"
+            });
 
         var service = CreateService(
             dbContext,
             new NodeOptions
             {
                 DepartmentCode = DepartmentCode.HomeAffairs,
-                MaxSyncPublishAttempts = 3
+                MaxSyncPublishAttempts = 3,
+                Peers =
+                [
+                    new PeerNodeOptions
+                    {
+                        DepartmentCode = DepartmentCode.Sars,
+                        ApiBaseUrl = "http://localhost:5077",
+                        SharedSecret = "peer-secret"
+                    }
+                ]
             },
-            new StubHttpMessageHandler(HttpStatusCode.OK, new SynchronizedLedgerEntryResponse()));
+            handler);
 
         var response = await service.PublishPendingOutboxEventsAsync();
 
-        Assert.Equal(0, response.ProcessedOutboxEvents);
-        Assert.Equal(1, response.SkippedOutboxEvents);
-        Assert.Equal(SyncStatus.Failed, outboxEvent.Status);
+        Assert.Equal(1, response.ProcessedOutboxEvents);
+        Assert.Equal(0, response.SkippedOutboxEvents);
+        Assert.Equal(1, response.SuccessfulPeerDeliveries);
+        Assert.Equal(SyncStatus.Published, outboxEvent.Status);
         Assert.Equal(3, outboxEvent.RetryCount);
     }
 

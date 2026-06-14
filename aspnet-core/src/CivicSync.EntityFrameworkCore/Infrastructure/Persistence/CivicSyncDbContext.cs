@@ -147,7 +147,7 @@ public sealed class CivicSyncDbContext : AbpDbContext<CivicSyncDbContext>
             entity.Property(item => item.NationalIdNumber).HasMaxLength(30).IsRequired();
             entity.Property(item => item.DateOfBirth).HasMaxLength(60).HasDefaultValue(string.Empty).IsRequired();
             entity.Property(item => item.PassportNumber).HasMaxLength(30).HasDefaultValue(string.Empty).IsRequired();
-            entity.Property(item => item.BiometricReference).HasMaxLength(200).HasDefaultValue(string.Empty).IsRequired();
+            entity.Property(item => item.BiometricReference).HasMaxLength(1500).HasDefaultValue(string.Empty).IsRequired();
             entity.Property(item => item.RelationshipStatus).HasMaxLength(200).HasDefaultValue(string.Empty).IsRequired();
             entity.Property(item => item.TaxNumber).HasMaxLength(30).HasDefaultValue(string.Empty).IsRequired();
             entity.Property(item => item.EmploymentHistory).HasMaxLength(500).HasDefaultValue(string.Empty).IsRequired();
