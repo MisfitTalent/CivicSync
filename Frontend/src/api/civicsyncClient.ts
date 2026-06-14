@@ -83,12 +83,12 @@ export class CivicSyncClient {
     return this.get<ChangeRequest[]>('/api/change-requests');
   }
 
-  async downloadEvidenceFile(changeRequestId: string, evidenceFileId: string) {
-    return this.httpClient.getBlob(`/api/change-requests/${changeRequestId}/evidence/${evidenceFileId}`);
-  }
-
   async submitChangeRequest(request: SubmitChangeRequest) {
     return this.post<ChangeRequest>('/api/change-requests', request);
+  }
+
+  async downloadEvidenceFile(changeRequestId: string, evidenceId: string) {
+    return this.httpClient.getBlob(`/api/change-requests/${changeRequestId}/evidence/${evidenceId}/download`);
   }
 
   async requestApproval(changeRequestId: string, approvingNodeId: string, approverUserId: string) {

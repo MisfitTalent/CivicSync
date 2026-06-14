@@ -86,6 +86,7 @@ export interface CivicSyncActionContextValue {
   submitFieldChangeRequest: (request: SubmitFieldChangeInput) => Promise<string>;
   requestApproval: (requestId?: string) => Promise<void>;
   approveRequest: (requestId?: string) => Promise<void>;
+  downloadEvidenceFile: (requestId: string, evidenceId: string) => Promise<void>;
   commitRequest: (requestId?: string) => Promise<void>;
   publishOutbox: () => Promise<void>;
   applyInbox: () => Promise<void>;

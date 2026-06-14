@@ -88,24 +88,25 @@ public sealed class ChangeRequestService : IChangeRequestService
         return changeRequest is null ? null : MapToDto(changeRequest, _nodeOptions.DepartmentCode);
     }
 
-    public async Task<EvidenceFileContentDto?> GetEvidenceFileAsync(
-        Guid id,
-        Guid evidenceFileId,
+    public async Task<EvidenceFileDownloadDto> DownloadEvidenceAsync(
+        Guid requestId,
+        Guid evidenceId,
         CancellationToken cancellationToken = default)
     {
-        var changeRequest = await LoadChangeRequestAsync(id, cancellationToken);
-        var evidenceFile = changeRequest?.EvidenceFiles.SingleOrDefault(item => item.Id == evidenceFileId);
+        var changeRequest = await LoadRequiredChangeRequestAsync(requestId, cancellationToken);
+        var evidenceFile = changeRequest.EvidenceFiles.SingleOrDefault(item => item.Id == evidenceId)
+            ?? throw new InvalidOperationException("Evidence file was not found on the selected change request.");
+        var localDepartmentNode = await GetLocalDepartmentNodeAsync(cancellationToken);
 
-        return evidenceFile is null
-            ? null
-            : new EvidenceFileContentDto
-            {
-                Id = evidenceFile.Id,
-                ChangeRequestId = evidenceFile.ChangeRequestId,
-                FileName = evidenceFile.FileName,
-                ContentType = evidenceFile.ContentType,
-                Content = evidenceFile.Content
-            };
+        ValidateDepartmentCanDownloadEvidence(changeRequest, localDepartmentNode);
+
+        return new EvidenceFileDownloadDto
+        {
+            Id = evidenceFile.Id,
+            FileName = evidenceFile.FileName,
+            ContentType = evidenceFile.ContentType,
+            Content = evidenceFile.Content
+        };
     }
 
     public async Task<ChangeRequestDto> RequestApprovalAsync(
@@ -233,6 +234,29 @@ public sealed class ChangeRequestService : IChangeRequestService
             throw new InvalidOperationException(
                 $"Department '{departmentCode}' is not allowed to request changes for field '{fieldName}'.");
         }
+    }
+
+    private static void ValidateDepartmentCanDownloadEvidence(
+        ChangeRequest changeRequest,
+        DepartmentNode localDepartmentNode)
+    {
+        if (changeRequest.RequestedAtNodeId == localDepartmentNode.Id)
+        {
+            return;
+        }
+
+        if (changeRequest.Approvals.Any(item => item.ApprovingNodeId == localDepartmentNode.Id))
+        {
+            return;
+        }
+
+        if (changeRequest.FieldChanges.Any(item =>
+                CitizenFieldApprovalPolicy.CanDepartmentAccessField(localDepartmentNode.DepartmentCode, item.FieldName)))
+        {
+            return;
+        }
+
+        throw new InvalidOperationException("This department is not authorized to download evidence for the selected change request.");
     }
 
     private static void ValidateApproverAssignedToApproval(

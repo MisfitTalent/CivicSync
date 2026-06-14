@@ -41,7 +41,7 @@ const request = async <T>(baseUrl: string, path: string, method: 'GET' | 'POST',
   return { data: await response.json() as T };
 };
 
-const requestBlob = async (baseUrl: string, path: string): Promise<Blob> => {
+const getBlob = async (baseUrl: string, path: string): Promise<Blob> => {
   const response = await fetch(`${baseUrl}${path}`, {
     method: 'GET',
     headers: {
@@ -58,7 +58,7 @@ const requestBlob = async (baseUrl: string, path: string): Promise<Blob> => {
 
 export const createCivicSyncHttpClient = (baseUrl: string) => ({
   get: <T>(path: string) => request<T>(baseUrl, path, 'GET'),
-  getBlob: (path: string) => requestBlob(baseUrl, path),
+  getBlob: (path: string) => getBlob(baseUrl, path),
   post: <T>(path: string, body?: unknown) => request<T>(baseUrl, path, 'POST', body),
 });
 
