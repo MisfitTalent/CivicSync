@@ -140,16 +140,3 @@ ConnectionStrings__CivicSyncNode=Server=<server>;Database=<database>;User Id=<us
 ```
 
 Full setup details are in [`docs/sql-server-deployment.md`](docs/sql-server-deployment.md).
-
-## PostgreSQL Deployment Profile
-
-The SQL Server profile is the official submission profile. A PostgreSQL profile is also available for public hosting where SQL Server is not available. Enable it with:
-
-```text
-Database__Provider=PostgreSql
-```
-
-The Render/free-tier PostgreSQL shape uses one hosted database with three schemas: `homeaffairs`, `sars`, and `municipality`.
-
-Full setup details are in [`docs/postgresql-deployment.md`](docs/postgresql-deployment.md).
-

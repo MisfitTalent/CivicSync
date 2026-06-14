@@ -1,5 +1,3 @@
-using System.Data.Common;
-using System.Text.RegularExpressions;
 using CivicSync.Core.Domain.Auth;
 using CivicSync.Core.Domain.ChangeRequests;
 using CivicSync.Core.Domain.Citizens;
@@ -17,8 +15,6 @@ namespace CivicSync.EntityFrameworkCore.Infrastructure.Persistence;
 [ConnectionStringName("CivicSyncNode")]
 public sealed class CivicSyncDbContext : AbpDbContext<CivicSyncDbContext>
 {
-    private static readonly Regex PostgreSqlSchemaNamePattern = new("^[A-Za-z_][A-Za-z0-9_]*$", RegexOptions.Compiled);
-
     public CivicSyncDbContext(DbContextOptions<CivicSyncDbContext> options)
         : base(options)
     {
@@ -44,12 +40,6 @@ public sealed class CivicSyncDbContext : AbpDbContext<CivicSyncDbContext>
     {
         base.OnModelCreating(modelBuilder);
 
-        var postgresSchema = TryNormalizePostgreSqlSchema(Environment.GetEnvironmentVariable("Database__PostgreSqlSchema"));
-        if (!string.IsNullOrWhiteSpace(postgresSchema))
-        {
-            modelBuilder.HasDefaultSchema(postgresSchema);
-        }
-
         ConfigureDepartmentNode(modelBuilder);
         ConfigurePasskeyCredential(modelBuilder);
         ConfigurePasskeyChallenge(modelBuilder);
@@ -65,43 +55,6 @@ public sealed class CivicSyncDbContext : AbpDbContext<CivicSyncDbContext>
         ConfigureSyncOutboxEvent(modelBuilder);
         ConfigureSyncInboxEntry(modelBuilder);
         ConfigureNodeSyncReceipt(modelBuilder);
-    }
-
-    public static string? TryGetPostgreSqlSchema(string? providerName, string? connectionString)
-    {
-        if (string.IsNullOrWhiteSpace(providerName)
-            || !providerName.Contains("Npgsql", StringComparison.OrdinalIgnoreCase)
-            || string.IsNullOrWhiteSpace(connectionString))
-        {
-            return null;
-        }
-
-        var builder = new DbConnectionStringBuilder
-        {
-            ConnectionString = connectionString
-        };
-
-        foreach (var key in builder.Keys.Cast<string>())
-        {
-            if (!string.Equals(key, "Search Path", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(key, "SearchPath", StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            var schema = builder[key]?.ToString()?.Split(',')[0].Trim().Trim('"');
-            return TryNormalizePostgreSqlSchema(schema);
-        }
-
-        return null;
-    }
-
-    public static string? TryNormalizePostgreSqlSchema(string? schema)
-    {
-        schema = schema?.Trim().Trim('"');
-        return !string.IsNullOrWhiteSpace(schema) && PostgreSqlSchemaNamePattern.IsMatch(schema)
-            ? schema
-            : null;
     }
 
     private static void ConfigureDepartmentNode(ModelBuilder modelBuilder)

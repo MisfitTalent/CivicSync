@@ -1,12 +1,12 @@
 # Render Deployment
 
-This repo includes Render blueprints for a no-card-friendly demo shape:
+This repo includes a Render blueprint for a SQL Server-backed demo shape:
 
 - three Docker web services for CivicSync API nodes
 - one Docker web service for the Next.js frontend
-- SQL Server connection strings supplied from a hosted SQL Server or Azure SQL Database, or one Render PostgreSQL database split by schemas
+- SQL Server connection strings supplied from a hosted SQL Server or Azure SQL Database
 
-Use `render.yaml` for SQL Server-backed services. Use `render-postgres.yaml` for Render PostgreSQL. Render's free PostgreSQL tier allows one active database, so the PostgreSQL profile uses one database with `homeaffairs`, `sars`, and `municipality` schemas.
+Use `render.yaml` for SQL Server-backed services.
 
 ## Required Environment Values
 
@@ -86,20 +86,3 @@ dotnet run --project .\aspnet-core\src\CivicSync.Migrator\CivicSync.Migrator.csp
 ```
 
 Repeat with the SARS and Municipality database/department values.
-
-## PostgreSQL on Render
-
-For `render-postgres.yaml`, set `Database__Provider=PostgreSql` on every API service and use the same hosted database with a different `Search Path` per service:
-
-```text
-Database__PostgreSqlSchema=<schema>
-ConnectionStrings__CivicSyncNode=Host=<host>;Port=5432;Database=civicsync_homeaffairs;Username=<user>;Password=<secret>;Ssl Mode=Require;Trust Server Certificate=true;Search Path=<schema>
-```
-
-Use:
-
-- `homeaffairs` for Home Affairs
-- `sars` for SARS
-- `municipality` for Municipality
-
-Full setup details are in [`docs/postgresql-deployment.md`](postgresql-deployment.md).

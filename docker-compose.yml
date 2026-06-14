@@ -14,25 +14,5 @@ services:
       interval: 5s
       timeout: 5s
       retries: 12
-
-  postgres:
-    image: postgres:16
-    container_name: civicsync-postgres
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${CIVICSYNC_POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: civicsync_homeaffairs
-    ports:
-      - "5432:5432"
-    volumes:
-      - civicsync-postgres-data:/var/lib/postgresql/data
-      - ./scripts/postgres/init-civicsync-databases.sql:/docker-entrypoint-initdb.d/001-init-civicsync-databases.sql:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 12
-
 volumes:
   civicsync-sqlserver-data:
-  civicsync-postgres-data:
