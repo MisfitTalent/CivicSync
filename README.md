@@ -100,3 +100,24 @@ The checked-in shared secret remains development-only. For deployment, set `CIVI
 
 Each node runs automatic background synchronization by default. The local demo publishes pending outbox events and applies pending inbox entries every 15 seconds, while the frontend polls node data every 5 seconds so record, request, ledger, inbox, and outbox views update without pressing Refresh.
 
+## Azure SQL Deployment
+
+Hosted deployments use Azure SQL Database instead of local SQL Server. Keep the same one-database-per-node model:
+
+- `CivicSync_HomeAffairs`
+- `CivicSync_Sars`
+- `CivicSync_Municipality`
+
+Provision Azure SQL and configure production connection strings with:
+
+```powershell
+.\scripts\provision-azure-sql.ps1 `
+  -ResourceGroup "rg-civicsync-demo" `
+  -Location "southafricanorth" `
+  -SqlServerName "sql-civicsync-demo" `
+  -SqlAdminUser "civicsyncadmin" `
+  -AllowAzureServices
+```
+
+Full setup details are in [`docs/azure-sql-deployment.md`](docs/azure-sql-deployment.md).
+
