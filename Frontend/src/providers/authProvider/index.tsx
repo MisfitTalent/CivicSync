@@ -1,11 +1,47 @@
 import { useContext, useMemo, useReducer } from 'react';
 import { CivicSyncClient } from '../../api/civicsyncClient';
+import type { DepartmentCode } from '../../api/types';
 import { nodes } from '../civicSyncProvider/context';
 import { signInError, signInPending, signInSuccess, signOutSuccess } from './actions';
-import { AuthActionContext, AuthStateContext, authStorageKey, initialAuthState, loginAccounts, type AppUserProfile, type AuthStateContextValue } from './context';
+import { AuthActionContext, AuthStateContext, authStorageKey, biometricCitizenLinkStorageKey, initialAuthState, loginAccounts, registeredAccountsStorageKey, type AppUserProfile, type AuthStateContextValue, type LoginAccount, type RegistrationAccountCategory } from './context';
 import { authReducer } from './reducer';
 
 const authClient = new CivicSyncClient(nodes[0].baseUrl);
+const faceApiDescriptorPrefix = 'face-api-recognition-v1:';
+
+const normalizeEmail = (emailAddress: string) => emailAddress.trim().toLowerCase();
+
+const getStoredRegisteredAccounts = (): LoginAccount[] => {
+  try {
+    return JSON.parse(window.localStorage.getItem(registeredAccountsStorageKey) || '[]') as LoginAccount[];
+  } catch {
+    return [];
+  }
+};
+
+const getLoginAccounts = () => [...loginAccounts, ...getStoredRegisteredAccounts()];
+
+const saveRegisteredAccount = (account: LoginAccount) => {
+  const registeredAccounts = getStoredRegisteredAccounts();
+  window.localStorage.setItem(registeredAccountsStorageKey, JSON.stringify([...registeredAccounts, account]));
+};
+
+const rememberBiometricCitizenLink = (accountId: string, citizenId: string) => {
+  const storedLinks = JSON.parse(window.localStorage.getItem(biometricCitizenLinkStorageKey) || '{}') as Record<string, string>;
+  window.localStorage.setItem(biometricCitizenLinkStorageKey, JSON.stringify({
+    ...storedLinks,
+    [accountId]: citizenId,
+  }));
+};
+
+const getStoredBiometricCitizenLink = (accountId: string) => {
+  try {
+    const storedLinks = JSON.parse(window.localStorage.getItem(biometricCitizenLinkStorageKey) || '{}') as Record<string, string>;
+    return storedLinks[accountId];
+  } catch {
+    return undefined;
+  }
+};
 
 const base64UrlEncode = (bytes: ArrayBuffer | Uint8Array) => {
   const byteArray = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
@@ -22,6 +58,30 @@ const base64UrlDecode = (value: string) => {
 const getEffectiveRpId = (rpId: string) => {
   const hostName = window.location.hostname;
   return rpId && (hostName === rpId || hostName.endsWith(`.${rpId}`)) ? rpId : undefined;
+};
+
+const getRelyingParty = (rpId: string, rpName: string): PublicKeyCredentialRpEntity => {
+  const effectiveRpId = getEffectiveRpId(rpId);
+  return effectiveRpId ? { id: effectiveRpId, name: rpName } : { name: rpName };
+};
+
+const getAssertionOptions = (options: {
+  challenge: string;
+  rpId: string;
+  allowedCredentialIds: string[];
+  timeoutMs: number;
+}): PublicKeyCredentialRequestOptions => {
+  const effectiveRpId = getEffectiveRpId(options.rpId);
+  return {
+    challenge: base64UrlDecode(options.challenge),
+    ...(effectiveRpId ? { rpId: effectiveRpId } : {}),
+    allowCredentials: options.allowedCredentialIds.map((credentialId) => ({
+      type: 'public-key',
+      id: base64UrlDecode(credentialId),
+    })),
+    userVerification: 'required',
+    timeout: options.timeoutMs,
+  };
 };
 
 const getPasskeySupportError = () => {
@@ -46,15 +106,42 @@ const loadInitialAuthState = (): AuthStateContextValue => ({
   currentUser: loadStoredUser(),
 });
 
+const splitDisplayName = (displayName: string) => {
+  const nameParts = displayName.trim().split(/\s+/);
+  const firstName = nameParts.shift() || displayName.trim();
+  const lastName = nameParts.join(' ') || 'Citizen';
+
+  return { firstName, lastName };
+};
+
+const departmentProfileByCode: Partial<Record<DepartmentCode, Pick<AppUserProfile, 'role' | 'departmentCode' | 'workspacePath'>>> = {
+  1: {
+    role: 'HomeAffairsOfficer',
+    departmentCode: 1,
+    workspacePath: '/home-affairs',
+  },
+  2: {
+    role: 'SarsOfficer',
+    departmentCode: 2,
+    workspacePath: '/sars',
+  },
+  3: {
+    role: 'MunicipalityOfficer',
+    departmentCode: 3,
+    workspacePath: '/municipality',
+  },
+};
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [authState, dispatch] = useReducer(authReducer, initialAuthState, loadInitialAuthState);
 
   const actions = useMemo(() => ({
     signIn: (emailAddress: string, password: string) => {
       dispatch(signInPending());
+      const normalizedEmail = normalizeEmail(emailAddress);
 
-      const account = loginAccounts.find((item) =>
-        item.emailAddress.toLowerCase() === emailAddress.trim().toLowerCase() &&
+      const account = getLoginAccounts().find((item) =>
+        item.emailAddress.toLowerCase() === normalizedEmail &&
         item.password === password,
       );
 
@@ -67,6 +154,98 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       dispatch(signInSuccess(account.profile));
       return account.profile;
     },
+    registerAccount: async (
+      accountCategory: RegistrationAccountCategory,
+      displayName: string,
+      emailAddress: string,
+      password: string,
+      nationalIdNumber: string,
+      phoneNumber: string,
+      faceDescriptor?: string,
+    ) => {
+      dispatch(signInPending());
+
+      const normalizedEmail = normalizeEmail(emailAddress);
+      const resolvedDisplayName = displayName.trim();
+      const resolvedNationalIdNumber = nationalIdNumber.trim();
+      const resolvedPhoneNumber = phoneNumber.trim();
+
+      if (accountCategory !== 'Citizen') {
+        dispatch(signInError('Department accounts cannot be self-registered. Use the seeded department account or ask an admin to create one.'));
+        return null;
+      }
+
+      if (!resolvedDisplayName) {
+        dispatch(signInError('Enter your full name before registering an account.'));
+        return null;
+      }
+
+      if (!normalizedEmail) {
+        dispatch(signInError('Enter an email address before registering an account.'));
+        return null;
+      }
+
+      if (password.length < 8) {
+        dispatch(signInError('Use a password with at least 8 characters.'));
+        return null;
+      }
+
+      if (!resolvedNationalIdNumber) {
+        dispatch(signInError('Enter a national ID number before registering an account.'));
+        return null;
+      }
+
+      if (!resolvedPhoneNumber) {
+        dispatch(signInError('Enter a phone number before registering an account.'));
+        return null;
+      }
+
+      const accountExists = getLoginAccounts().some((item) => item.emailAddress.toLowerCase() === normalizedEmail);
+      if (accountExists) {
+        dispatch(signInError('An account already exists for this email address.'));
+        return null;
+      }
+
+      try {
+        const { firstName, lastName } = splitDisplayName(resolvedDisplayName);
+        const citizen = await authClient.createCitizen({
+          nationalIdNumber: resolvedNationalIdNumber,
+          firstName,
+          lastName,
+          emailAddress: normalizedEmail,
+          phoneNumber: resolvedPhoneNumber,
+        });
+
+        const account: LoginAccount = {
+          emailAddress: normalizedEmail,
+          password,
+          linkedNationalIdNumber: citizen.nationalIdNumber,
+          profile: {
+            id: `citizen-${crypto.randomUUID()}`,
+            displayName: resolvedDisplayName,
+            role: 'Citizen',
+            workspacePath: '/citizen',
+          },
+        };
+
+        if (faceDescriptor) {
+          await authClient.enrollBiometric(citizen.id, {
+            method: 'Face scan',
+            deviceLabel: 'Browser camera',
+            descriptor: faceDescriptor,
+          });
+          rememberBiometricCitizenLink(account.profile.id, citizen.id);
+        }
+
+        saveRegisteredAccount(account);
+        window.localStorage.setItem(authStorageKey, JSON.stringify(account.profile));
+        dispatch(signInSuccess(account.profile));
+        return account.profile;
+      } catch (error) {
+        dispatch(signInError(error instanceof Error ? error.message : 'Account registration failed.'));
+        return null;
+      }
+    },
     registerPasskey: async (emailAddress: string, password: string) => {
       dispatch(signInPending());
 
@@ -77,8 +256,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           return null;
         }
 
-        const account = loginAccounts.find((item) =>
-          item.emailAddress.toLowerCase() === emailAddress.trim().toLowerCase() &&
+        const normalizedEmail = normalizeEmail(emailAddress);
+        const account = getLoginAccounts().find((item) =>
+          item.emailAddress.toLowerCase() === normalizedEmail &&
           item.password === password,
         );
 
@@ -91,10 +271,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const credential = await navigator.credentials.create({
           publicKey: {
             challenge: base64UrlDecode(options.challenge),
-            rp: {
-              id: getEffectiveRpId(options.rpId),
-              name: options.rpName,
-            },
+            rp: getRelyingParty(options.rpId, options.rpName),
             user: {
               id: base64UrlDecode(options.userId),
               name: options.userName,
@@ -147,6 +324,63 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return null;
       }
     },
+    createDepartmentLoginAccount: (
+      departmentCode: DepartmentCode,
+      departmentUserId: string,
+      displayName: string,
+      emailAddress: string,
+      password: string,
+    ) => {
+      const currentUser = loadStoredUser();
+      const normalizedEmail = normalizeEmail(emailAddress);
+      const resolvedDisplayName = displayName.trim();
+      const departmentProfile = departmentProfileByCode[departmentCode];
+
+      if (currentUser?.role !== 'Admin') {
+        dispatch(signInError('Only an admin can create department login accounts.'));
+        return null;
+      }
+
+      if (!departmentProfile) {
+        dispatch(signInError('Only Home Affairs, SARS, and Municipality officer logins are supported in this demo.'));
+        return null;
+      }
+
+      if (!departmentUserId) {
+        dispatch(signInError('Create the backend department user before provisioning login access.'));
+        return null;
+      }
+
+      if (!resolvedDisplayName || !normalizedEmail) {
+        dispatch(signInError('Department login requires a name and email address.'));
+        return null;
+      }
+
+      if (password.length < 8) {
+        dispatch(signInError('Use a temporary password with at least 8 characters.'));
+        return null;
+      }
+
+      const accountExists = getLoginAccounts().some((item) => item.emailAddress.toLowerCase() === normalizedEmail);
+      if (accountExists) {
+        dispatch(signInError('A login account already exists for this email address.'));
+        return null;
+      }
+
+      const account: LoginAccount = {
+        emailAddress: normalizedEmail,
+        password,
+        profile: {
+          id: departmentUserId,
+          displayName: resolvedDisplayName,
+          ...departmentProfile,
+        },
+      };
+
+      saveRegisteredAccount(account);
+      dispatch(signInSuccess(currentUser));
+      return account.profile;
+    },
     signInWithPasskey: async (emailAddress: string) => {
       dispatch(signInPending());
 
@@ -157,8 +391,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           return null;
         }
 
-        const account = loginAccounts.find((item) =>
-          item.emailAddress.toLowerCase() === emailAddress.trim().toLowerCase(),
+        const normalizedEmail = normalizeEmail(emailAddress);
+        const account = getLoginAccounts().find((item) =>
+          item.emailAddress.toLowerCase() === normalizedEmail,
         );
 
         if (!account) {
@@ -168,16 +403,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         const options = await authClient.beginPasskeyLogin(account.emailAddress);
         const assertion = await navigator.credentials.get({
-          publicKey: {
-            challenge: base64UrlDecode(options.challenge),
-            rpId: getEffectiveRpId(options.rpId),
-            allowCredentials: options.allowedCredentialIds.map((credentialId) => ({
-              type: 'public-key',
-              id: base64UrlDecode(credentialId),
-            })),
-            userVerification: 'required',
-            timeout: options.timeoutMs,
-          },
+          publicKey: getAssertionOptions(options),
         });
 
         if (!(assertion instanceof PublicKeyCredential) ||
@@ -207,9 +433,70 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return null;
       }
     },
+    signInWithFace: async (emailAddress: string, descriptor: string) => {
+      dispatch(signInPending());
+
+      try {
+        const normalizedEmail = normalizeEmail(emailAddress);
+        const account = getLoginAccounts().find((item) =>
+          item.emailAddress.toLowerCase() === normalizedEmail,
+        );
+
+        if (!account) {
+          dispatch(signInError('Enter a known account email address before using face login.'));
+          return null;
+        }
+
+        const citizens = await authClient.getCitizens();
+        const linkedCitizenId = getStoredBiometricCitizenLink(account.profile.id);
+        const citizen = citizens.find((item) =>
+          item.id === linkedCitizenId ||
+          item.emailAddress.toLowerCase() === normalizedEmail ||
+          item.nationalIdNumber === account.linkedNationalIdNumber,
+        );
+
+        if (!citizen) {
+          dispatch(signInError('No citizen record is linked to this account. Confirm the demo citizen exists on Home Affairs.'));
+          return null;
+        }
+
+        if (!citizen.biometricReference?.includes(faceApiDescriptorPrefix)) {
+          dispatch(signInError('This citizen record does not have an enrolled face biometric. Sign in normally, open the Citizen Portal, and use Enroll face first.'));
+          return null;
+        }
+
+        const result = await authClient.verifyBiometric(citizen.id, {
+          method: 'Face scan',
+          deviceLabel: 'Browser camera',
+          descriptor,
+        });
+
+        if (!result.isVerified) {
+          dispatch(signInError(result.message || 'Face login was rejected by the server.'));
+          return null;
+        }
+
+        window.localStorage.setItem(authStorageKey, JSON.stringify(account.profile));
+        dispatch(signInSuccess(account.profile));
+        return account.profile;
+      } catch (error) {
+        dispatch(signInError(error instanceof Error ? error.message : 'Face login failed.'));
+        return null;
+      }
+    },
     signOut: () => {
       window.localStorage.removeItem(authStorageKey);
       dispatch(signOutSuccess());
+    },
+    verifyCurrentPassword: (accountId: string | undefined, password: string) => {
+      if (!accountId || !password) {
+        return false;
+      }
+
+      return getLoginAccounts().some((item) =>
+        item.profile.id === accountId &&
+        item.password === password,
+      );
     },
   }), []);
 

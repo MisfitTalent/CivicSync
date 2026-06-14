@@ -20,7 +20,14 @@ public sealed class AuthController : ControllerBase
         BeginPasskeyRegistrationRequest request,
         CancellationToken cancellationToken)
     {
-        return Ok(await _passkeyAuthService.BeginRegistrationAsync(request, cancellationToken));
+        try
+        {
+            return Ok(await _passkeyAuthService.BeginRegistrationAsync(request, cancellationToken));
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(exception.Message);
+        }
     }
 
     [HttpPost("registration/verify")]
@@ -28,7 +35,14 @@ public sealed class AuthController : ControllerBase
         CompletePasskeyRegistrationRequest request,
         CancellationToken cancellationToken)
     {
-        return Ok(await _passkeyAuthService.CompleteRegistrationAsync(request, cancellationToken));
+        try
+        {
+            return Ok(await _passkeyAuthService.CompleteRegistrationAsync(request, cancellationToken));
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(exception.Message);
+        }
     }
 
     [HttpPost("login/options")]
@@ -36,7 +50,14 @@ public sealed class AuthController : ControllerBase
         BeginPasskeyLoginRequest request,
         CancellationToken cancellationToken)
     {
-        return Ok(await _passkeyAuthService.BeginLoginAsync(request, cancellationToken));
+        try
+        {
+            return Ok(await _passkeyAuthService.BeginLoginAsync(request, cancellationToken));
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(exception.Message);
+        }
     }
 
     [HttpPost("login/verify")]
@@ -44,6 +65,13 @@ public sealed class AuthController : ControllerBase
         CompletePasskeyLoginRequest request,
         CancellationToken cancellationToken)
     {
-        return Ok(await _passkeyAuthService.CompleteLoginAsync(request, cancellationToken));
+        try
+        {
+            return Ok(await _passkeyAuthService.CompleteLoginAsync(request, cancellationToken));
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(exception.Message);
+        }
     }
 }

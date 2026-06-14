@@ -18,7 +18,7 @@
         "Node__Peers__1__DepartmentCode": "Municipality",
         "Node__Peers__1__ApiBaseUrl": "http://localhost:5078",
         "Node__Peers__1__SharedSecret": "development-node-sync-secret",
-        "ConnectionStrings__CivicSyncNode": "Server=localhost;Database=CivicSync_HomeAffairs;Trusted_Connection=True;TrustServerCertificate=True"
+        "ConnectionStrings__CivicSyncNode": "Server=localhost,1433;Database=CivicSync_HomeAffairs;User Id=sa;Password=Your_strong_password123;TrustServerCertificate=True"
       }
     },
     "Sars": {
@@ -38,7 +38,7 @@
         "Node__Peers__1__DepartmentCode": "Municipality",
         "Node__Peers__1__ApiBaseUrl": "http://localhost:5078",
         "Node__Peers__1__SharedSecret": "development-node-sync-secret",
-        "ConnectionStrings__CivicSyncNode": "Server=localhost;Database=CivicSync_Sars;Trusted_Connection=True;TrustServerCertificate=True"
+        "ConnectionStrings__CivicSyncNode": "Server=localhost,1433;Database=CivicSync_Sars;User Id=sa;Password=Your_strong_password123;TrustServerCertificate=True"
       }
     },
     "Municipality": {
@@ -58,7 +58,7 @@
         "Node__Peers__1__DepartmentCode": "Sars",
         "Node__Peers__1__ApiBaseUrl": "http://localhost:5077",
         "Node__Peers__1__SharedSecret": "development-node-sync-secret",
-        "ConnectionStrings__CivicSyncNode": "Server=localhost;Database=CivicSync_Municipality;Trusted_Connection=True;TrustServerCertificate=True"
+        "ConnectionStrings__CivicSyncNode": "Server=localhost,1433;Database=CivicSync_Municipality;User Id=sa;Password=Your_strong_password123;TrustServerCertificate=True"
       }
     }
   }

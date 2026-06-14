@@ -37,8 +37,10 @@ public sealed class NodeDataSeederTests
         Assert.Equal(8, dbContext.DepartmentUsers.Local.Count);
         Assert.Equal(2, dbContext.Citizens.Local.Count);
         var seededCitizen = Assert.Single(dbContext.Citizens.Local, item => item.NationalIdNumber == "0008289830183");
+        Assert.Equal("citizen@civicsync.local", seededCitizen.ContactDetails.EmailAddress);
         Assert.Equal("28 August 2000", seededCitizen.DateOfBirth);
         Assert.Equal("M12345678", seededCitizen.PassportNumber);
+        Assert.Equal(string.Empty, seededCitizen.BiometricReference);
         Assert.Equal("9876543210", seededCitizen.TaxNumber);
         Assert.Equal("14 Ubuntu Street, Soweto, 1804", seededCitizen.ResidentialAddress);
         Assert.Equal("MUN-2024-88821", seededCitizen.RatesAccount);
@@ -46,5 +48,30 @@ public sealed class NodeDataSeederTests
         Assert.Contains("investment returns", seededCitizen.IncomeAndInvestmentProfile);
         Assert.Contains("Bank interest certificates", seededCitizen.BankingAndAssets);
         Assert.All(dbContext.Citizens.Local, item => Assert.Equal(1, item.RecordVersion));
+    }
+
+    [Fact]
+    public async Task SeedAsync_PreservesRealFaceEnrollment_WhenDemoCitizenAlreadyExists()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var seeder = new NodeDataSeeder(
+            new TestRepository<DepartmentNode>(dbContext),
+            new TestRepository<DepartmentUser>(dbContext),
+            new TestRepository<Citizen>(dbContext),
+            Options.Create(new NodeOptions
+            {
+                DepartmentCode = DepartmentCode.HomeAffairs,
+                ApiBaseUrl = "http://localhost:5076",
+                Peers = []
+            }));
+
+        await seeder.SeedAsync();
+        var seededCitizen = Assert.Single(dbContext.Citizens.Local, item => item.NationalIdNumber == "0008289830183");
+        seededCitizen.BiometricReference = "Face scan enrolled on Browser camera|face-api-recognition-v1:stored-template";
+
+        await seeder.SeedAsync();
+
+        Assert.Equal("citizen@civicsync.local", seededCitizen.ContactDetails.EmailAddress);
+        Assert.Equal("Face scan enrolled on Browser camera|face-api-recognition-v1:stored-template", seededCitizen.BiometricReference);
     }
 }

@@ -1,10 +1,20 @@
 import { createContext } from 'react';
-import type { ChangeRequest, Citizen, DepartmentUser, LedgerEntry, NodeInfo, NodeOption, SyncInboxEntry, SyncOutboxEvent, SyncReceipt } from '../../api/types';
+import type { ChangeRequest, Citizen, CreateDepartmentUserRequest, DepartmentUser, LedgerEntry, NodeInfo, NodeOption, SyncInboxEntry, SyncOutboxEvent, SyncReceipt } from '../../api/types';
+
+const getNodeUrl = (key: string, fallback: string) => {
+  const values: Record<string, string | undefined> = {
+    NEXT_PUBLIC_CIVICSYNC_HOME_AFFAIRS_API_URL: process.env.NEXT_PUBLIC_CIVICSYNC_HOME_AFFAIRS_API_URL,
+    NEXT_PUBLIC_CIVICSYNC_SARS_API_URL: process.env.NEXT_PUBLIC_CIVICSYNC_SARS_API_URL,
+    NEXT_PUBLIC_CIVICSYNC_MUNICIPALITY_API_URL: process.env.NEXT_PUBLIC_CIVICSYNC_MUNICIPALITY_API_URL,
+  };
+  const value = values[key];
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim().replace(/\/$/, '') : fallback;
+};
 
 export const nodes: NodeOption[] = [
-  { name: 'Home Affairs', departmentCode: 1, baseUrl: 'http://localhost:5076' },
-  { name: 'SARS', departmentCode: 2, baseUrl: 'http://localhost:5077' },
-  { name: 'Municipality', departmentCode: 3, baseUrl: 'http://localhost:5078' },
+  { name: 'Home Affairs', departmentCode: 1, baseUrl: getNodeUrl('NEXT_PUBLIC_CIVICSYNC_HOME_AFFAIRS_API_URL', 'http://localhost:5076') },
+  { name: 'SARS', departmentCode: 2, baseUrl: getNodeUrl('NEXT_PUBLIC_CIVICSYNC_SARS_API_URL', 'http://localhost:5077') },
+  { name: 'Municipality', departmentCode: 3, baseUrl: getNodeUrl('NEXT_PUBLIC_CIVICSYNC_MUNICIPALITY_API_URL', 'http://localhost:5078') },
 ];
 
 export const statusText: Record<number, string> = {
@@ -33,10 +43,14 @@ export interface ChangeFormState {
   newPhoneNumber: string;
 }
 
-export interface SubmitFieldChangeInput {
+export interface SubmitFieldChangeValueInput {
   fieldName: string;
   newValue: string;
+}
+
+export interface SubmitFieldChangeInput extends SubmitFieldChangeValueInput {
   reason: string;
+  fieldChanges?: SubmitFieldChangeValueInput[];
   evidenceFiles?: Array<{
     fileName: string;
     contentType: string;
@@ -77,6 +91,7 @@ export interface CivicSyncActionContextValue {
   updateChangeForm: (values: Partial<ChangeFormState>) => void;
   refreshAll: () => Promise<void>;
   createCitizen: () => Promise<void>;
+  createDepartmentUser: (request: CreateDepartmentUserRequest) => Promise<DepartmentUser>;
   submitChangeRequest: () => Promise<void>;
   submitFieldChangeRequest: (request: SubmitFieldChangeInput) => Promise<string>;
   requestApproval: (requestId?: string) => Promise<void>;

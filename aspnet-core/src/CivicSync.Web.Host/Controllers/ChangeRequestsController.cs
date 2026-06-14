@@ -1,5 +1,6 @@
 using CivicSync.Application.Services.ChangeRequests;
 using CivicSync.Application.Services.Ledger;
+using CivicSync.Application.Services.Sync;
 using CivicSync.Application.Contracts.ChangeRequests;
 using CivicSync.Application.Contracts.Ledger;
 using Microsoft.AspNetCore.Mvc;
@@ -12,13 +13,19 @@ public sealed class ChangeRequestsController : ControllerBase
 {
     private readonly IChangeRequestService _changeRequestService;
     private readonly ILedgerService _ledgerService;
+    private readonly ISyncService _syncService;
+    private readonly ILogger<ChangeRequestsController> _logger;
 
     public ChangeRequestsController(
         IChangeRequestService changeRequestService,
-        ILedgerService ledgerService)
+        ILedgerService ledgerService,
+        ISyncService syncService,
+        ILogger<ChangeRequestsController> logger)
     {
         _changeRequestService = changeRequestService;
         _ledgerService = ledgerService;
+        _syncService = syncService;
+        _logger = logger;
     }
 
     [HttpPost]
@@ -84,6 +91,14 @@ public sealed class ChangeRequestsController : ControllerBase
     public async Task<ActionResult<CommitChangeRequestResponse>> CommitAsync(Guid id, CancellationToken cancellationToken)
     {
         var response = await _ledgerService.CommitChangeRequestAsync(id, cancellationToken);
+        try
+        {
+            await _syncService.PublishPendingOutboxEventsAsync(cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(exception, "Change request {ChangeRequestId} was committed but immediate peer sync failed.", id);
+        }
 
         return Ok(response);
     }

@@ -18,6 +18,12 @@ This folder contains the ASP.NET/ABP backend implementation for the CivicSync Le
 - Sync inbox/outbox flow for peer delivery
 - xUnit backend tests
 
+## Frontend Scope
+
+- Next.js frontend with TypeScript
+- Client-side portal routes for citizen, department, and admin workspaces
+- Configurable node API URLs through `NEXT_PUBLIC_CIVICSYNC_*` environment variables
+
 ## Biometric Authentication
 
 CivicSync uses browser WebAuthn/passkeys for real device biometric sign-in in the frontend demo. The browser asks the operating system authenticator, such as Windows Hello, Face ID, or fingerprint, to unlock a passkey. CivicSync never receives raw face or fingerprint images.
@@ -27,6 +33,24 @@ The backend issues one-time passkey challenges, stores registered public keys, a
 The existing face-camera enrollment remains a prototype citizen verification workflow. For real login, use the passkey buttons on the sign-in page.
 
 ## Local Development
+
+### Fresh PC Setup
+
+Install these first:
+
+- .NET 10 SDK
+- Node.js 22 LTS or newer
+- Docker Desktop with the Linux engine running
+
+Clone the repo, then run:
+
+```powershell
+npm install --prefix .\Frontend
+$env:CIVICSYNC_SQL_PASSWORD = "Your_strong_password123"
+.\scripts\setup-local-demo.ps1
+```
+
+This starts SQL Server in Docker, creates all three node databases, runs EF migrations, and seeds demo data.
 
 Use the launch profiles in `aspnet-core/src/CivicSync.Web.Host/Properties/launchSettings.json` to run separate nodes:
 
@@ -51,17 +75,18 @@ CivicSync uses one SQL Server database per department node for the local decentr
 - `CivicSync_Sars`
 - `CivicSync_Municipality`
 
-Run all node migrations and seed data with Windows Authentication:
+Start a local SQL Server container:
 
 ```powershell
-.\scripts\migrate-all-nodes.ps1
+$env:CIVICSYNC_SQL_PASSWORD = "Your_strong_password123"
+.\scripts\start-local-sql-server.ps1
 ```
 
-Run all node migrations against a SQL Server container or SQL login:
+Run all node migrations and seed data:
 
 ```powershell
-$env:CIVICSYNC_SQL_PASSWORD = "your-local-sa-password"
-.\scripts\migrate-all-nodes.ps1 -SqlServer "localhost,1433" -UseSqlLogin
+$env:CIVICSYNC_SQL_PASSWORD = "Your_strong_password123"
+.\scripts\migrate-all-nodes.ps1
 ```
 
 Run one node migration only:
@@ -72,7 +97,7 @@ Run one node migration only:
 .\scripts\migrate-node.ps1 -Node Municipality
 ```
 
-After migration, confirm in SQL Server Management Studio that the three databases exist and contain seeded `DepartmentNodes`, `Citizens`, and peer configuration.
+After migration, confirm in SQL Server Management Studio, Azure Data Studio, or your SQL Server dashboard that the three databases exist and contain seeded `DepartmentNodes`, `Citizens`, and peer configuration.
 
 ## Running The Demo
 
@@ -97,4 +122,34 @@ npm run dev --prefix .\Frontend
 ```
 
 The checked-in shared secret remains development-only. For deployment, set `CIVICSYNC_NODE_SHARED_SECRET` and environment-specific SQL Server connection strings outside source control.
+
+Each node runs automatic background synchronization by default. The local demo publishes pending outbox events and applies pending inbox entries every 15 seconds, while the frontend polls node data every 5 seconds so record, request, ledger, inbox, and outbox views update without pressing Refresh.
+
+## SQL Server Deployment
+
+Hosted deployments use SQL Server or Azure SQL Database instead of local Docker SQL Server. Keep the same one-database-per-node model:
+
+- `CivicSync_HomeAffairs`
+- `CivicSync_Sars`
+- `CivicSync_Municipality`
+
+Configure each node with its own hosted SQL Server connection string:
+
+```text
+ConnectionStrings__CivicSyncNode=Server=<server>;Database=<database>;User Id=<user>;Password=<secret>;TrustServerCertificate=True
+```
+
+Full setup details are in [`docs/sql-server-deployment.md`](docs/sql-server-deployment.md).
+
+## PostgreSQL Deployment Profile
+
+The SQL Server profile is the official submission profile. A PostgreSQL profile is also available for public hosting where SQL Server is not available. Enable it with:
+
+```text
+Database__Provider=PostgreSql
+```
+
+The Render/free-tier PostgreSQL shape uses one hosted database with three schemas: `homeaffairs`, `sars`, and `municipality`.
+
+Full setup details are in [`docs/postgresql-deployment.md`](docs/postgresql-deployment.md).
 

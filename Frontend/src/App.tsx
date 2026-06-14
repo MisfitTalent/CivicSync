@@ -1,8 +1,9 @@
+'use client';
+
 import { ConfigProvider } from 'antd';
 import { BrowserRouter } from 'react-router-dom';
 import { AppProviders } from './providers';
 import AppRoutes from './routes';
-import './styles/global.css';
 
 const App = () => (
   <ConfigProvider

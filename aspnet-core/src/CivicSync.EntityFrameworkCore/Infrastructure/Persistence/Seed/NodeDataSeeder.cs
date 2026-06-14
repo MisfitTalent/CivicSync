@@ -11,6 +11,8 @@ namespace CivicSync.EntityFrameworkCore.Infrastructure.Persistence.Seed;
 
 public sealed class NodeDataSeeder
 {
+    private const string FaceEmbeddingDescriptorPrefix = "face-api-recognition-v1:";
+
     private readonly IRepository<DepartmentNode, Guid> _departmentNodeRepository;
     private readonly IRepository<DepartmentUser, Guid> _departmentUserRepository;
     private readonly IRepository<Citizen, Guid> _citizenRepository;
@@ -206,11 +208,10 @@ public sealed class NodeDataSeeder
                 localDepartmentNodeId,
                 "0008289830183",
                 new PersonName("Kagiso Thabo Edwin", "Tsiane"),
-                new ContactDetails("teboho.moloi@gmail.com", "0824774749"))
+                new ContactDetails("citizen@civicsync.local", "0824774749"))
             {
                 DateOfBirth = "28 August 2000",
                 PassportNumber = "M12345678",
-                BiometricReference = "Fingerprint and facial scan enrolled",
                 RelationshipStatus = "Civil registry relationships verified",
                 TaxNumber = "9876543210",
                 EmploymentHistory = "IRP5 employer payroll history available from SARS third-party submissions",
@@ -243,11 +244,15 @@ public sealed class NodeDataSeeder
 
     private static void CopyDemoProfile(Citizen existingCitizen, Citizen demoCitizen)
     {
+        var enrolledFaceReference = existingCitizen.BiometricReference;
+
         existingCitizen.FullName = demoCitizen.FullName;
         existingCitizen.ContactDetails = demoCitizen.ContactDetails;
         existingCitizen.DateOfBirth = demoCitizen.DateOfBirth;
         existingCitizen.PassportNumber = demoCitizen.PassportNumber;
-        existingCitizen.BiometricReference = demoCitizen.BiometricReference;
+        existingCitizen.BiometricReference = IsFaceApiEnrollment(enrolledFaceReference)
+            ? enrolledFaceReference
+            : demoCitizen.BiometricReference;
         existingCitizen.RelationshipStatus = demoCitizen.RelationshipStatus;
         existingCitizen.TaxNumber = demoCitizen.TaxNumber;
         existingCitizen.EmploymentHistory = demoCitizen.EmploymentHistory;
@@ -256,5 +261,11 @@ public sealed class NodeDataSeeder
         existingCitizen.ResidentialAddress = demoCitizen.ResidentialAddress;
         existingCitizen.RatesAccount = demoCitizen.RatesAccount;
         existingCitizen.MunicipalServiceStatus = demoCitizen.MunicipalServiceStatus;
+    }
+
+    private static bool IsFaceApiEnrollment(string biometricReference)
+    {
+        return !string.IsNullOrWhiteSpace(biometricReference)
+            && biometricReference.Contains(FaceEmbeddingDescriptorPrefix, StringComparison.OrdinalIgnoreCase);
     }
 }

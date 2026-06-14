@@ -35,21 +35,24 @@ public sealed class CivicSyncWebHostModule : AbpModule
         var services = context.Services;
 
         services.AddControllers();
+        var corsOptions = configuration
+            .GetSection(CorsOptions.SectionName)
+            .Get<CorsOptions>() ?? new CorsOptions();
+
         services.AddCors(options =>
         {
             options.AddPolicy("CivicSyncFrontend", policy =>
             {
-                policy.WithOrigins(
-                        "http://localhost:5173",
-                        "https://localhost:5173",
-                        "http://127.0.0.1:5173",
-                        "https://127.0.0.1:5173")
+                policy.WithOrigins(corsOptions.AllowedOrigins)
                     .AllowAnyHeader()
                     .AllowAnyMethod();
             });
         });
         services.Configure<NodeOptions>(configuration.GetSection(NodeOptions.SectionName));
+        services.Configure<AutomaticSyncOptions>(configuration.GetSection(AutomaticSyncOptions.SectionName));
         services.Configure<ApiKeyOptions>(configuration.GetSection(ApiKeyOptions.SectionName));
+        services.Configure<PasskeyOptions>(configuration.GetSection(PasskeyOptions.SectionName));
+        services.Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.SectionName));
 
         services.AddScoped<NodeDataSeeder>();
         services.AddScoped<IPasskeyAuthService, PasskeyAuthService>();

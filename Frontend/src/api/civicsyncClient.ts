@@ -10,6 +10,7 @@ import type {
   CompletePasskeyRegistrationRequest,
   CommitChangeResponse,
   CreateCitizenRequest,
+  CreateDepartmentUserRequest,
   DepartmentUser,
   LedgerEntry,
   NodeInfo,
@@ -72,6 +73,10 @@ export class CivicSyncClient {
 
   async getDepartmentUsers() {
     return this.get<DepartmentUser[]>('/api/department-users');
+  }
+
+  async createDepartmentUser(request: CreateDepartmentUserRequest) {
+    return this.post<DepartmentUser>('/api/department-users', request);
   }
 
   async getChangeRequests() {

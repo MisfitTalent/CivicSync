@@ -71,6 +71,12 @@ export interface DepartmentUser {
   isActive: boolean;
 }
 
+export interface CreateDepartmentUserRequest {
+  fullName: string;
+  role: string;
+  emailAddress: string;
+}
+
 export interface FieldChange {
   id: string;
   fieldName: string;

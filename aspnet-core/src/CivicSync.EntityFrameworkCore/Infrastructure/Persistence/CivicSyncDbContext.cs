@@ -1,3 +1,5 @@
+using System.Data.Common;
+using System.Text.RegularExpressions;
 using CivicSync.Core.Domain.Auth;
 using CivicSync.Core.Domain.ChangeRequests;
 using CivicSync.Core.Domain.Citizens;
@@ -15,6 +17,8 @@ namespace CivicSync.EntityFrameworkCore.Infrastructure.Persistence;
 [ConnectionStringName("CivicSyncNode")]
 public sealed class CivicSyncDbContext : AbpDbContext<CivicSyncDbContext>
 {
+    private static readonly Regex PostgreSqlSchemaNamePattern = new("^[A-Za-z_][A-Za-z0-9_]*$", RegexOptions.Compiled);
+
     public CivicSyncDbContext(DbContextOptions<CivicSyncDbContext> options)
         : base(options)
     {
@@ -40,6 +44,12 @@ public sealed class CivicSyncDbContext : AbpDbContext<CivicSyncDbContext>
     {
         base.OnModelCreating(modelBuilder);
 
+        var postgresSchema = TryNormalizePostgreSqlSchema(Environment.GetEnvironmentVariable("Database__PostgreSqlSchema"));
+        if (!string.IsNullOrWhiteSpace(postgresSchema))
+        {
+            modelBuilder.HasDefaultSchema(postgresSchema);
+        }
+
         ConfigureDepartmentNode(modelBuilder);
         ConfigurePasskeyCredential(modelBuilder);
         ConfigurePasskeyChallenge(modelBuilder);
@@ -55,6 +65,43 @@ public sealed class CivicSyncDbContext : AbpDbContext<CivicSyncDbContext>
         ConfigureSyncOutboxEvent(modelBuilder);
         ConfigureSyncInboxEntry(modelBuilder);
         ConfigureNodeSyncReceipt(modelBuilder);
+    }
+
+    public static string? TryGetPostgreSqlSchema(string? providerName, string? connectionString)
+    {
+        if (string.IsNullOrWhiteSpace(providerName)
+            || !providerName.Contains("Npgsql", StringComparison.OrdinalIgnoreCase)
+            || string.IsNullOrWhiteSpace(connectionString))
+        {
+            return null;
+        }
+
+        var builder = new DbConnectionStringBuilder
+        {
+            ConnectionString = connectionString
+        };
+
+        foreach (var key in builder.Keys.Cast<string>())
+        {
+            if (!string.Equals(key, "Search Path", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(key, "SearchPath", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var schema = builder[key]?.ToString()?.Split(',')[0].Trim().Trim('"');
+            return TryNormalizePostgreSqlSchema(schema);
+        }
+
+        return null;
+    }
+
+    public static string? TryNormalizePostgreSqlSchema(string? schema)
+    {
+        schema = schema?.Trim().Trim('"');
+        return !string.IsNullOrWhiteSpace(schema) && PostgreSqlSchemaNamePattern.IsMatch(schema)
+            ? schema
+            : null;
     }
 
     private static void ConfigureDepartmentNode(ModelBuilder modelBuilder)
@@ -83,7 +130,7 @@ public sealed class CivicSyncDbContext : AbpDbContext<CivicSyncDbContext>
             entity.HasKey(item => item.Id);
             entity.Property(item => item.EmailAddress).HasMaxLength(256).IsRequired();
             entity.Property(item => item.CredentialId).HasMaxLength(500).IsRequired();
-            entity.Property(item => item.PublicKey).HasColumnType("nvarchar(max)").IsRequired();
+            entity.Property(item => item.PublicKey).IsRequired();
             entity.Property(item => item.PublicKeyAlgorithm).IsRequired();
             entity.Property(item => item.DisplayName).HasMaxLength(200).IsRequired();
             entity.Property(item => item.SignCount).IsRequired();
@@ -179,7 +226,7 @@ public sealed class CivicSyncDbContext : AbpDbContext<CivicSyncDbContext>
         {
             entity.ToTable("CitizenReplicas");
             entity.HasKey(item => item.Id);
-            entity.Property(item => item.SharedDataJson).HasColumnType("nvarchar(max)").IsRequired();
+            entity.Property(item => item.SharedDataJson).IsRequired();
             entity.Property(item => item.SyncStatus).HasConversion<string>().HasMaxLength(50).IsRequired();
             entity.HasIndex(item => new { item.DepartmentNodeId, item.CitizenId }).IsUnique();
         });
@@ -220,7 +267,7 @@ public sealed class CivicSyncDbContext : AbpDbContext<CivicSyncDbContext>
             entity.Property(item => item.ContentType).HasMaxLength(100).IsRequired();
             entity.Property(item => item.SizeBytes).IsRequired();
             entity.Property(item => item.ContentHash).HasMaxLength(128).IsRequired();
-            entity.Property(item => item.Content).HasColumnType("varbinary(max)").IsRequired();
+            entity.Property(item => item.Content).IsRequired();
             entity.HasIndex(item => item.ChangeRequestId);
         });
     }
@@ -293,7 +340,7 @@ public sealed class CivicSyncDbContext : AbpDbContext<CivicSyncDbContext>
             entity.ToTable("SyncInboxEntries");
             entity.HasKey(item => item.Id);
             entity.Property(item => item.CitizenNationalIdNumber).HasMaxLength(30).IsRequired();
-            entity.Property(item => item.FieldChangesJson).HasColumnType("nvarchar(max)").IsRequired();
+            entity.Property(item => item.FieldChangesJson).IsRequired();
             entity.Property(item => item.Status).HasConversion<string>().HasMaxLength(50).IsRequired();
             entity.HasIndex(item => new { item.DepartmentNodeId, item.LedgerEntryId }).IsUnique();
         });

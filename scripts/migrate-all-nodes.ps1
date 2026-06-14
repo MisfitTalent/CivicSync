@@ -1,7 +1,5 @@
 param(
-    [string]$SqlServer = "localhost",
-
-    [switch]$UseSqlLogin,
+    [string]$SqlServer = "localhost,1433",
 
     [string]$SqlUser = "sa",
 
@@ -21,11 +19,8 @@ foreach ($node in $nodes) {
         "-SqlUser", $SqlUser
     )
 
-    if ($UseSqlLogin) {
-        $args += "-UseSqlLogin"
-        if (-not [string]::IsNullOrWhiteSpace($SqlPassword)) {
-            $args += @("-SqlPassword", $SqlPassword)
-        }
+    if (-not [string]::IsNullOrWhiteSpace($SqlPassword)) {
+        $args += @("-SqlPassword", $SqlPassword)
     }
 
     & powershell @args

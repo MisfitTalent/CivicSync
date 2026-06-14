@@ -2,6 +2,7 @@
 import type { DepartmentCode } from '../../api/types';
 
 export type UserRole = 'Citizen' | 'HomeAffairsOfficer' | 'SarsOfficer' | 'MunicipalityOfficer' | 'Admin';
+export type RegistrationAccountCategory = 'Citizen' | 'HomeAffairsOfficer' | 'SarsOfficer' | 'MunicipalityOfficer';
 
 export interface AppUserProfile {
   id: string;
@@ -14,6 +15,7 @@ export interface AppUserProfile {
 export interface LoginAccount {
   emailAddress: string;
   password: string;
+  linkedNationalIdNumber?: string;
   profile: AppUserProfile;
 }
 
@@ -28,17 +30,38 @@ export interface AuthStateContextValue {
 
 export interface AuthActionContextValue {
   signIn: (emailAddress: string, password: string) => AppUserProfile | null;
+  registerAccount: (
+    accountCategory: RegistrationAccountCategory,
+    displayName: string,
+    emailAddress: string,
+    password: string,
+    nationalIdNumber: string,
+    phoneNumber: string,
+    faceDescriptor?: string,
+  ) => Promise<AppUserProfile | null>;
   registerPasskey: (emailAddress: string, password: string) => Promise<AppUserProfile | null>;
+  createDepartmentLoginAccount: (
+    departmentCode: DepartmentCode,
+    departmentUserId: string,
+    displayName: string,
+    emailAddress: string,
+    password: string,
+  ) => AppUserProfile | null;
   signInWithPasskey: (emailAddress: string) => Promise<AppUserProfile | null>;
+  signInWithFace: (emailAddress: string, descriptor: string) => Promise<AppUserProfile | null>;
+  verifyCurrentPassword: (accountId: string | undefined, password: string) => boolean;
   signOut: () => void;
 }
 
 export const authStorageKey = 'civicsync.currentUser';
+export const registeredAccountsStorageKey = 'civicsync.registeredAccounts';
+export const biometricCitizenLinkStorageKey = 'civicsync.biometricCitizenLinks';
 
 export const loginAccounts: LoginAccount[] = [
   {
     emailAddress: 'citizen@civicsync.local',
     password: 'Password123!',
+    linkedNationalIdNumber: '0008282828282',
     profile: {
       id: 'citizen-user',
       displayName: 'Citizen User',

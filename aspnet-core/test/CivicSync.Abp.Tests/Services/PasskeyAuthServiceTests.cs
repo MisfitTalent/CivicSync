@@ -3,9 +3,11 @@ using System.Text;
 using System.Text.Json;
 using CivicSync.Application.Contracts.Auth;
 using CivicSync.Application.Services.Auth;
+using CivicSync.Core.Configuration;
 using CivicSync.Core.Domain.Auth;
 using CivicSync.EntityFrameworkCore.Infrastructure.Persistence;
 using CivicSync.Web.Host.Tests.TestSupport;
+using Microsoft.Extensions.Options;
 
 namespace CivicSync.Web.Host.Tests.Services;
 
@@ -180,7 +182,8 @@ public sealed class PasskeyAuthServiceTests
     {
         return new PasskeyAuthService(
             new TestRepository<PasskeyCredential>(dbContext),
-            new TestRepository<PasskeyChallenge>(dbContext));
+            new TestRepository<PasskeyChallenge>(dbContext),
+            Options.Create(new PasskeyOptions()));
     }
 
     private static string CreateClientDataJson(

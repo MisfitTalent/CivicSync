@@ -17,6 +17,7 @@ public sealed class CivicSyncMigratorModule : AbpModule
     {
         var configuration = context.Services.GetConfiguration();
 
+        context.Services.Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.SectionName));
         context.Services.Configure<NodeOptions>(configuration.GetSection(NodeOptions.SectionName));
         context.Services.AddScoped<NodeDataSeeder>();
     }

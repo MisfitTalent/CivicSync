@@ -5,7 +5,8 @@ import { nodes } from '../../providers/civicSyncProvider/context';
 import { useCivicSyncActions, useCivicSyncState } from '../../providers/civicSyncProvider';
 import { buildCitizenFieldPolicies, departmentDisplayName } from '../../utils/departmentFieldPolicy';
 
-type RequestStep = 1 | 2 | 3 | 4;
+type RequestStep = number;
+type FieldDrafts = Record<string, { newValue: string; reason: string }>;
 
 const readFileAsBase64 = (file: File) =>
   new Promise<string>((resolve, reject) => {
@@ -24,23 +25,36 @@ const RequestUpdatePage = () => {
   const navigate = useNavigate();
   const selectedCitizen = state.citizens.find((citizen) => citizen.id === state.selectedCitizenId);
   const [step, setStep] = useState<RequestStep>(1);
-  const [selectedFieldKey, setSelectedFieldKey] = useState('FullName');
-  const [newValue, setNewValue] = useState('');
-  const [reason, setReason] = useState('');
+  const [selectedFieldKeys, setSelectedFieldKeys] = useState<string[]>(['FullName']);
+  const [fieldDrafts, setFieldDrafts] = useState<FieldDrafts>({});
   const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
   const [submittedRequestId, setSubmittedRequestId] = useState('');
 
   const fieldOptions = useMemo(() => buildCitizenFieldPolicies(selectedCitizen), [selectedCitizen]);
-  const selectedField = fieldOptions.find((field) => field.key === selectedFieldKey) ?? fieldOptions[0];
-  const approvalNodes = selectedField?.approvalDepartmentCodes.map((departmentCode) => ({
+  const selectedFields = selectedFieldKeys
+    .map((fieldKey) => fieldOptions.find((field) => field.key === fieldKey))
+    .filter((field): field is NonNullable<typeof field> => Boolean(field));
+  const currentFieldIndex = step - 2;
+  const currentField = selectedFields[currentFieldIndex];
+  const documentsStep = selectedFields.length + 2;
+  const submittedStep = selectedFields.length + 3;
+  const approvalDepartmentCodes = Array.from(new Set(selectedFields.flatMap((field) => field.approvalDepartmentCodes)));
+  const approvalNodes = approvalDepartmentCodes.map((departmentCode) => ({
     departmentCode,
     name: departmentDisplayName[departmentCode],
-  })) ?? [];
-  const canContinueFromField = Boolean(selectedCitizen && selectedField?.supportedByBackend);
-  const canContinueFromValue = Boolean(newValue.trim() && reason.trim());
+  }));
+  const canContinueFromField = Boolean(selectedCitizen && selectedFields.length > 0 && selectedFields.every((field) => field.supportedByBackend));
+  const currentFieldDraft = currentField ? fieldDrafts[currentField.key] ?? { newValue: '', reason: '' } : { newValue: '', reason: '' };
+  const canContinueFromCurrentValue = Boolean(currentFieldDraft.newValue.trim() && currentFieldDraft.reason.trim());
 
   const submitRequest = async () => {
-    if (!selectedField || !canContinueFromValue) {
+    const requestedFieldChanges = selectedFields.map((field) => ({
+      fieldName: field.key,
+      newValue: (fieldDrafts[field.key]?.newValue ?? '').trim(),
+    }));
+    const reasons = selectedFields.map((field) => `${field.label}: ${(fieldDrafts[field.key]?.reason ?? '').trim()}`);
+
+    if (requestedFieldChanges.length === 0 || requestedFieldChanges.some((fieldChange) => !fieldChange.newValue) || reasons.some((reason) => reason.endsWith(': '))) {
       return;
     }
 
@@ -52,14 +66,15 @@ const RequestUpdatePage = () => {
       })));
 
       const requestId = await actions.submitFieldChangeRequest({
-        fieldName: selectedField.key,
-        newValue,
-        reason,
+        fieldName: requestedFieldChanges[0].fieldName,
+        newValue: requestedFieldChanges[0].newValue,
+        reason: reasons.join(' | '),
+        fieldChanges: requestedFieldChanges,
         evidenceFiles: encodedEvidenceFiles,
       });
 
       setSubmittedRequestId(requestId);
-      setStep(4);
+      setStep(submittedStep);
     } catch {
       return;
     }
@@ -71,6 +86,26 @@ const RequestUpdatePage = () => {
       <small>{label}</small>
     </div>
   );
+
+  const toggleSelectedField = (fieldKey: string) => {
+    setSelectedFieldKeys((currentKeys) => {
+      if (currentKeys.includes(fieldKey)) {
+        return currentKeys.filter((key) => key !== fieldKey);
+      }
+
+      return [...currentKeys, fieldKey];
+    });
+  };
+
+  const updateFieldDraft = (fieldKey: string, values: Partial<FieldDrafts[string]>) => {
+    setFieldDrafts((currentDrafts) => ({
+      ...currentDrafts,
+      [fieldKey]: {
+        ...(currentDrafts[fieldKey] ?? { newValue: '', reason: '' }),
+        ...values,
+      },
+    }));
+  };
 
   if (!selectedCitizen) {
     return (
@@ -89,23 +124,23 @@ const RequestUpdatePage = () => {
       </div>
 
       <section className="wizard-progress" aria-label="Request progress">
-        {renderStepIndicator(1, 'Select Field')}
-        {renderStepIndicator(2, 'New Value')}
-        {renderStepIndicator(3, 'Supporting Docs')}
-        {renderStepIndicator(4, 'Submitted')}
+        {renderStepIndicator(1, 'Select Fields')}
+        {selectedFields.map((field, index) => renderStepIndicator(index + 2, field.label))}
+        {renderStepIndicator(documentsStep, 'Supporting Docs')}
+        {renderStepIndicator(submittedStep, 'Submitted')}
       </section>
 
       {step === 1 && (
         <section className="panel wizard-card">
-          <h2>Which field would you like to update?</h2>
-          <p>Select a field from your citizen record. Each change routes to the department that owns or approves that data.</p>
+          <h2>Which fields would you like to update?</h2>
+          <p>Select one or more fields from your citizen record. Each selected field gets its own update page before submission.</p>
           <div className="wizard-field-grid">
             {fieldOptions.map((field) => (
               <button
-                className={`wizard-field-card ${selectedFieldKey === field.key ? 'selected' : ''}`}
+                className={`wizard-field-card ${selectedFieldKeys.includes(field.key) ? 'selected' : ''}`}
                 disabled={!field.supportedByBackend}
                 key={field.key}
-                onClick={() => setSelectedFieldKey(field.key)}
+                onClick={() => toggleSelectedField(field.key)}
                 type="button"
                 title={field.helper}
               >
@@ -115,7 +150,7 @@ const RequestUpdatePage = () => {
               </button>
             ))}
           </div>
-          {selectedField && (
+          {selectedFields.length > 0 && (
             <div className="approval-requirements">
               <strong>Requires approval from:</strong>
               <div>
@@ -132,30 +167,41 @@ const RequestUpdatePage = () => {
         </section>
       )}
 
-      {step === 2 && selectedField && (
+      {step > 1 && step < documentsStep && currentField && (
         <section className="panel wizard-card">
           <h2>Enter the new value</h2>
-          <p>Updating: <strong>{selectedField.label}</strong></p>
+          <p>Updating {currentFieldIndex + 1} of {selectedFields.length}: <strong>{currentField.label}</strong></p>
           <label>
             <span>Current value</span>
-            <input value={selectedField.value} readOnly />
+            <input value={currentField.value} readOnly />
           </label>
           <label>
             <span>New value</span>
-            <input value={newValue} onChange={(event) => setNewValue(event.target.value)} placeholder={`Enter new ${selectedField.label.toLowerCase()}...`} />
+            <input
+              value={currentFieldDraft.newValue}
+              onChange={(event) => updateFieldDraft(currentField.key, { newValue: event.target.value })}
+              placeholder={`Enter new ${currentField.label.toLowerCase()}...`}
+            />
           </label>
           <label>
             <span>Reason for change</span>
-            <textarea value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Briefly explain why this field needs to be updated..." />
+            <textarea
+              value={currentFieldDraft.reason}
+              onChange={(event) => updateFieldDraft(currentField.key, { reason: event.target.value })}
+              placeholder="Briefly explain why this field needs to be updated..."
+            />
           </label>
-          <div className="wizard-actions split"><Button onClick={() => setStep(1)}>Back</Button><Button className="primary-button" disabled={!canContinueFromValue} onClick={() => setStep(3)}>Continue</Button></div>
+          <div className="wizard-actions split">
+            <Button onClick={() => setStep(step === 2 ? 1 : step - 1)}>Back</Button>
+            <Button className="primary-button" disabled={!canContinueFromCurrentValue} onClick={() => setStep(step + 1)}>Continue</Button>
+          </div>
         </section>
       )}
 
-      {step === 3 && (
+      {step === documentsStep && (
         <section className="panel wizard-card">
           <h2>Supporting documents</h2>
-          <p>Upload proof to support your change request. Stored evidence will appear in the citizen portal and every department review dossier.</p>
+          <p>Upload proof to support {selectedFields.length === 1 ? 'this change request' : 'these change requests'}. Stored evidence will appear in the citizen portal and every department review dossier.</p>
           <label className="document-dropzone">
             <span>Drop your document here or browse files</span>
             <small>PDF, JPG, PNG - max 10MB</small>
@@ -175,19 +221,19 @@ const RequestUpdatePage = () => {
             </div>
           )}
           <div className="popia-warning">Your document is treated as encrypted proof. Only departments authorized to approve this field should access it.</div>
-          <div className="wizard-actions split"><Button onClick={() => setStep(2)}>Back</Button><Button className="primary-button" disabled={state.isLoading} onClick={submitRequest}>Submit Request</Button></div>
+          <div className="wizard-actions split"><Button onClick={() => setStep(documentsStep - 1)}>Back</Button><Button className="primary-button" disabled={state.isLoading} onClick={submitRequest}>Submit Request</Button></div>
         </section>
       )}
 
-      {step === 4 && selectedField && (
+      {step === submittedStep && selectedFields.length > 0 && (
         <section className="panel wizard-card submitted-card">
           <div className="submitted-icon">✓</div>
           <h2>Request Submitted</h2>
           <p>Your update request has been sent to the active department node for approval and ledger processing.</p>
           <div className="submission-summary">
             <span><small>Request Status</small><strong>{(submittedRequestId || state.selectedRequestId) ? 'Submitted for review' : 'Pending refresh'}</strong></span>
-            <span><small>Field</small><strong>{selectedField.label}</strong></span>
-            <span><small>New Value</small><strong>{newValue}</strong></span>
+            <span><small>Fields</small><strong>{selectedFields.map((field) => field.label).join(', ')}</strong></span>
+            <span><small>Changes</small><strong>{selectedFields.length}</strong></span>
             <span><small>Evidence</small><strong>{evidenceFiles.length > 0 ? `${evidenceFiles.length} file${evidenceFiles.length === 1 ? '' : 's'} stored` : 'No file attached'}</strong></span>
             <span><small>Expected</small><strong>After department approval</strong></span>
           </div>

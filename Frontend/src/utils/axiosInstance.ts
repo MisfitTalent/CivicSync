@@ -1,4 +1,4 @@
-const API_KEY = import.meta.env.VITE_CIVICSYNC_API_KEY || 'development-civicsync-api-key';
+const API_KEY = process.env.NEXT_PUBLIC_CIVICSYNC_API_KEY || 'development-civicsync-api-key';
 
 interface CivicSyncHttpResponse<T> {
   data: T;

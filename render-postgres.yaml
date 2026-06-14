@@ -1,0 +1,151 @@
+services:
+  - type: web
+    name: civicsync-home-affairs-api
+    runtime: docker
+    plan: free
+    rootDir: aspnet-core
+    dockerfilePath: ./Dockerfile.web
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: Database__Provider
+        value: PostgreSql
+      - key: Database__PostgreSqlSchema
+        value: homeaffairs
+      - key: Node__DepartmentCode
+        value: HomeAffairs
+      - key: Node__ApiBaseUrl
+        sync: false
+      - key: Node__SharedSecret
+        sync: false
+      - key: Node__MaxSyncPublishAttempts
+        value: "3"
+      - key: Node__Peers__0__DepartmentCode
+        value: Sars
+      - key: Node__Peers__0__ApiBaseUrl
+        sync: false
+      - key: Node__Peers__0__SharedSecret
+        sync: false
+      - key: Node__Peers__1__DepartmentCode
+        value: Municipality
+      - key: Node__Peers__1__ApiBaseUrl
+        sync: false
+      - key: Node__Peers__1__SharedSecret
+        sync: false
+      - key: ConnectionStrings__CivicSyncNode
+        sync: false
+      - key: Security__ApiKey
+        sync: false
+      - key: Cors__AllowedOrigins__0
+        sync: false
+      - key: Passkey__RelyingPartyId
+        sync: false
+      - key: Passkey__AllowedOrigins__0
+        sync: false
+
+  - type: web
+    name: civicsync-sars-api
+    runtime: docker
+    plan: free
+    rootDir: aspnet-core
+    dockerfilePath: ./Dockerfile.web
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: Database__Provider
+        value: PostgreSql
+      - key: Database__PostgreSqlSchema
+        value: sars
+      - key: Node__DepartmentCode
+        value: Sars
+      - key: Node__ApiBaseUrl
+        sync: false
+      - key: Node__SharedSecret
+        sync: false
+      - key: Node__MaxSyncPublishAttempts
+        value: "3"
+      - key: Node__Peers__0__DepartmentCode
+        value: HomeAffairs
+      - key: Node__Peers__0__ApiBaseUrl
+        sync: false
+      - key: Node__Peers__0__SharedSecret
+        sync: false
+      - key: Node__Peers__1__DepartmentCode
+        value: Municipality
+      - key: Node__Peers__1__ApiBaseUrl
+        sync: false
+      - key: Node__Peers__1__SharedSecret
+        sync: false
+      - key: ConnectionStrings__CivicSyncNode
+        sync: false
+      - key: Security__ApiKey
+        sync: false
+      - key: Cors__AllowedOrigins__0
+        sync: false
+      - key: Passkey__RelyingPartyId
+        sync: false
+      - key: Passkey__AllowedOrigins__0
+        sync: false
+
+  - type: web
+    name: civicsync-municipality-api
+    runtime: docker
+    plan: free
+    rootDir: aspnet-core
+    dockerfilePath: ./Dockerfile.web
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: Database__Provider
+        value: PostgreSql
+      - key: Database__PostgreSqlSchema
+        value: municipality
+      - key: Node__DepartmentCode
+        value: Municipality
+      - key: Node__ApiBaseUrl
+        sync: false
+      - key: Node__SharedSecret
+        sync: false
+      - key: Node__MaxSyncPublishAttempts
+        value: "3"
+      - key: Node__Peers__0__DepartmentCode
+        value: HomeAffairs
+      - key: Node__Peers__0__ApiBaseUrl
+        sync: false
+      - key: Node__Peers__0__SharedSecret
+        sync: false
+      - key: Node__Peers__1__DepartmentCode
+        value: Sars
+      - key: Node__Peers__1__ApiBaseUrl
+        sync: false
+      - key: Node__Peers__1__SharedSecret
+        sync: false
+      - key: ConnectionStrings__CivicSyncNode
+        sync: false
+      - key: Security__ApiKey
+        sync: false
+      - key: Cors__AllowedOrigins__0
+        sync: false
+      - key: Passkey__RelyingPartyId
+        sync: false
+      - key: Passkey__AllowedOrigins__0
+        sync: false
+
+  - type: web
+    name: civicsync-ledger-web
+    runtime: docker
+    plan: free
+    rootDir: Frontend
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: NEXT_PUBLIC_CIVICSYNC_API_KEY
+        sync: false
+      - key: NEXT_PUBLIC_CIVICSYNC_HOME_AFFAIRS_API_URL
+        sync: false
+      - key: NEXT_PUBLIC_CIVICSYNC_SARS_API_URL
+        sync: false
+      - key: NEXT_PUBLIC_CIVICSYNC_MUNICIPALITY_API_URL
+        sync: false

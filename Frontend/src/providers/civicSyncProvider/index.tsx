@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useMemo, useReducer } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useReducer, useRef } from 'react';
 import { CivicSyncClient } from '../../api/civicsyncClient';
 import { getErrorMessage } from '../../utils/axiosInstance';
 import { setCivicSyncState, setOperationError, setOperationPending, setOperationSuccess } from './actions';
@@ -13,7 +13,7 @@ import {
   nodes,
   type SubmitFieldChangeInput,
 } from './context';
-import type { ChangeRequest, Citizen, DepartmentUser, LedgerEntry, NodeInfo, NodeOption, SyncInboxEntry, SyncOutboxEvent, SyncReceipt } from '../../api/types';
+import type { ChangeRequest, Citizen, CreateDepartmentUserRequest, DepartmentUser, LedgerEntry, NodeInfo, NodeOption, SyncInboxEntry, SyncOutboxEvent, SyncReceipt } from '../../api/types';
 import { civicSyncReducer } from './reducer';
 import { findDepartmentApproval } from '../../utils/departmentApprovals';
 
@@ -37,6 +37,13 @@ const loadOptionalDepartmentUsers = async (client: CivicSyncClient) => {
 
     throw error;
   }
+};
+
+const runSilentSyncMaintenance = async (client: CivicSyncClient) => {
+  await Promise.allSettled([
+    client.publishOutbox(),
+    client.applyInbox(),
+  ]);
 };
 
 interface NodeChangeRequestResult {
@@ -187,8 +194,11 @@ const buildFallbackDepartmentUsers = (
   }] as DepartmentUser[];
 };
 
+const PollingIntervalMs = 5000;
+
 export const CivicSyncProvider = ({ children }: { children: React.ReactNode }) => {
   const [state, dispatch] = useReducer(civicSyncReducer, initialState);
+  const isPollingRef = useRef(false);
   const client = useMemo(() => new CivicSyncClient(state.activeNode.baseUrl), [state.activeNode.baseUrl]);
 
   const refreshAll = useCallback(async (showMessage = true) => {
@@ -275,6 +285,26 @@ export const CivicSyncProvider = ({ children }: { children: React.ReactNode }) =
     refreshAll();
   }, [state.activeNode.baseUrl]);
 
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      if (isPollingRef.current) {
+        return;
+      }
+
+      isPollingRef.current = true;
+      runSilentSyncMaintenance(client)
+        .then(() => refreshAll(false))
+        .catch(() => {
+          // Silent polling keeps the last visible manual action state intact.
+        })
+        .finally(() => {
+          isPollingRef.current = false;
+        });
+    }, PollingIntervalMs);
+
+    return () => window.clearInterval(intervalId);
+  }, [refreshAll]);
+
   const runAction = async (label: string, action: () => Promise<void>) => {
     dispatch(setOperationPending(label));
     try {
@@ -288,7 +318,7 @@ export const CivicSyncProvider = ({ children }: { children: React.ReactNode }) =
 
   const selectedCitizen = state.citizens.find((citizen) => citizen.id === state.selectedCitizenId);
   const selectedRequest = state.changeRequests.find((request) => request.id === state.selectedRequestId);
-  const buildSharedFieldChange = (request: SubmitFieldChangeInput) => {
+  const buildSharedFieldChange = (request: Pick<SubmitFieldChangeInput, 'fieldName' | 'newValue' | 'reason'>) => {
     if (!selectedCitizen) {
       throw new Error('Select a citizen first.');
     }
@@ -333,6 +363,19 @@ export const CivicSyncProvider = ({ children }: { children: React.ReactNode }) =
       const created = await client.createCitizen(state.citizenForm);
       dispatch(setCivicSyncState({ selectedCitizenId: created.id, citizenForm: initialCitizenForm }));
     }),
+    createDepartmentUser: async (request: CreateDepartmentUserRequest) => {
+      dispatch(setOperationPending('Create department user'));
+
+      try {
+        const created = await client.createDepartmentUser(request);
+        await refreshAll(false);
+        dispatch(setOperationSuccess('Department user created.'));
+        return created;
+      } catch (error) {
+        dispatch(setOperationError(getErrorMessage(error)));
+        throw error;
+      }
+    },
     submitChangeRequest: () => runAction('Submit change request', async () => {
       if (!selectedCitizen) {
         throw new Error('Select a citizen first.');
@@ -367,11 +410,15 @@ export const CivicSyncProvider = ({ children }: { children: React.ReactNode }) =
           throw new Error('Select a citizen first.');
         }
 
-        const fieldChange = buildSharedFieldChange(request);
+        const requestedFieldChanges = request.fieldChanges?.length
+          ? request.fieldChanges.map((fieldChange) => ({ ...fieldChange, reason: request.reason }))
+          : [request];
+        const fieldChanges = requestedFieldChanges.map(buildSharedFieldChange);
+
         const created = await client.submitChangeRequest({
           citizenId: selectedCitizen.id,
           reason: request.reason.trim(),
-          fieldChanges: [fieldChange],
+          fieldChanges,
           evidenceFiles: request.evidenceFiles ?? [],
         });
 

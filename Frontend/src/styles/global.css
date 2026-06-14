@@ -1690,8 +1690,10 @@ input:focus {
   top: 16px;
   right: 16px;
   color: var(--lime-deep);
-  content: "Ã¢Å“â€œ";
+  content: "Selected";
+  font-size: 0.72rem;
   font-weight: 900;
+  text-transform: uppercase;
 }
 
 .wizard-field-card:disabled {
@@ -1971,6 +1973,41 @@ textarea:focus,
   border: 1px solid #dfe7f3;
   border-radius: var(--radius-sm);
   background: var(--white);
+}
+
+.admin-user-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.admin-user-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.admin-user-form label {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-user-form label span {
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.admin-user-list {
+  margin-top: 4px;
+}
+
+.admin-user-list small {
+  display: block;
+  margin-top: 3px;
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 700;
 }
 
 .inbox-entry-body span,
@@ -3199,10 +3236,23 @@ textarea:focus,
   min-width: 160px;
 }
 
+.biometric-password-confirm {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.biometric-password-confirm span {
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
 
 .biometric-camera-panel {
   position: relative;
-  display: grid;
+  display: block;
   min-height: 220px;
   margin-top: 16px;
   overflow: hidden;
@@ -3212,11 +3262,15 @@ textarea:focus,
 }
 
 .biometric-video {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  min-height: 220px;
-  max-height: 320px;
+  height: 100%;
+  min-height: 100%;
+  max-height: none;
   object-fit: cover;
   background: #0f172a;
+  transform: scaleX(-1);
 }
 
 .biometric-video-idle {
@@ -3226,6 +3280,7 @@ textarea:focus,
 .biometric-placeholder {
   position: absolute;
   inset: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3250,4 +3305,24 @@ textarea:focus,
   margin: 10px 0 0;
   color: #9b1c0f;
   font-weight: 900;
+}
+
+.face-login-panel {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.login-face-camera {
+  height: 180px;
+  min-height: 160px;
+  margin-top: 0;
+  border-radius: var(--radius-sm);
+}
+
+.login-face-camera .biometric-video {
+  height: 100%;
+  min-height: 100%;
 }

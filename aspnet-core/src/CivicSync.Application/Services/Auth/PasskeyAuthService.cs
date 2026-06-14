@@ -2,8 +2,10 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using CivicSync.Application.Contracts.Auth;
+using CivicSync.Core.Configuration;
 using CivicSync.Core.Domain.Auth;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Volo.Abp.Domain.Repositories;
 
 namespace CivicSync.Application.Services.Auth;
@@ -16,23 +18,23 @@ public sealed class PasskeyAuthService : IPasskeyAuthService
     private const string LoginClientDataType = "webauthn.get";
     private const int ChallengeSizeBytes = 32;
     private const int TimeoutMs = 60000;
-    private static readonly HashSet<string> AllowedOrigins = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "http://localhost:5173",
-        "https://localhost:5173",
-        "http://127.0.0.1:5173",
-        "https://127.0.0.1:5173"
-    };
-
     private readonly IRepository<PasskeyCredential, Guid> _credentialRepository;
     private readonly IRepository<PasskeyChallenge, Guid> _challengeRepository;
+    private readonly PasskeyOptions _passkeyOptions;
+    private readonly HashSet<string> _allowedOrigins;
 
     public PasskeyAuthService(
         IRepository<PasskeyCredential, Guid> credentialRepository,
-        IRepository<PasskeyChallenge, Guid> challengeRepository)
+        IRepository<PasskeyChallenge, Guid> challengeRepository,
+        IOptions<PasskeyOptions> passkeyOptions)
     {
         _credentialRepository = credentialRepository;
         _challengeRepository = challengeRepository;
+        _passkeyOptions = passkeyOptions.Value;
+        _allowedOrigins = _passkeyOptions.AllowedOrigins
+            .Where(origin => !string.IsNullOrWhiteSpace(origin))
+            .Select(origin => origin.Trim().TrimEnd('/'))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
     }
 
     public async Task<PasskeyChallengeResponse> BeginRegistrationAsync(
@@ -174,8 +176,8 @@ public sealed class PasskeyAuthService : IPasskeyAuthService
         return new PasskeyChallengeResponse
         {
             Challenge = challenge,
-            RpId = "localhost",
-            RpName = "CivicSync Ledger",
+            RpId = _passkeyOptions.RelyingPartyId,
+            RpName = _passkeyOptions.RelyingPartyName,
             UserId = Base64UrlEncode(Encoding.UTF8.GetBytes(emailAddress)),
             UserName = emailAddress,
             DisplayName = string.IsNullOrWhiteSpace(displayName) ? emailAddress : displayName,
@@ -208,7 +210,7 @@ public sealed class PasskeyAuthService : IPasskeyAuthService
             throw new InvalidOperationException("Passkey challenge is missing.");
         }
 
-        if (string.IsNullOrWhiteSpace(origin) || !AllowedOrigins.Contains(origin))
+        if (string.IsNullOrWhiteSpace(origin) || !_allowedOrigins.Contains(origin.Trim().TrimEnd('/')))
         {
             throw new InvalidOperationException("Passkey client origin is not allowed.");
         }
