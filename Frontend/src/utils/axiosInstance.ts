@@ -1,4 +1,23 @@
-const API_KEY = process.env.NEXT_PUBLIC_CIVICSYNC_API_KEY || 'development-civicsync-api-key';
+declare global {
+  interface Window {
+    __CIVICSYNC_CONFIG__?: {
+      apiKey?: string;
+      homeAffairsApiUrl?: string;
+      sarsApiUrl?: string;
+      municipalityApiUrl?: string;
+    };
+  }
+}
+
+const getApiKey = () => {
+  const runtimeApiKey = typeof window !== 'undefined'
+    ? window.__CIVICSYNC_CONFIG__?.apiKey
+    : undefined;
+
+  return runtimeApiKey?.trim()
+    || process.env.NEXT_PUBLIC_CIVICSYNC_API_KEY
+    || 'development-civicsync-api-key';
+};
 
 interface CivicSyncHttpResponse<T> {
   data: T;
@@ -14,7 +33,7 @@ const request = async <T>(baseUrl: string, path: string, method: 'GET' | 'POST',
     method,
     headers: {
       'Content-Type': 'application/json',
-      'X-CivicSync-Api-Key': API_KEY,
+      'X-CivicSync-Api-Key': getApiKey(),
     },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
@@ -45,7 +64,7 @@ const getBlob = async (baseUrl: string, path: string): Promise<Blob> => {
   const response = await fetch(`${baseUrl}${path}`, {
     method: 'GET',
     headers: {
-      'X-CivicSync-Api-Key': API_KEY,
+      'X-CivicSync-Api-Key': getApiKey(),
     },
   });
 

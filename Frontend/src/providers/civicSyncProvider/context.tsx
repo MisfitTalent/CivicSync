@@ -1,6 +1,17 @@
 import { createContext } from 'react';
 import type { ChangeRequest, Citizen, CreateDepartmentUserRequest, DepartmentUser, LedgerEntry, NodeInfo, NodeOption, SyncInboxEntry, SyncOutboxEvent, SyncReceipt } from '../../api/types';
 
+declare global {
+  interface Window {
+    __CIVICSYNC_CONFIG__?: {
+      apiKey?: string;
+      homeAffairsApiUrl?: string;
+      sarsApiUrl?: string;
+      municipalityApiUrl?: string;
+    };
+  }
+}
+
 const deployedNodeFallbacks: Record<string, string> = {
   NEXT_PUBLIC_CIVICSYNC_HOME_AFFAIRS_API_URL: 'https://civicsync-home-affairs-api.onrender.com',
   NEXT_PUBLIC_CIVICSYNC_SARS_API_URL: 'https://civicsync-sars-api.onrender.com',
@@ -16,6 +27,19 @@ const isLocalBrowser = () => {
 };
 
 const getNodeUrl = (key: string, fallback: string) => {
+  const runtimeValues: Record<string, string | undefined> = typeof window === 'undefined'
+    ? {}
+    : {
+      NEXT_PUBLIC_CIVICSYNC_HOME_AFFAIRS_API_URL: window.__CIVICSYNC_CONFIG__?.homeAffairsApiUrl,
+      NEXT_PUBLIC_CIVICSYNC_SARS_API_URL: window.__CIVICSYNC_CONFIG__?.sarsApiUrl,
+      NEXT_PUBLIC_CIVICSYNC_MUNICIPALITY_API_URL: window.__CIVICSYNC_CONFIG__?.municipalityApiUrl,
+    };
+
+  const runtimeValue = runtimeValues[key];
+  if (typeof runtimeValue === 'string' && runtimeValue.trim().length > 0) {
+    return runtimeValue.trim().replace(/\/$/, '');
+  }
+
   const values: Record<string, string | undefined> = {
     NEXT_PUBLIC_CIVICSYNC_HOME_AFFAIRS_API_URL: process.env.NEXT_PUBLIC_CIVICSYNC_HOME_AFFAIRS_API_URL,
     NEXT_PUBLIC_CIVICSYNC_SARS_API_URL: process.env.NEXT_PUBLIC_CIVICSYNC_SARS_API_URL,
