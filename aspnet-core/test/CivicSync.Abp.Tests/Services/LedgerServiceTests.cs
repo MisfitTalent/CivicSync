@@ -118,6 +118,31 @@ public sealed class LedgerServiceTests
     }
 
     [Fact]
+    public async Task CommitChangeRequestAsync_AllowsCommit_WhenUnchangedRequestedFieldHasLaterRecordVersion()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var node = new DepartmentNode(DepartmentCode.HomeAffairs, "http://localhost:5076");
+        var citizen = new Citizen(node.Id, "9001015009087", new PersonName("Test", "Citizen"), new ContactDetails("old@example.test", "+27000000000"));
+        var changeRequest = CreateApprovedFullNameChange(node.Id, citizen.Id, citizen.RecordVersion);
+        citizen.EnrollBiometric("Face scan", "Browser camera", "face-v1:abc123");
+        dbContext.DepartmentNodes.Add(node);
+        dbContext.Citizens.Add(citizen);
+        dbContext.ChangeRequests.Add(changeRequest);
+        await Task.CompletedTask;
+        var service = CreateService(dbContext);
+
+        var result = await service.CommitChangeRequestAsync(changeRequest.Id);
+
+        Assert.Equal("Committed", result.Status);
+        Assert.Equal(ChangeRequestStatus.Committed, changeRequest.Status);
+        Assert.Equal("New", citizen.FullName.FirstName);
+        Assert.Equal("Name", citizen.FullName.LastName);
+        Assert.Equal(3, citizen.RecordVersion);
+        Assert.Single(dbContext.LedgerEntries.Local);
+        Assert.Single(dbContext.SyncOutboxEvents.Local);
+    }
+
+    [Fact]
     public async Task ProcessApprovedChangeRequestsAsync_CommitsOnlyRequestedBatchSize()
     {
         await using var dbContext = TestDbContextFactory.Create();
@@ -188,6 +213,22 @@ public sealed class LedgerServiceTests
 
         return changeRequest;
     }
+
+    private static ChangeRequest CreateApprovedFullNameChange(Guid nodeId, Guid citizenId, long expectedCitizenVersion = 1)
+    {
+        var changeRequest = new ChangeRequest(nodeId, citizenId, "Update name", expectedCitizenVersion);
+        changeRequest.AddFieldChange("FullName", "Test Citizen", "New Name");
+        changeRequest.RequestApprovalFrom(
+            nodeId,
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            "Naledi Mokoena",
+            "Senior Verifier",
+            "Home Affairs");
+        changeRequest.RecordDecision(nodeId, ApprovalDecision.Approved, "Approved");
+
+        return changeRequest;
+    }
+
     private static LedgerService CreateService(CivicSyncDbContext dbContext)
     {
         return new LedgerService(
