@@ -1,6 +1,20 @@
 import { createContext } from 'react';
 import type { ChangeRequest, Citizen, CreateDepartmentUserRequest, DepartmentUser, LedgerEntry, NodeInfo, NodeOption, SyncInboxEntry, SyncOutboxEvent, SyncReceipt } from '../../api/types';
 
+const deployedNodeFallbacks: Record<string, string> = {
+  NEXT_PUBLIC_CIVICSYNC_HOME_AFFAIRS_API_URL: 'https://civicsync-home-affairs-api.onrender.com',
+  NEXT_PUBLIC_CIVICSYNC_SARS_API_URL: 'https://civicsync-sars-api.onrender.com',
+  NEXT_PUBLIC_CIVICSYNC_MUNICIPALITY_API_URL: 'https://civicsync-municipality-api.onrender.com',
+};
+
+const isLocalBrowser = () => {
+  if (typeof window === 'undefined') {
+    return true;
+  }
+
+  return ['localhost', '127.0.0.1'].includes(window.location.hostname);
+};
+
 const getNodeUrl = (key: string, fallback: string) => {
   const values: Record<string, string | undefined> = {
     NEXT_PUBLIC_CIVICSYNC_HOME_AFFAIRS_API_URL: process.env.NEXT_PUBLIC_CIVICSYNC_HOME_AFFAIRS_API_URL,
@@ -8,7 +22,11 @@ const getNodeUrl = (key: string, fallback: string) => {
     NEXT_PUBLIC_CIVICSYNC_MUNICIPALITY_API_URL: process.env.NEXT_PUBLIC_CIVICSYNC_MUNICIPALITY_API_URL,
   };
   const value = values[key];
-  return typeof value === 'string' && value.trim().length > 0 ? value.trim().replace(/\/$/, '') : fallback;
+  if (typeof value === 'string' && value.trim().length > 0) {
+    return value.trim().replace(/\/$/, '');
+  }
+
+  return isLocalBrowser() ? fallback : deployedNodeFallbacks[key];
 };
 
 export const nodes: NodeOption[] = [
