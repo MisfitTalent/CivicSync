@@ -175,6 +175,11 @@ Full setup details are in [`docs/postgresql-deployment.md`](docs/postgresql-depl
 - Face authentication stores descriptors rather than raw images and is intended as an MVP biometric workflow.
 - POPIA-style field visibility is represented through department-scoped views and redacted fields, not a complete legal policy engine.
 - The sync flow is automatic and demo-friendly, but a production system would need stronger retry, monitoring, key management, and operational controls.
+  
+## Design & Domain Model
+
+- Figma design reference: [CivicSync UI design](https://www.figma.com/community/file/1646141375190685553)
+- Domain model diagram: [CivicSync domain model](https://app.diagrams.net/#G1fN67ozym_2Yo3cZqjfRPrE5Dfv-G3IhX)
 
 ## AI Usage Disclosure
 
