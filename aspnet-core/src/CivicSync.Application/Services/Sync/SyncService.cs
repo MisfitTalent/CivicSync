@@ -157,13 +157,6 @@ public sealed class SyncService : ISyncService
 
         foreach (var outboxEvent in pendingOutboxEvents)
         {
-            if (outboxEvent.Status == SyncStatus.Failed &&
-                outboxEvent.RetryCount >= _nodeOptions.MaxSyncPublishAttempts)
-            {
-                response.SkippedOutboxEvents++;
-                continue;
-            }
-
             var syncRequest = await BuildSyncRequestAsync(outboxEvent.LedgerEntryId, cancellationToken);
             var eventDeliveredToAllPeers = true;
 
