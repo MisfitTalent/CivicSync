@@ -141,6 +141,8 @@ services:
     rootDir: Frontend
     dockerfilePath: ./Dockerfile
     envVars:
+      - key: PORT
+        value: "10000"
       - key: NEXT_PUBLIC_CIVICSYNC_API_KEY
         sync: false
       - key: NEXT_PUBLIC_CIVICSYNC_HOME_AFFAIRS_API_URL
