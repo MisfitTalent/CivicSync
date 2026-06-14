@@ -12,6 +12,10 @@ export interface NodeInfo {
   peers: PeerNode[];
 }
 
+export interface HealthStatus {
+  status: string;
+}
+
 export interface PeerNode {
   departmentCode: DepartmentCode;
   apiBaseUrl: string;

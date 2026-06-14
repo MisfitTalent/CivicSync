@@ -12,6 +12,7 @@ import type {
   CreateCitizenRequest,
   CreateDepartmentUserRequest,
   DepartmentUser,
+  HealthStatus,
   LedgerEntry,
   NodeInfo,
   PasskeyAuthenticationResult,
@@ -32,6 +33,10 @@ export class CivicSyncClient {
 
   async getNodeInfo() {
     return this.get<NodeInfo>('/api/node');
+  }
+
+  async getHealth() {
+    return this.get<HealthStatus>('/health');
   }
 
   async beginPasskeyRegistration(emailAddress: string, displayName: string) {
