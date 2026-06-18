@@ -33,6 +33,11 @@ This folder contains the ASP.NET/ABP backend implementation for the CivicSync Le
 - Citizen update wizard with multi-field request support
 - Live polling for records, requests, ledger, inbox, outbox, and receipts
 
+## Design & Domain Model
+
+- Figma design reference: [CivicSync UI design](https://www.figma.com/community/file/1646141375190685553)
+- Domain model diagram: [CivicSync domain model](https://app.diagrams.net/#G1fN67ozym_2Yo3cZqjfRPrE5Dfv-G3IhX)
+
 ## Biometric Authentication
 
 CivicSync supports two biometric login paths in the demo:
